@@ -228,7 +228,18 @@ inline void py_error(PyObject* exc, const char* message) noexcept
 }
 
 /**
- * Set the Python error indicator for the current thread and exit.
+ * Print the exception trace and exit if the Python error indicator is set.
+ */
+inline void py_error_exit() noexcept
+{
+  if (!PyErr_Occurred())
+    return;
+  PyErr_Print();
+  std::exit(EXIT_FAILURE);
+}
+
+/**
+ * Set the Python error indicator, print the exception trace, and exit.
  *
  * @param exc Exception type to set
  * @param message Exception message
@@ -237,6 +248,7 @@ inline void py_error(PyObject* exc, const char* message) noexcept
 inline void py_error_exit(PyObject* exc, const char* message) noexcept
 {
   py_error(exc, message);
+  PyErr_Print();
   std::exit(EXIT_FAILURE);
 }
 
@@ -269,7 +281,7 @@ inline void py_error(PyObject* exc, Ts&&... args)
 }
 
 /**
- * Set the Python error indicator for the current thread and exit.
+ * Set the Python error indicator, print the exception trace, and exit.
  *
  * @param exc Exception type to set
  * @param message Exception message
@@ -281,7 +293,7 @@ inline void py_error_exit(PyObject* exc, std::string_view message) noexcept
 }
 
 /**
- * Set the Python error indicator for the current thread and exit.
+ * Set the Python error indicator, print the exception trace, and exit.
  *
  * @param expr Expression to set error and exit if `true`
  * @param exc Exception type to set
@@ -295,7 +307,7 @@ inline void py_error_exit(
 }
 
 /**
- * Set the Python error indicator for the current thread.
+ * Set the Python error indicator, print the exception trace, and exit.
  *
  * @tparam Ts... Argument types
  *

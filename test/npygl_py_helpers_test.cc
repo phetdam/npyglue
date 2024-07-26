@@ -16,30 +16,29 @@ int main()
 {
   // initialize Python + print copyright and version
   npygl::py_instance python;
-  // note: Py_GetCopyright and Py_GetVersion can be called before init
+  // note: Py_GetVersion can be called before init
   std::cout << Py_GetVersion() << std::endl;
-  std::cout << Py_GetCopyright() << std::endl;
   // import the math module
   constexpr auto mod_name = "math";
   auto mod = npygl::py_import(mod_name);
-  npygl::py_error_exit(!mod, PyErr_Occurred(), "failed to import ", mod_name);
+  npygl::py_error_exit();
   // get the e value from the module
   constexpr auto ename = "e";
   auto e = npygl::py_getattr(mod, ename);
-  npygl::py_error_exit(!e, PyErr_Occurred(), "failed to get ", ename);
+  npygl::py_error_exit();
   // get the log function from the module
   constexpr auto fname = "log";
   auto f = npygl::py_getattr(mod, fname);
-  npygl::py_error_exit(!f, PyErr_Occurred(), "failed to get ", fname);
+  npygl::py_error_exit();
   // check if callable (it should be)
   npygl::py_error_exit(
     !PyCallable_Check(f),
     PyExc_RuntimeError,
-    "function ", fname, " is not callable"
+    mod_name, " attribute ", fname, " is not callable"
   );
   // call f on e and get result (should be a double)
   auto res = npygl::py_call_one(f, e);
-  npygl::py_error_exit(!res, PyErr_Occurred(), "calling ", fname, " failed");
+  npygl::py_error_exit();
   npygl::py_error_exit(!PyFloat_Check(res), PyExc_TypeError, "result not a float");
   // print result and exit
   std::cout << mod_name << "." << fname << "(" << mod_name << "." << ename <<
