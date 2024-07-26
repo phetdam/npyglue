@@ -14,6 +14,14 @@
 #endif  // PY_SSIZE_T_CLEAN
 #include <Python.h>
 
+#include <cstdlib>
+
+#include "npygl/features.h"
+
+#if NPYGL_HAS_CC_17
+#include <string_view>
+#endif  // !NPYGL_HAS_CC_17
+
 namespace npygl {
 
 /**
@@ -125,6 +133,117 @@ public:
 private:
   PyObject* ref_;
 };
+
+/**
+ * Python main interpreter instance.
+ *
+ * Initializes and on destruction finalizes a Python interpreter instance.
+ *
+ * @note Having more than one `py_instance` alive at a time is meaningless
+ *  because `Py_Initialize` is a no-op unless `Py_Finalize[Ex]` was called.
+ *
+ * @note `Py_NewInterpreter` and `Py_EndInterpreter` can be used to create and
+ *  destroy sub-interpreters that are managed by the main interpreter.
+ */
+class py_instance {
+public:
+  /**
+   * Ctor.
+   *
+   * Perform default Python interpreter initialization for the current thread.
+   *
+   * @param fail_fast `true` to exit if `Py_FinalizeEx` returns on error
+   */
+  explicit py_instance(bool fail_fast = false) noexcept : fail_fast_{fail_fast}
+  {
+    Py_Initialize();
+  }
+
+  /**
+   * Deleted copy ctor.
+   */
+  py_instance(const py_instance&) = delete;
+
+  /**
+   * Dtor.
+   *
+   * If `fail_fast()` returns `true` exit is called if `Py_FinalizeEx` errors.
+   */
+  ~py_instance()
+  {
+    if (!Py_FinalizeEx() && fail_fast_)
+      std::exit(EXIT_FAILURE);
+  }
+
+  /**
+   * Indicate whether or not program exits with error if `Py_FinalizeEx` errors.
+   */
+  bool fail_fast() const noexcept { return fail_fast_; }
+
+private:
+  bool fail_fast_;
+};
+
+/**
+ * Import the given Python module.
+ *
+ * @param name Name of module to import
+ */
+inline auto py_import(const char* name) noexcept
+{
+  return py_object{PyImport_ImportModule(name)};
+}
+
+#if NPYGL_HAS_CC_17
+/**
+ * Import the given Python module.
+ *
+ * @param name Name of module to import
+ */
+inline auto py_import(std::string_view name) noexcept
+{
+  return py_object{PyImport_ImportModule(name.data())};
+}
+#endif  // !NPYGL_HAS_CC_17
+
+/**
+ * Set the Python error indicator for the current thread.
+ *
+ * @param exc Exception type to set
+ * @param message Exception message
+ */
+inline void py_error(PyObject* exc, std::string_view message) noexcept
+{
+  PyErr_SetString(exc, message.data());
+}
+
+/**
+ * Retrieve the attribute with the given name from the Python object.
+ *
+ * The returned `py_object` is empty on failure.
+ *
+ * @param obj Python object
+ * @param name Attribute name
+ */
+inline auto py_getattr(PyObject* obj, const char* name) noexcept
+{
+  return py_object{PyObject_GetAttrString(obj, name)};
+}
+
+#if NPYGL_HAS_CC_17
+/**
+ * Retrieve the attribute with the given name from the Python object.
+ *
+ * The returned `py_object` is empty on failure.
+ *
+ * @param obj Python object
+ * @param name Attribute name
+ */
+inline auto py_getattr(PyObject* obj, std::string_view name) noexcept
+{
+  return py_getattr(obj, name.data());
+}
+#endif  // !NPYGL_HAS_CC_17
 
 }  // namespace npygl
 
