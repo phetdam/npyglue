@@ -1,0 +1,26 @@
+/**
+ * @file version.h
+ * @author Derek Huang
+ * @brief C/C++ header with version information
+ * @copyright MIT License
+ */
+
+#ifndef NPYGL_VERSION_H_
+#define NPYGL_VERSION_H_
+
+/**
+ * Project major version number.
+ */
+#define NPYGL_VERSION_MAJOR @PROJECT_VERSION_MAJOR@
+
+/**
+ * Project minor version number.
+ */
+#define NPYGL_VERSION_MINOR @PROJECT_VERSION_MINOR@
+
+/**
+ * Project patch version number.
+ */
+#define NPYGL_VERSION_PATCH @PROJECT_VERSION_PATCH@
+
+#endif  // NPYGL_VERSION_H_

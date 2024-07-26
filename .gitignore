@@ -1,0 +1,8 @@
+# build directories
+/build*
+# VS Code config
+/.vscode
+# Vim swap files
+*.swp
+# generated version header
+/include/npygl/version.h
