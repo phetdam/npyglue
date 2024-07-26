@@ -14,6 +14,9 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_C_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
+# options
+option(BUILD_TESTS "Build ${PROJECT_NAME} tests" ON)
+
 # check if generator is multi-config
 get_property(NPYGL_MULTI_CONFIG_GENERATOR GLOBAL PROPERTY GENERATOR_IS_MULTI_CONFIG)
 if(NPYGL_MULTI_CONFIG_GENERATOR)
@@ -67,3 +70,10 @@ set(NPYGL_VERSION_HEADER ${NPYGL_INCLUDE_DIR}/npygl/version.h)
 cmake_path(GET NPYGL_VERSION_HEADER FILENAME NPYGL_VERSION_HEADER_NAME)
 configure_file(${NPYGL_VERSION_HEADER}.in ${NPYGL_VERSION_HEADER} @ONLY LF)
 message(STATUS "Generated ${NPYGL_VERSION_HEADER_NAME}")
+
+# enable testing with CTest
+include(CTest)
+
+if(BUILD_TESTS)
+    add_subdirectory(test)
+endif()

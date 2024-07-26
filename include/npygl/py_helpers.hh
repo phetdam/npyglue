@@ -15,6 +15,7 @@
 #include <Python.h>
 
 #include <cstdlib>
+#include <sstream>
 
 #include "npygl/features.h"
 
@@ -92,7 +93,15 @@ public:
   /**
    * Implicit conversion operator for C function interop.
    */
-  operator PyObject* const noexcept
+  operator PyObject*() const noexcept
+  {
+    return ref_;
+  }
+
+  /**
+   * Implicit conversion operator for checking if ownership exists.
+   */
+  operator bool() const noexcept
   {
     return ref_;
   }
@@ -103,6 +112,7 @@ public:
    * @note If you do not correctly manage the reference count for the returned
    *  object pointer the Python interpreter may end up leaking memory.
    */
+  [[nodiscard]]
   PyObject* release() noexcept
   {
     auto old_ref = ref_;
@@ -202,7 +212,7 @@ inline auto py_import(const char* name) noexcept
  */
 inline auto py_import(std::string_view name) noexcept
 {
-  return py_object{PyImport_ImportModule(name.data())};
+  return py_import(name.data());
 }
 #endif  // !NPYGL_HAS_CC_17
 
@@ -212,10 +222,97 @@ inline auto py_import(std::string_view name) noexcept
  * @param exc Exception type to set
  * @param message Exception message
  */
+inline void py_error(PyObject* exc, const char* message) noexcept
+{
+  PyErr_SetString(exc, message);
+}
+
+/**
+ * Set the Python error indicator for the current thread and exit.
+ *
+ * @param exc Exception type to set
+ * @param message Exception message
+ */
+[[noreturn]]
+inline void py_error_exit(PyObject* exc, const char* message) noexcept
+{
+  py_error(exc, message);
+  std::exit(EXIT_FAILURE);
+}
+
+#if NPYGL_HAS_CC_17
+/**
+ * Set the Python error indicator for the current thread.
+ *
+ * @param exc Exception type to set
+ * @param message Exception message
+ */
 inline void py_error(PyObject* exc, std::string_view message) noexcept
 {
-  PyErr_SetString(exc, message.data());
+  py_error(exc, message.data());
 }
+
+/**
+ * Set the Python error indicator for the current thread.
+ *
+ * @tparam Ts... Argument types
+ *
+ * @param exc Exception type to set
+ * @param args... Arguments to format in exception message
+ */
+template <typename... Ts>
+inline void py_error(PyObject* exc, Ts&&... args)
+{
+  std::stringstream ss;
+  (ss << ... << args);
+  py_error(exc, ss.str().c_str());
+}
+
+/**
+ * Set the Python error indicator for the current thread and exit.
+ *
+ * @param exc Exception type to set
+ * @param message Exception message
+ */
+[[noreturn]]
+inline void py_error_exit(PyObject* exc, std::string_view message) noexcept
+{
+  py_error_exit(exc, message.data());
+}
+
+/**
+ * Set the Python error indicator for the current thread and exit.
+ *
+ * @param expr Expression to set error and exit if `true`
+ * @param exc Exception type to set
+ * @param message Exception message
+ */
+inline void py_error_exit(
+  bool expr, PyObject* exc, std::string_view message) noexcept
+{
+  if (expr)
+    py_error_exit(exc, message);
+}
+
+/**
+ * Set the Python error indicator for the current thread.
+ *
+ * @tparam Ts... Argument types
+ *
+ * @param expr Expression to set error and exit if `true`
+ * @param exc Exception type to set
+ * @param args... Arguments to format in exception message
+ */
+template <typename... Ts>
+inline void py_error_exit(bool expr, PyObject* exc, Ts&&... args)
+{
+  if (!expr)
+    return;
+  std::stringstream ss;
+  (ss << ... << args);
+  py_error_exit(exc, ss.str().c_str());
+}
+#endif  // !NPYGL_HAS_CC_17
 
 /**
  * Retrieve the attribute with the given name from the Python object.
@@ -244,6 +341,28 @@ inline auto py_getattr(PyObject* obj, std::string_view name) noexcept
   return py_getattr(obj, name.data());
 }
 #endif  // !NPYGL_HAS_CC_17
+
+/**
+ * Call the Python object with only a single argument.
+ *
+ * @param callable Callable Python object
+ * @param args Single Python argument
+ */
+inline auto py_call_one(PyObject* callable, PyObject* arg) noexcept
+{
+  return py_object{PyObject_CallOneArg(callable, arg)};
+}
+
+/**
+ * Call the Python object with the given positional arguments.
+ *
+ * @param callable Callable Python object
+ * @param args Python positional args
+ */
+inline auto py_call(PyObject* callable, PyObject* args) noexcept
+{
+  return py_object{PyObject_CallObject(callable, args)};
+}
 
 }  // namespace npygl
 
