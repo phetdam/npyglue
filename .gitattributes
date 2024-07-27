@@ -1,0 +1,3 @@
+* text=auto
+# CMD batch files must always use CRLF otherwise subtle bugs can occur
+*.bat text eol=crlf
