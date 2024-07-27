@@ -25,11 +25,11 @@
 /**
  * Stringify argument without macro expansion.
  */
-#define NPYGL_STRINGIFY_I(x)
+#define NPYGL_STRINGIFY_I(x) #x
 
 /**
  * Stringify argument with macro expansion.
  */
-#define NPYGL_STRINGIY(x) NPYGL_STRINGIFY_I(x)
+#define NPYGL_STRINGIFY(x) NPYGL_STRINGIFY_I(x)
 
 #endif  // NPYGL_COMMON_H_
