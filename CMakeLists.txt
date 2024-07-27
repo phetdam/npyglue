@@ -16,6 +16,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 # options
 option(BUILD_TESTS "Build ${PROJECT_NAME} tests" ON)
+option(PY_MSVC_ALWAYS_RELEASE "MSVC: Python targets use release runtimes" ON)
 
 # check if generator is multi-config
 get_property(NPYGL_MULTI_CONFIG_GENERATOR GLOBAL PROPERTY GENERATOR_IS_MULTI_CONFIG)
