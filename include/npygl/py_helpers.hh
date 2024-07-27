@@ -155,8 +155,13 @@ public:
    */
   auto clone() const noexcept
   {
+    // for Python 3.10.0+ use Py_XNewRef
+#if PY_VERSION_HEX >= 0x030a00f0
+    return py_object{Py_XNewRef(ref_)};
+#else
     Py_XINCREF(ref_);
     return py_object{ref_};
+#endif  // PY_VERSION_HEX < 0x030a00f0
   }
 
 private:
