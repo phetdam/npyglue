@@ -61,6 +61,14 @@ else()
     message(STATUS "NumPy version: None")
 endif()
 
+# find Google Test
+find_package(GTest 1.10)
+if(GTest_FOUND)
+    message(STATUS "Google Test version: ${GTest_VERSION}")
+else()
+    message(STATUS "Google Test version: None")
+endif()
+
 # project include directory
 set(NPYGL_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/include)
 include_directories(${NPYGL_INCLUDE_DIR})
