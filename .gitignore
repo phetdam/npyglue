@@ -1,5 +1,6 @@
 # build directories
-/build*
+/build
+/build_windows*
 # VS Code config
 /.vscode
 # Vim swap files
