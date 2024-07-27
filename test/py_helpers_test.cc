@@ -1,5 +1,5 @@
 /**
- * @file npygl_py_helpers_test.cc
+ * @file py_helpers_test.cc
  * @author Derek Huang
  * @brief C++ program to test some of the npygl Python helpers
  * @copyright MIT License
@@ -40,8 +40,16 @@ int main()
   auto res = npygl::py_call_one(f, e);
   npygl::py_error_exit();
   npygl::py_error_exit(!PyFloat_Check(res), PyExc_TypeError, "result not a float");
-  // print result and exit
+  // print result
   std::cout << mod_name << "." << fname << "(" << mod_name << "." << ename <<
     ") = " << PyFloat_AS_DOUBLE(res.ref()) << std::endl;
+  // check reference count after using py_object to increment count
+  {
+    std::cout << "res ref count: " << Py_REFCNT(res) << std::endl;
+    npygl::py_object r{res, npygl::py_object::incref};
+    std::cout << "res ref count: " << Py_REFCNT(res) << std::endl;
+  }
+  // check reference count again
+  std::cout << "res ref count: " << Py_REFCNT(res) << std::endl;
   return EXIT_SUCCESS;
 }

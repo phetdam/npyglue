@@ -33,6 +33,12 @@ namespace npygl {
 class py_object {
 public:
   /**
+   * Trivial type and member to support construction with reference increment.
+   */
+  struct incref_type {};
+  static inline constexpr incref_type incref{};
+
+  /**
    * Default ctor.
    */
   py_object() noexcept : py_object{nullptr} {}
@@ -45,6 +51,19 @@ public:
    * @param ref Python object to take ownership of (steal)
    */
   explicit py_object(PyObject* ref) noexcept : ref_{ref} {}
+
+  /**
+   * Ctor.
+   *
+   * Increments the Python object's reference count so on destruction, the net
+   * change to the object's reference count is zero.
+   *
+   * @param ref Python object to take ownership of
+   */
+  py_object(PyObject* ref, incref_type /*inc*/) noexcept : py_object{ref}
+  {
+    Py_XINCREF(ref);
+  }
 
   /**
    * Deleted copy ctor.
