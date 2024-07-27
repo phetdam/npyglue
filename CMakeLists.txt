@@ -42,6 +42,19 @@ set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
 
+# compile flags
+if(MSVC)
+    add_compile_options(
+        /Wall
+        # C4514: unreferenced inline function has been removed
+        /wd4514
+        # C4626: assignment operator was implicitly defined as deleted
+        /wd4626
+    )
+else()
+    add_compile_options(-Wall)
+endif()
+
 # find Python 3. not tested with Python 2
 find_package(Python3 COMPONENTS Development Interpreter NumPy)
 if(Python3_Interpreter_FOUND)

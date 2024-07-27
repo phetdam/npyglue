@@ -122,7 +122,7 @@ public:
    */
   operator bool() const noexcept
   {
-    return ref_;
+    return !!ref_;  // silences warning about implicit conversion
   }
 
   /**
@@ -240,10 +240,12 @@ inline auto py_import(std::string_view name) noexcept
  *
  * @param exc Exception type to set
  * @param message Exception message
+ * @returns `nullptr` for use in `PyCFunction` return statements
  */
-inline void py_error(PyObject* exc, const char* message) noexcept
+inline auto py_error(PyObject* exc, const char* message) noexcept
 {
   PyErr_SetString(exc, message);
+  return nullptr;
 }
 
 /**
@@ -277,10 +279,11 @@ inline void py_error_exit(PyObject* exc, const char* message) noexcept
  *
  * @param exc Exception type to set
  * @param message Exception message
+ * @returns `nullptr` for use in `PyCFunction` return statements
  */
-inline void py_error(PyObject* exc, std::string_view message) noexcept
+inline auto py_error(PyObject* exc, std::string_view message) noexcept
 {
-  py_error(exc, message.data());
+  return py_error(exc, message.data());
 }
 
 /**
@@ -290,13 +293,14 @@ inline void py_error(PyObject* exc, std::string_view message) noexcept
  *
  * @param exc Exception type to set
  * @param args... Arguments to format in exception message
+ * @returns `nullptr` for use in `PyCFunction` return statements
  */
 template <typename... Ts>
-inline void py_error(PyObject* exc, Ts&&... args)
+inline auto py_error(PyObject* exc, Ts&&... args)
 {
   std::stringstream ss;
   (ss << ... << args);
-  py_error(exc, ss.str().c_str());
+  return py_error(exc, ss.str().c_str());
 }
 
 /**
