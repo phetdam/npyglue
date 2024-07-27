@@ -103,7 +103,7 @@ inline bool is_type(PyArrayObject* arr)
 template <typename T>
 inline bool is_aligned(PyArrayObject* arr)
 {
-  return is_type<T> && PyArray_ISALIGNED(arr);
+  return is_type<T>(arr) && PyArray_ISALIGNED(arr);
 }
 
 /**
@@ -116,7 +116,7 @@ inline bool is_aligned(PyArrayObject* arr)
 template <typename T>
 inline bool is_writeable(PyArrayObject* arr)
 {
-  return is_type<T> && PyArray_ISWRITEABLE(arr);
+  return is_type<T>(arr) && PyArray_ISWRITEABLE(arr);
 }
 
 /**
@@ -129,7 +129,20 @@ inline bool is_writeable(PyArrayObject* arr)
 template <typename T>
 inline bool is_behaved(PyArrayObject* arr)
 {
-  return is_type<T> && PyArray_ISBEHAVED(arr);
+  return is_type<T>(arr) && PyArray_ISBEHAVED(arr);
+}
+
+/**
+ * Check if a Python object is a NumPy array of the desired type.
+ *
+ * @tparam T Desired NumPy array data type
+ *
+ * @param obj Python object
+ */
+template <typename T>
+inline bool is_ndarray(PyObject* obj)
+{
+  return PyArray_Check(obj) && is_type<T>(reinterpret_cast<PyArrayObject*>(arr));
 }
 
 /**
