@@ -142,7 +142,7 @@ inline bool is_behaved(PyArrayObject* arr)
 template <typename T>
 inline bool is_ndarray(PyObject* obj)
 {
-  return PyArray_Check(obj) && is_type<T>(reinterpret_cast<PyArrayObject*>(arr));
+  return PyArray_Check(obj) && is_type<T>(reinterpret_cast<PyArrayObject*>(obj));
 }
 
 /**

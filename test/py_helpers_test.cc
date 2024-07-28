@@ -1,7 +1,7 @@
 /**
  * @file py_helpers_test.cc
  * @author Derek Huang
- * @brief C++ program to test some of the npygl Python helpers
+ * @brief C++ program to test the npygl Python helpers
  * @copyright MIT License
  */
 
@@ -14,7 +14,7 @@
 
 int main()
 {
-  // initialize Python + print copyright and version
+  // initialize Python + print version
   npygl::py_instance python;
   // note: Py_GetVersion can be called before init
   std::cout << Py_GetVersion() << std::endl;
