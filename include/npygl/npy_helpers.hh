@@ -172,7 +172,8 @@ inline bool npy_api_import(const py_instance& /*python*/) noexcept
  */
 inline bool is_ndarray(PyObject* obj) noexcept
 {
-  return PyArray_Check(obj);
+  // double negation to force bool conversion and silence MSVC C4800
+  return !!PyArray_Check(obj);
 }
 
 /**
@@ -296,7 +297,8 @@ public:
   ndarray_flat_view(PyArrayObject* arr) noexcept
     : array_{arr},
       data_{static_cast<T*>(PyArray_DATA(arr))},
-      size_{PyArray_SIZE(arr)},
+      // static_cast required to avoid C2397 narrowing error with MSVC
+      size_{static_cast<decltype(size_)>(PyArray_SIZE(arr))},
       flags_{PyArray_FLAGS(arr)}
   {}
 
@@ -362,7 +364,7 @@ inline const auto& npy_include_dir()
     if (!np)
       return {};
     // retrieve get_include member
-    auto np_get_include = npygl::py_getattr(np, "get_include");
+    auto np_get_include = py_getattr(np, "get_include");
     if (!np_get_include)
       return {};
     // invoke to get include directory

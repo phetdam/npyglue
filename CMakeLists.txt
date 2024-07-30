@@ -50,6 +50,10 @@ if(MSVC)
         /wd4514
         # C4626: assignment operator was implicitly defined as deleted
         /wd4626
+        # C4820: padding added after struct member
+        /wd4820
+        # C5045: compiler will insert Spectre mitigation if using /QSpectre
+        /wd5045
     )
 else()
     add_compile_options(-Wall)

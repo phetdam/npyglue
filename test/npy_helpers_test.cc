@@ -59,6 +59,8 @@ auto has_type(PyArrayObject* arr)
 
 }  // namespace
 
+// FIXME: see https://stackoverflow.com/a/56789923/14227825; on Windows it
+// looks like the interpreter startup is not respecting virtual envs
 int main()
 {
   // initialize Python + print version
