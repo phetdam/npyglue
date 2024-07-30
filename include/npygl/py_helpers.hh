@@ -14,6 +14,7 @@
 #endif  // PY_SSIZE_T_CLEAN
 #include <Python.h>
 
+#include <cstdio>
 #include <cstdlib>
 #include <sstream>
 
@@ -24,6 +25,31 @@
 #endif  // !NPYGL_HAS_CC_17
 
 namespace npygl {
+
+/**
+ * Create a Python hex version number from the given components.
+ *
+ * @param major Python major version, e.g. the 3 in 3.4.1a2
+ * @param minor Python minor version, e.g. the 4 in 3.4.1a2
+ * @param micro Python micro version, e.g. the 1 in 3.4.1a2
+ * @param level Python release level, e.g. `PY_RELEASE_LEVEL_FINAL`, which
+ *  expands to `0xF`. This is the a in 3.4.1a2. Can be `0xB`, `0xC`, `0xF`.
+ * @param serial Python release serial, e.g. the 2 in 3.4.1a2
+ */
+#define NPYGL_PY_VERSION_EX(major, minor, micro, level, serial) \
+  (((major) << 24) | ((minor) << 16) | ((micro) << 8) | (level << 4) | (serial))
+
+/**
+ * Create a Python release hex version number.
+ *
+ * The release level is final (0xF) with the final release serial of zero.
+ *
+ * @param major Python major version, e.g. the 3 in 3.4.1
+ * @param minor Python minor version, e.g. the 4 in 3.4.1
+ * @param micro Python micro version, e.g. the 1 in 3.4.1
+ */
+#define NPYGL_PY_VERSION(major, minor, micro) \
+  NPYGL_PY_VERSION_EX(major, minor, micro, PY_RELEASE_LEVEL_FINAL, 0)
 
 /**
  * Python object ownership class.
@@ -126,6 +152,22 @@ public:
   }
 
   /**
+   * Return the Python object pointer cast to a different pointer type.
+   *
+   * @tparam T Target type
+   *
+   * @note No checking is done. Cast to only ABI-compatible types.
+   *
+   * @note Generally this is only needed for casting to `PyArrayObject*` or
+   *  another `PyObject` binary-compatible struct.
+   */
+  template <typename T>
+  auto as() const noexcept
+  {
+    return reinterpret_cast<T*>(ref_);
+  }
+
+  /**
    * Release ownership of the Python object.
    *
    * @note If you do not correctly manage the reference count for the returned
@@ -173,6 +215,10 @@ private:
  *
  * Initializes and on destruction finalizes a Python interpreter instance.
  *
+ * @note This is typically only intended to be used when embedding the Python
+ *  interpreter in a C/C++ application as Python extension modules are loaded
+ *  by an existing Python interpreter process.
+ *
  * @note Having more than one `py_instance` alive at a time is meaningless
  *  because `Py_Initialize` is a no-op unless `Py_Finalize[Ex]` was called.
  *
@@ -219,7 +265,22 @@ private:
 };
 
 /**
+ * Initialize the Python interpreter once for the entire process.
+ *
+ * @note This is typically only intended to be called when embedding the Python
+ *  interpreter in a C/C++ application as Python compiled extension modules are
+ *  loaded at runtime by an existing Python interpreter.
+ */
+inline const auto& py_init() noexcept
+{
+  static py_instance python;
+  return python;
+}
+
+/**
  * Import the given Python module.
+ *
+ * On error the returned `py_object` is empty and a Python exception is set.
  *
  * @param name Name of module to import
  */
@@ -231,6 +292,8 @@ inline auto py_import(const char* name) noexcept
 #if NPYGL_HAS_CC_17
 /**
  * Import the given Python module.
+ *
+ * On error the returned `py_object` is empty and a Python exception is set.
  *
  * @param name Name of module to import
  */
@@ -276,6 +339,19 @@ inline void py_error_exit(PyObject* exc, const char* message) noexcept
   py_error(exc, message);
   PyErr_Print();
   std::exit(EXIT_FAILURE);
+}
+
+/**
+ * Set the Python error indicator, print the exception trace, and exit.
+ *
+ * @param expr Expression to set error and exit if `true`
+ * @param exc Exception type to set
+ * @param message Exception message
+ */
+inline void py_error_exit(bool expr, PyObject* exc, const char* message) noexcept
+{
+  if (expr)
+    py_error_exit(exc, message);
 }
 
 #if NPYGL_HAS_CC_17
@@ -330,8 +406,7 @@ inline void py_error_exit(PyObject* exc, std::string_view message) noexcept
 inline void py_error_exit(
   bool expr, PyObject* exc, std::string_view message) noexcept
 {
-  if (expr)
-    py_error_exit(exc, message);
+  py_error_exit(expr, exc, message.data());
 }
 
 /**
@@ -357,7 +432,7 @@ inline void py_error_exit(bool expr, PyObject* exc, Ts&&... args)
 /**
  * Retrieve the attribute with the given name from the Python object.
  *
- * The returned `py_object` is empty on failure.
+ * On error the returned `py_object` is empty and a Python exception is set.
  *
  * @param obj Python object
  * @param name Attribute name
@@ -371,7 +446,7 @@ inline auto py_getattr(PyObject* obj, const char* name) noexcept
 /**
  * Retrieve the attribute with the given name from the Python object.
  *
- * The returned `py_object` is empty on failure.
+ * On error the returned `py_object` is empty and a Python exception is set.
  *
  * @param obj Python object
  * @param name Attribute name
@@ -383,7 +458,35 @@ inline auto py_getattr(PyObject* obj, std::string_view name) noexcept
 #endif  // !NPYGL_HAS_CC_17
 
 /**
+ * Call the Python object with the given positional arguments.
+ *
+ * On error the returned `py_object` is empty and a Python exception is set.
+ *
+ * @param callable Callable Python object
+ * @param args Python positional args
+ */
+inline auto py_call(PyObject* callable, PyObject* args) noexcept
+{
+  return py_object{PyObject_CallObject(callable, args)};
+}
+
+#if PY_VERSION_HEX >= NPYGL_PY_VERSION(3, 9, 0)
+/**
+ * Call the Python object with no arguments.
+ *
+ * On error the returned `py_object` is empty and a Python exception is set.
+ *
+ * @param callable Callable Python object
+ */
+inline auto py_call(PyObject* callable) noexcept
+{
+  return py_object{PyObject_CallNoArgs(callable)};
+}
+
+/**
  * Call the Python object with only a single argument.
+ *
+ * On error the returned `py_object` is empty and a Python exception is set.
  *
  * @param callable Callable Python object
  * @param args Single Python argument
@@ -392,16 +495,55 @@ inline auto py_call_one(PyObject* callable, PyObject* arg) noexcept
 {
   return py_object{PyObject_CallOneArg(callable, arg)};
 }
+#endif  // PY_VERSION_HEX < NPYGL_PY_VERSION(3, 9, 0)
+
+#if NPYGL_HAS_CC_17
+/**
+ * Return a UTF-8 encoded string view from a Python Unicode (string) object.
+ *
+ * On error, string view's `data()` is `nullptr` and a Python exception is set.
+ *
+ * @note Generally the string view ctor used here is `noexcept` for most
+ *  implementations (although not required by the standard).
+ *
+ * @param obj Python object
+ */
+inline std::string_view py_utf8_view(PyObject* obj) noexcept
+{
+  // decode as UTF-8 string (use size since UTF-8 can contain NULL)
+  Py_ssize_t size;
+  auto data = PyUnicode_AsUTF8AndSize(obj, &size);
+  // return view with nullptr data() on error
+  if (!data)
+    return {};
+  // note: can't use ternary expression; no deducable common type
+  return {data, static_cast<std::size_t>(size)};
+}
+#endif  // NPYGL_HAS_CC_17
 
 /**
- * Call the Python object with the given positional arguments.
+ * Print the Python object to the given file.
  *
- * @param callable Callable Python object
- * @param args Python positional args
+ * @param f File to print to
+ * @param obj Python object to print
+ * @param flags Print flags, e.g. 0 for `repr()`, `Py_PRINT_RAW` for `str()`
+ * @returns `true` on success, `false` on failure (exception is set)
  */
-inline auto py_call(PyObject* callable, PyObject* args) noexcept
+inline bool py_print(FILE* f, PyObject* obj, int flags = 0) noexcept
 {
-  return py_object{PyObject_CallObject(callable, args)};
+  return !PyObject_Print(obj, f, flags);
+}
+
+/**
+ * Print the Python object to standard output.
+ *
+ * @param obj Python object to print
+ * @param flags Print flags, e.g. 0 for `repr()`, `Py_PRINT_RAW` for `str()`
+ * @returns `true` on success, `false` on failure (exception is set)
+ */
+inline bool py_print(PyObject* obj, int flags = 0) noexcept
+{
+  return py_print(stdout, obj, flags);
 }
 
 }  // namespace npygl
