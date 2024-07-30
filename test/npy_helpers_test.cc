@@ -22,10 +22,39 @@ namespace {
  *
  * @param view NumPy array view
  */
-void sine(const npygl::ndarray_flat_view<double>& view)
+void sine(const npygl::ndarray_flat_view<double>& view) noexcept
 {
   for (decltype(view.size()) i = 0; i < view.size(); i++)
     view[i] = std::sin(view[i]);
+}
+
+/**
+ * Check if the NumPy array type corresponds to one of the C/C++ types.
+ *
+ * @tparam Ts... C/C++ types to check NumPy array type against
+ *
+ * @param arr NumPy array
+ */
+template <typename... Ts>
+auto has_type(PyArrayObject* arr)
+{
+  static_assert(sizeof...(Ts), "parameter pack must have at least one type");
+  // indicator to check if we have a type match
+  bool match = (
+    [arr]
+    {
+      // traits exist
+      if constexpr (npygl::has_npy_type_traits_v<Ts>)
+        return npygl::is_type<Ts>(arr);
+      // no traits, false
+      else
+        return false;
+    }()
+    // short circuit if match is found
+    ||
+    ...
+  );
+  return match;
 }
 
 }  // namespace
@@ -62,6 +91,9 @@ int main()
   auto ar = res.as<PyArrayObject>();
   std::cout << "Is double type? " << npygl::is_type<double>(ar) << std::endl;
   std::cout << "Is behaved? " << PyArray_ISBEHAVED(ar) << std::endl;
+  std::cout << "Has one of " <<
+    npygl::npy_typename_list<int, double, float>() << ": " <<
+    has_type<int, double, float>(ar) << std::endl;
   // apply sine function to NumPy array and print it again
   sine(ar);
   npygl::py_print(res);

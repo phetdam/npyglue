@@ -14,6 +14,7 @@
 #include <Python.h>
 
 #include <cstdint>
+#include <type_traits>
 #include <utility>
 
 // NumPy C API visibility controls. the NumPy C API function pointer table is
@@ -109,6 +110,49 @@ inline constexpr auto npy_typenum = npy_type_traits<T>::typenum;
  */
 template <typename T>
 inline constexpr auto npy_typename = npy_type_traits<T>::name;
+
+/**
+ * Helper to check if a type has NumPy type traits.
+ *
+ * @tparam T type
+ */
+template <typename T, typename = void>
+struct has_npy_type_traits : std::false_type {};
+
+/**
+ * True specialization checking if a type has NumPy type traits.
+ *
+ * @tparam T type
+ */
+template <typename T>
+struct has_npy_type_traits<T, std::void_t<npy_type_traits<T>>> : std::true_type {};
+
+/**
+ * Boolean helper for checking if a type has NumPy type traits.
+ *
+ * @tparam T type
+ */
+template <typename T>
+inline constexpr bool has_npy_type_traits_v = has_npy_type_traits<T>::value;
+
+#if NPYGL_HAS_CC_17
+/**
+ * Helper to get a comma-separated list of NumPy type names from C/C++ types.
+ *
+ * @tparam T C/C++ type to get NumPy type name for
+ * @tparam Ts... Other C/C++ types to get NumPy type names for
+ */
+template <typename T, typename... Ts>
+auto npy_typename_list()
+{
+  // no other types
+  if constexpr (!sizeof...(Ts))
+    return npy_typename<T>;
+  // else we need separator and to recurse
+  else
+    return npy_typename<T> + std::string{", "} + npy_typename_list<Ts...>();
+}
+#endif  // !NPYGL_HAS_CC_17
 
 /**
  * Import the NumPy C API and make it available for use.
