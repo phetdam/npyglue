@@ -59,10 +59,28 @@ auto has_type(PyArrayObject* arr)
 
 }  // namespace
 
-// FIXME: see https://stackoverflow.com/a/56789923/14227825; on Windows it
-// looks like the interpreter startup is not respecting virtual envs
 int main()
 {
+  // NB: on Windows, the embedded Python's program name is deduced to argv[0]
+  // instead of to the Python interpreter used by the virtual environment. so
+  // we have a workaround here such that if a venv virtual environment is being
+  // used, the executable there will be set using Py_SetProgramName().
+#ifdef _WIN32
+  // get path to venv virtual environment root
+  auto venv = std::getenv("VIRTUAL_ENV");
+  // found, running in venv
+  if (venv) {
+    // write as wide chars
+    std::wstringstream ss;
+    while (*venv)
+      ss.put(ss.widen(*venv++));
+    // add relative path to python.exe
+    ss << L"\\Scripts\\python.exe";
+    // set path to the Python executable. deduction fails on Windows with venv
+    // virtual envs so we must do this explicitly unfortunately
+    Py_SetProgramName(ss.str().c_str());
+  }
+#endif  // _WIN32
   // initialize Python + print version
   npygl::py_instance python;
   std::cout << Py_GetVersion() << std::endl;
