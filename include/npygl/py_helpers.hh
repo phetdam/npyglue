@@ -210,15 +210,6 @@ private:
   PyObject* ref_;
 };
 
-namespace detail {
-
-class py_venv_progname_init {
-public:
-
-};
-
-}  // namespace detail
-
 /**
  * Python main interpreter instance.
  *
