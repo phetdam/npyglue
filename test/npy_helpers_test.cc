@@ -70,15 +70,22 @@ int main()
   auto venv = std::getenv("VIRTUAL_ENV");
   // found, running in venv
   if (venv) {
-    // write as wide chars
-    std::wstringstream ss;
-    while (*venv)
-      ss.put(ss.widen(*venv++));
-    // add relative path to python.exe
-    ss << L"\\Scripts\\python.exe";
+    // program name must be in static storage
+    static const auto progname = [venv]
+    {
+      // if capturing by copy, non-mutable lambda cannot modify capture
+      auto path = venv;
+      // write as wide chars
+      std::wstringstream ss;
+      while (*path)
+        ss.put(ss.widen(*path++));
+      // add relative path to python.exe
+      ss << L"\\Scripts\\python.exe";
+      return ss.str();
+    }();
     // set path to the Python executable. deduction fails on Windows with venv
     // virtual envs so we must do this explicitly unfortunately
-    Py_SetProgramName(ss.str().c_str());
+    Py_SetProgramName(progname.c_str());
   }
 #endif  // _WIN32
   // initialize Python + print version
