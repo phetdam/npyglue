@@ -210,6 +210,15 @@ private:
   PyObject* ref_;
 };
 
+namespace detail {
+
+class py_venv_progname_init {
+public:
+
+};
+
+}  // namespace detail
+
 /**
  * Python main interpreter instance.
  *
@@ -232,10 +241,42 @@ public:
    *
    * Perform default Python interpreter initialization for the current thread.
    *
+   * @note May consider making `noexcept` for Windows as well.
+   *
    * @param fail_fast `true` to exit if `Py_FinalizeEx` returns on error
    */
-  explicit py_instance(bool fail_fast = false) noexcept : fail_fast_{fail_fast}
+  explicit py_instance(bool fail_fast = false) noexcept(!NPYGL_WIN32)
+    : fail_fast_{fail_fast}
   {
+    // on Windows, the embedded Python's program name is deduced to argv[0]
+    // instead of to the Python interpreter used by the virtual environment. so
+    // we have a workaround here such that if a venv virtual environment is
+    // being used, we set the program name using the venv's Python interpreter
+#ifdef _WIN32
+    // do this only once
+    static const auto name_set = []
+    {
+      // VIRTUAL_ENV has path to venv virtual env root directory
+      auto venv = std::getenv("VIRTUAL_ENV");
+      // program name must be in static storage
+      static const auto progname = [venv]
+      {
+        // if capturing by copy, non-mutable lambda cannot modify capture
+        auto path = venv;
+        // widen to wchar_t
+        std::wstringstream ss;
+        while (*path)
+          ss.put(ss.widen(*path++));
+        // add relative path to python.exe + return
+        ss << L"\\Scripts\\python.exe";
+        return ss.str();
+      }();
+      // set program name
+      // FIXME: deprecated in 3.11, use custom initialization
+      Py_SetProgramName(progname.c_str());
+      return true;
+    }();
+#endif  // _WIN32
     Py_Initialize();
   }
 
@@ -454,6 +495,31 @@ inline auto py_getattr(PyObject* obj, const char* name) noexcept
 inline auto py_getattr(PyObject* obj, std::string_view name) noexcept
 {
   return py_getattr(obj, name.data());
+}
+#endif  // !NPYGL_HAS_CC_17
+
+/**
+ * Check if the Python object has an attribute of the given name.
+ *
+ * @param obj Python object
+ * @param name Attribute name
+ */
+inline bool py_hasattr(PyObject* obj, const char* name) noexcept
+{
+  // silences MSVC C4800 warning about implicit conversion
+  return !!PyObject_HasAttrString(obj, name);
+}
+
+#if NPYGL_HAS_CC_17
+/**
+ * Check if the Python object has an attribute of the given name.
+ *
+ * @param obj Python object
+ * @param name Attribute name
+ */
+inline bool py_hasattr(PyObject* obj, std::string_view name) noexcept
+{
+  return py_hasattr(obj, name.data());
 }
 #endif  // !NPYGL_HAS_CC_17
 

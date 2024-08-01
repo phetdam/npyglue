@@ -46,6 +46,13 @@
 #define NPYGL_HAS_CC_20 0
 #endif  // NPYGL_HAS_CC_20
 
+// 1 or 0 macro for Windows
+#if defined(_WIN32)
+#define NPYGL_WIN32 1
+#else
+#define NPYGL_WIN32 0
+#endif  // !defined(_WIN32)
+
 // TODO: add C standards support
 
 #endif  // NPYGL_FEATURES_H_
