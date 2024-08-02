@@ -16,6 +16,7 @@
 
 #include <cstdio>
 #include <cstdlib>
+#include <ostream>
 #include <sstream>
 
 #include "npygl/features.h"
@@ -602,6 +603,73 @@ inline bool py_print(PyObject* obj, int flags = 0) noexcept
 {
   return py_print(stdout, obj, flags);
 }
+
+/**
+ * Return the string representation of the Python object as with `repr()`.
+ *
+ * On error the returned `py_object` is empty and a Python exception is set.
+ *
+ * @param obj Python object
+ */
+inline auto py_repr(PyObject* obj) noexcept
+{
+  return py_object{PyObject_Repr(obj)};
+}
+
+/**
+ * Return the string representation of the Python object as with `str()`.
+ *
+ * On error the returned `py_object` is empty and a Python exception is set.
+ *
+ * @param obj Python object
+ */
+inline auto py_str(PyObject* obj) noexcept
+{
+  return py_object{PyObject_Str(obj)};
+}
+
+#if NPYGL_HAS_CC_17
+/**
+ * Stream the string representation of the Python object as with `repr()`.
+ *
+ * On error the Python exception trace is printed with `PyErr_Print`. Note that
+ * this will also clear the error indicator so use with care.
+ *
+ * @param out Output stream
+ * @param obj Python object to stream
+ */
+auto& operator<<(std::ostream& out, PyObject* obj)
+{
+  // get repr() of obj
+  auto repr = py_repr(obj);
+  if (!repr) {
+    PyErr_Print();
+    return out;
+  }
+  // get string view from repr
+  auto view = py_utf8_view(repr);
+  if (!view.data()) {
+    PyErr_Print();
+    return out;
+  }
+  // stream
+  return out << view;
+}
+
+/**
+ * Stream the string representation of the Python object as with `repr()`.
+ *
+ * On error the Python exception trace is printed with `PyErr_Print`. Note that
+ * this will also clear the error indicator so use with care.
+ *
+ * @param out Output stream
+ * @param obj Python object to stream
+ */
+inline auto& operator<<(std::ostream& out, const py_object& obj)
+{
+  return out << obj.ref();
+}
+#endif  // !NPYGL_HAS_CC_17
 
 }  // namespace npygl
 

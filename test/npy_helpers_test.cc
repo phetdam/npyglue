@@ -81,10 +81,8 @@ int main()
   // call np.random.random with the shape tuple
   auto res = npygl::py_call_one(np_random_random, shape);
   npygl::py_error_exit();
-  // print NumPy array using repr() + add newline and enable boolalpha
-  npygl::py_print(res);
-  npygl::py_error_exit();
-  std::cout << std::boolalpha << std::endl;
+  // print NumPy array using repr() + enable boolalpha
+  std::cout << res << std::boolalpha << std::endl;
   // check if NumPy array (it is)
   std::cout << "Is NumPy array? " << npygl::is_ndarray(res) << std::endl;
   // print additional info
@@ -96,8 +94,6 @@ int main()
     has_type<int, double, float>(ar) << std::endl;
   // apply sine function to NumPy array and print it again
   sine(ar);
-  npygl::py_print(res);
-  npygl::py_error_exit();
-  std::cout << std::endl;
+  std::cout << res << std::endl;
   return EXIT_SUCCESS;
 }
