@@ -115,7 +115,7 @@ bool has_type(PyArrayObject* arr) noexcept
 template <typename T1, typename T2, typename... Ts>
 bool has_type(PyArrayObject* arr) noexcept
 {
-  return npy_type_checker<T1>{}(arr) || has_type<T2, Ts...>(arr);
+  return has_type<T1>(arr) || has_type<T2, Ts...>(arr);
 }
 #endif  // !NPYGL_HAS_CC_17
 
