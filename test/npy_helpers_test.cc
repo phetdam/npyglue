@@ -70,7 +70,7 @@ bool has_type(PyArrayObject* arr) noexcept
  * @tparam T C/C++ type to check NumPy array type against
  */
 template <typename T, typename = void>
-struct npy_type_checker {
+struct npy_checker {
   bool operator()(PyArrayObject* NPYGL_UNUSED(arg)) const noexcept
   {
     return false;
@@ -83,7 +83,7 @@ struct npy_type_checker {
  * @tparam T C/C++ type to check NumPy array type against
  */
 template <typename T>
-struct npy_type_checker<T, std::enable_if_t<npygl::has_npy_type_traits_v<T>>> {
+struct npy_checker<T, std::enable_if_t<npygl::has_npy_type_traits<T>::value>> {
   bool operator()(PyArrayObject* arr) const noexcept
   {
     return npygl::is_type<T>(arr);
@@ -100,7 +100,7 @@ struct npy_type_checker<T, std::enable_if_t<npygl::has_npy_type_traits_v<T>>> {
 template <typename T>
 bool has_type(PyArrayObject* arr) noexcept
 {
-  return npy_type_checker<T>{}(arr);
+  return npy_checker<T>{}(arr);
 }
 
 /**
@@ -130,7 +130,10 @@ int main()
   npygl::npy_api_import(python);
   npygl::py_error_exit();
   // print the NumPy include directory
+// TODO: don't make conditional when we drop C++14 support
+#if NPYGL_HAS_CC_17
   std::cout << "NumPy include dir: " << npygl::npy_include_dir() << std::endl;
+#endif  // !NPYGL_HAS_CC_17
   // get the np.random module
   auto np_random = npygl::py_import("numpy.random");
   npygl::py_error_exit();

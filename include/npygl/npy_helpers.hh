@@ -14,6 +14,7 @@
 #include <Python.h>
 
 #include <cstdint>
+#include <string>
 #include <type_traits>
 #include <utility>
 
@@ -78,6 +79,8 @@ struct npy_type_traits {};
 /**
  * Define a NumPy traits specialization for a type.
  *
+ * @note `constexpr` does not imply inline for static data members until C++17.
+ *
  * @param npy_type `NPY_TYPES` enum value
  * @param c_type C/C++ type name
  */
@@ -97,6 +100,7 @@ NPYGL_NPY_TRAITS_SPEC(NPY_UINT, unsigned int);
 NPYGL_NPY_TRAITS_SPEC(NPY_LONG, long);
 NPYGL_NPY_TRAITS_SPEC(NPY_ULONG, unsigned long);
 
+#if NPYGL_HAS_CC_17
 /**
  * Helper to get the NumPy type number from a C/C++ type.
  *
@@ -112,6 +116,7 @@ inline constexpr auto npy_typenum = npy_type_traits<T>::typenum;
  */
 template <typename T>
 inline constexpr auto npy_typename = npy_type_traits<T>::name;
+#endif  // NPYGL_HAS_CC_17
 
 /**
  * Helper to check if a type has NumPy type traits.
@@ -129,6 +134,7 @@ struct has_npy_type_traits : std::false_type {};
 template <typename T>
 struct has_npy_type_traits<T, std::void_t<npy_type_traits<T>>> : std::true_type {};
 
+#if NPYGL_HAS_CC_17
 /**
  * Boolean helper for checking if a type has NumPy type traits.
  *
@@ -137,7 +143,6 @@ struct has_npy_type_traits<T, std::void_t<npy_type_traits<T>>> : std::true_type 
 template <typename T>
 inline constexpr bool has_npy_type_traits_v = has_npy_type_traits<T>::value;
 
-#if NPYGL_HAS_CC_17
 /**
  * Helper to get a comma-separated list of NumPy type names from C/C++ types.
  *
@@ -153,6 +158,30 @@ auto npy_typename_list()
   // else we need separator and to recurse
   else
     return npy_typename<T> + std::string{", "} + npy_typename_list<Ts...>();
+}
+#else
+/**
+ * Base case of helper to get comma-separated list of NumPy type names.
+ *
+ * @tparam T C/C++ type to get NumPy type name for
+ */
+template <typename T>
+inline std::string npy_typename_list()
+{
+  return npy_type_traits<T>::name;
+}
+
+/**
+ * Helper to get a comma-separated list of NumPy type names from C/C++ types.
+ *
+ * @tparam T1 First type
+ * @tparam T2 Second type
+ * @tparam Ts... Subsequent types
+ */
+template <typename T1, typename T2, typename... Ts>
+std::string npy_typename_list()
+{
+  return npy_typename_list<T1>() + ", " + npy_typename_list<T2, Ts...>();
 }
 #endif  // !NPYGL_HAS_CC_17
 
@@ -188,7 +217,11 @@ inline bool is_ndarray(PyObject* obj) noexcept
 template <typename T>
 inline bool is_type(PyArrayObject* arr) noexcept
 {
+#if NPYGL_HAS_CC_17
   return npy_typenum<T> == PyArray_TYPE(arr);
+#else
+  return npy_type_traits<T>::typenum == PyArray_TYPE(arr);
+#endif  // !NPYGL_HAS_CC_17
 }
 
 /**
@@ -271,7 +304,15 @@ inline auto make_ndarray(PyObject* obj, int type, int flags) noexcept
 template <typename T>
 inline auto make_ndarray(PyObject* obj, int flags = NPY_ARRAY_DEFAULT) noexcept
 {
-  return make_ndarray(obj, npy_typenum<T>, flags);
+  return make_ndarray(
+    obj,
+#if NPYGL_HAS_CC_17
+    npy_typenum<T>,
+#else
+    npy_type_traits<T>::typenum,
+#endif  // !NPYGL_HAS_CC_17
+    flags
+  );
 }
 
 /**

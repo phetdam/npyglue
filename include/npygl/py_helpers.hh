@@ -64,7 +64,7 @@ public:
    * Trivial type and member to support construction with reference increment.
    */
   struct incref_type {};
-  static inline constexpr incref_type incref{};
+  static constexpr incref_type incref{};
 
   /**
    * Default ctor.
@@ -660,7 +660,6 @@ inline auto py_str(PyObject* obj) noexcept
   return py_object{PyObject_Str(obj)};
 }
 
-#if NPYGL_HAS_CC_17
 /**
  * Stream the string representation of the Python object as with `repr()`.
  *
@@ -676,8 +675,12 @@ auto& operator<<(std::ostream& out, PyObject* obj)
   auto repr = py_repr(obj);
   if (py_error_print())
     return out;
-  // get string view from repr
+  // get string [view] from repr
+#if NPYGL_HAS_CC_17
   auto view = py_utf8_view(repr);
+#else
+  auto view = py_utf8_string(repr);
+#endif  // !NPYGL_HAS_CC_17
   if (py_error_print())
     return out;
   // stream
@@ -697,7 +700,6 @@ inline auto& operator<<(std::ostream& out, const py_object& obj)
 {
   return out << obj.ref();
 }
-#endif  // !NPYGL_HAS_CC_17
 
 }  // namespace npygl
 

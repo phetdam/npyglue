@@ -32,7 +32,7 @@ if(BUILD_TESTS AND Python3_Development_FOUND)
     add_test(NAME npy_helpers_test COMMAND npy_helpers_test)
     # C++14
     add_executable(npy_helpers_test_cc14 npy_helpers_test.cc)
-    target_compile_features(npy_helpers_test_cc14 PUBLIC cxx_std_14)
+    set_target_properties(npy_helpers_test_cc14 PROPERTIES CXX_STANDARD 14)
     target_link_libraries(
         npy_helpers_test_cc14 PRIVATE
         Python3::NumPy Python3::Python
