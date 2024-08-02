@@ -18,6 +18,7 @@
 #include <cstdlib>
 #include <ostream>
 #include <sstream>
+#include <string>
 
 #include "npygl/features.h"
 
@@ -566,6 +567,25 @@ inline auto py_call_one(PyObject* callable, PyObject* arg) noexcept
   return py_object{PyObject_CallOneArg(callable, arg)};
 }
 #endif  // PY_VERSION_HEX < NPYGL_PY_VERSION(3, 9, 0)
+
+/**
+ * Return a UTF-8 encoded string from a Python Unicode (string) object.
+ *
+ * On error the string is empty and a Python exception is set.
+ *
+ * @param obj Python object
+ */
+inline std::string py_utf8_string(PyObject* obj)
+{
+  // decode as UTF-8 string (use size since UTF-8 can contain NULL)
+  Py_ssize_t size;
+  auto data = PyUnicode_AsUTF8AndSize(obj, &size);
+  // return empty on error
+  if (!data)
+    return {};
+  // note: can't use ternary expression; no deducable common type
+  return {data, static_cast<std::size_t>(size)};
+}
 
 #if NPYGL_HAS_CC_17
 /**
