@@ -350,13 +350,25 @@ inline auto py_error(PyObject* exc, const char* message) noexcept
 }
 
 /**
+ * Print the exception trace if the Python error indicator is set.
+ *
+ * @returns `true` if an exception trace was printed, `false` otherwise
+ */
+inline bool py_error_print() noexcept
+{
+  if (!PyErr_Occurred())
+    return false;
+  PyErr_Print();
+  return true;
+}
+
+/**
  * Print the exception trace and exit if the Python error indicator is set.
  */
 inline void py_error_exit() noexcept
 {
-  if (!PyErr_Occurred())
+  if (!py_error_print())
     return;
-  PyErr_Print();
   std::exit(EXIT_FAILURE);
 }
 
@@ -642,16 +654,12 @@ auto& operator<<(std::ostream& out, PyObject* obj)
 {
   // get repr() of obj
   auto repr = py_repr(obj);
-  if (!repr) {
-    PyErr_Print();
+  if (py_error_print())
     return out;
-  }
   // get string view from repr
   auto view = py_utf8_view(repr);
-  if (!view.data()) {
-    PyErr_Print();
+  if (py_error_print())
     return out;
-  }
   // stream
   return out << view;
 }
