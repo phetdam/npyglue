@@ -1,7 +1,7 @@
 /**
  * @file common.g
  * @author Derek Huang
- * @brief C/C++ header for common shared macro
+ * @brief C/C++ header for common shared macros
  * @copyright MIT License
  */
 
@@ -31,5 +31,10 @@
  * Stringify argument with macro expansion.
  */
 #define NPYGL_STRINGIFY(x) NPYGL_STRINGIFY_I(x)
+
+/**
+ * Macro indicating an unused argument.
+ */
+#define NPYGL_UNUSED(x)
 
 #endif  // NPYGL_COMMON_H_

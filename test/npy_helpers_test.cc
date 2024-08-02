@@ -13,8 +13,13 @@
 #include <ios>
 #include <iostream>
 
+#include "npygl/features.h"
 #include "npygl/py_helpers.hh"
 #include "npygl/npy_helpers.hh"
+
+#if !NPYGL_HAS_CC_17
+#include <type_traits>
+#endif  // !NPYGL_HAS_CC_17
 
 namespace {
 /**
@@ -28,6 +33,8 @@ void sine(const npygl::ndarray_flat_view<double>& view) noexcept
     view[i] = std::sin(view[i]);
 }
 
+// C++17 if constexpr and fold expressions
+#if NPYGL_HAS_CC_17
 /**
  * Check if the NumPy array type corresponds to one of the C/C++ types.
  *
@@ -36,7 +43,7 @@ void sine(const npygl::ndarray_flat_view<double>& view) noexcept
  * @param arr NumPy array
  */
 template <typename... Ts>
-auto has_type(PyArrayObject* arr)
+bool has_type(PyArrayObject* arr) noexcept
 {
   static_assert(sizeof...(Ts), "parameter pack must have at least one type");
   // indicator to check if we have a type match
@@ -56,6 +63,61 @@ auto has_type(PyArrayObject* arr)
   );
   return match;
 }
+#else
+/**
+ * Callable to check if a NumPy array is of a given C/C++ type.
+ *
+ * @tparam T C/C++ type to check NumPy array type against
+ */
+template <typename T, typename = void>
+struct npy_type_checker {
+  bool operator()(PyArrayObject* NPYGL_UNUSED(arg)) const noexcept
+  {
+    return false;
+  }
+};
+
+/**
+ * True specialization that actually checks if the type matches.
+ *
+ * @tparam T C/C++ type to check NumPy array type against
+ */
+template <typename T>
+struct npy_type_checker<T, std::enable_if_t<npygl::has_npy_type_traits_v<T>>> {
+  bool operator()(PyArrayObject* arr) const noexcept
+  {
+    return npygl::is_type<T>(arr);
+  }
+};
+
+/**
+ * Check if the NumPy array type corresponds to the C/C++ type.
+ *
+ * @tparam T C/C++ type to check NumPy array type against
+ *
+ * @param arr NumPy array
+ */
+template <typename T>
+bool has_type(PyArrayObject* arr) noexcept
+{
+  return npy_type_checker<T>{}(arr);
+}
+
+/**
+ * Check if the NumPy array type corresponds to the given C/C++ types.
+ *
+ * @tparam T1 First type
+ * @tparam T2 Second type
+ * @tparam Ts... Subsequent types
+ *
+ * @param arr NumPy array
+ */
+template <typename T1, typename T2, typename... Ts>
+bool has_type(PyArrayObject* arr) noexcept
+{
+  return npy_type_checker<T1>{}(arr) || has_type<T2, Ts...>(arr);
+}
+#endif  // !NPYGL_HAS_CC_17
 
 }  // namespace
 

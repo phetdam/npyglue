@@ -16,6 +16,7 @@ endif()
 
 # npy_helpers_test: NumPy Python helpers tests
 if(BUILD_TESTS AND Python3_Development_FOUND)
+    # C++17
     add_executable(npy_helpers_test npy_helpers_test.cc)
     target_link_libraries(
         npy_helpers_test PRIVATE
@@ -29,4 +30,19 @@ if(BUILD_TESTS AND Python3_Development_FOUND)
         )
     endif()
     add_test(NAME npy_helpers_test COMMAND npy_helpers_test)
+    # C++14
+    add_executable(npy_helpers_test_cc14 npy_helpers_test.cc)
+    target_compile_features(npy_helpers_test_cc14 PUBLIC cxx_std_14)
+    target_link_libraries(
+        npy_helpers_test_cc14 PRIVATE
+        Python3::NumPy Python3::Python
+    )
+    # usually no Python debug runtime library
+    if(MSVC AND PY_MSVC_ALWAYS_RELEASE)
+        set_target_properties(
+            npy_helpers_test_cc14 PROPERTIES
+            MSVC_RUNTIME_LIBRARY MultiThreadedDLL
+        )
+    endif()
+    add_test(NAME npy_helpers_test_cc14 COMMAND npy_helpers_test_cc14)
 endif()
