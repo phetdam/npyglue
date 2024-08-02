@@ -56,9 +56,11 @@
 // TODO: change to npygl/py_object.hh
 #include "npygl/py_helpers.hh"
 
+// C++17
 #if NPYGL_HAS_CC_17
 #include <filesystem>
 #endif  // !NPYGL_HAS_CC_17
+// C++20
 #if NPYGL_HAS_CC_20
 #include <span>
 #endif  // !NPYGL_HAS_CC_20
@@ -347,13 +349,13 @@ private:
   int flags_;
 };
 
-#if NPYGL_HAS_CC_17  // npygl::npy_get_include()
+#if NPYGL_HAS_CC_17
 /**
  * Return the NumPy include directory as a static path object.
  *
  * This calls `numpy.get_include` underneath so Python must be running.
  *
- * @returns Path object. On error, empty with Python exception set
+ * @returns NumPy include path. On error, empty with Python exception set
  */
 inline const auto& npy_include_dir()
 {
