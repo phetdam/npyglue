@@ -27,7 +27,7 @@ namespace {
  *
  * @param view NumPy array view
  */
-void sine(const npygl::ndarray_flat_view<double>& view) noexcept
+void sine(npygl::ndarray_flat_view<double> view) noexcept
 {
   for (decltype(view.size()) i = 0; i < view.size(); i++)
     view[i] = std::sin(view[i]);
