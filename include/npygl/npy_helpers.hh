@@ -318,8 +318,10 @@ inline auto make_ndarray(PyObject* obj, int flags = NPY_ARRAY_DEFAULT) noexcept
 /**
  * Lightweight flat view of a NumPy array.
  *
- * Holds only the data pointer, size, and flags of the NumPy array. If there is
- * no need to know the shape or strides of the NumPy array, use this class.
+ * Holds only the NumPy array data pointer and size. If there is no need to
+ * know the shape or strides of the NumPy array, use this class.
+ *
+ * Data buffer must be known to be aligned and writable if need be before use.
  *
  * @todo Create `ndarray_view_base` holding the fields + getters.
  *
@@ -338,17 +340,10 @@ public:
    * @param arr NumPy array
    */
   ndarray_flat_view(PyArrayObject* arr) noexcept
-    : array_{arr},
-      data_{static_cast<T*>(PyArray_DATA(arr))},
+    : data_{static_cast<T*>(PyArray_DATA(arr))},
       // static_cast required to avoid C2397 narrowing error with MSVC
-      size_{static_cast<decltype(size_)>(PyArray_SIZE(arr))},
-      flags_{PyArray_FLAGS(arr)}
+      size_{static_cast<decltype(size_)>(PyArray_SIZE(arr))}
   {}
-
-  /**
-   * Return pointer to the NumPy array object we are viewing.
-   */
-  auto array() const noexcept { return array_; }
 
   /**
    * Return pointer to the NumPy array's data buffer.
@@ -359,11 +354,6 @@ public:
    * Return number of elements in the NumPy array.
    */
   auto size() const noexcept { return size_; }
-
-  /**
-   * Return the NumPy array flags.
-   */
-  auto flags() const noexcept { return flags_; }
 
   /**
    * Return reference to the `i`th data element without bounds checking.
@@ -384,10 +374,8 @@ public:
   }
 
 private:
-  PyArrayObject* array_;
   T* data_;
   std::size_t size_;
-  int flags_;
 };
 
 #if NPYGL_HAS_CC_17
