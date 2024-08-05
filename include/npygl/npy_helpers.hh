@@ -188,6 +188,8 @@ std::string npy_typename_list()
 /**
  * Import the NumPy C API and make it available for use.
  *
+ * @todo Consider adding a default `py_instance` imported by default.
+ *
  * @param python Python instance to ensure calling when Python is initialized
  * @returns `true` on success, `false` on error with Python exception set
  */
