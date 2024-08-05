@@ -380,17 +380,16 @@ private:
   std::size_t size_;
 };
 
-#if NPYGL_HAS_CC_17
 /**
- * Return the NumPy include directory as a static path object.
+ * Return the NumPy include directory as a static string.
  *
  * This calls `numpy.get_include` underneath so Python must be running.
  *
- * @returns NumPy include path. On error, empty with Python exception set
+ * @returns NumPy include directory. On error, empty with Python exception set
  */
-inline const auto& npy_include_dir()
+inline const auto& npy_get_include()
 {
-  static auto path = []() -> std::filesystem::path
+  static auto dir = []() -> std::string
   {
     // import NumPy module
     auto np = py_import("numpy");
@@ -404,13 +403,27 @@ inline const auto& npy_include_dir()
     auto py_inc_dir = py_call(np_get_include);
     if (!py_inc_dir)
       return {};
-    // translate to C++ string view
-    auto inc_dir = py_utf8_view(py_inc_dir);
-    if (!inc_dir.data())
+    // translate to C++ string
+    auto inc_dir = py_utf8_string(py_inc_dir);
+    if (inc_dir.empty())
       return {};
-    // else return path object from string view
+    // success
     return inc_dir;
   }();
+  return dir;
+}
+
+#if NPYGL_HAS_CC_17
+/**
+ * Return the NumPy include directory as a static path object.
+ *
+ * This calls `numpy.get_include` underneath so Python must be running.
+ *
+ * @returns NumPy include path. On error, empty with Python exception set
+ */
+inline const auto& npy_include_dir()
+{
+  static std::filesystem::path path{npy_get_include()};
   return path;
 }
 #endif  // !NPYGL_HAS_CC_17

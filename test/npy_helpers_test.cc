@@ -130,10 +130,7 @@ int main()
   npygl::npy_api_import(python);
   npygl::py_error_exit();
   // print the NumPy include directory
-// TODO: don't make conditional when we drop C++14 support
-#if NPYGL_HAS_CC_17
-  std::cout << "NumPy include dir: " << npygl::npy_include_dir() << std::endl;
-#endif  // !NPYGL_HAS_CC_17
+  std::cout << "NumPy include dir: " << npygl::npy_get_include() << std::endl;
   // get the np.random module
   auto np_random = npygl::py_import("numpy.random");
   npygl::py_error_exit();
