@@ -1,5 +1,7 @@
 cmake_minimum_required(VERSION ${CMAKE_MINIMUM_REQUIRED_VERSION})
 
+add_subdirectory(npygl_test)
+
 # py_helpers_test: Python helpers tests
 if(BUILD_TESTS AND Python3_Development_FOUND)
     add_executable(py_helpers_test py_helpers_test.cc)

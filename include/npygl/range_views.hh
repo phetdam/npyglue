@@ -22,12 +22,16 @@ namespace npygl {
 template <typename ViewType>
 class flat_view_interface {
 public:
+  /////////////////////////////////////////////////////////////////////////////
+  // interface members
+  /////////////////////////////////////////////////////////////////////////////
+
   /**
    * Return pointer to the first element in the view.
    */
   auto data() const noexcept
   {
-    return static_cast<ViewType*>(this)->data();
+    return static_cast<const ViewType*>(this)->data();
   }
 
   /**
@@ -35,7 +39,7 @@ public:
    */
   auto size() const noexcept
   {
-    return static_cast<ViewType*>(this)->size();
+    return static_cast<const ViewType*>(this)->size();
   }
 
   /**
@@ -43,7 +47,36 @@ public:
    */
   auto& operator[](std::size_t i) const noexcept
   {
-    return static_cast<ViewType*>(this)->operator[](i);
+    return static_cast<const ViewType*>(this)->operator[](i);
+  }
+
+  /////////////////////////////////////////////////////////////////////////////
+  // inherited members
+  /////////////////////////////////////////////////////////////////////////////
+
+  /**
+   * Return pointer to the first element in the view.
+   */
+  auto begin() const noexcept
+  {
+    return static_cast<const ViewType*>(this)->data();
+  }
+
+  /**
+   * Return pointer to one past the last element in the view.
+   */
+  auto end() const noexcept
+  {
+    using V = const ViewType;
+    return static_cast<V*>(this)->data() + static_cast<V*>(this)->size();
+  }
+
+  /**
+   * Indicate if view contains data or not.
+   */
+  operator bool() const noexcept
+  {
+    return static_cast<const ViewType*>(this)->data();
   }
 
   /**
@@ -53,7 +86,7 @@ public:
    */
   auto& operator()(std::size_t i) const noexcept
   {
-    return static_cast<ViewType*>(this)->operator[](i);
+    return static_cast<const ViewType*>(this)->operator[](i);
   }
 };
 
@@ -66,6 +99,13 @@ template <typename T>
 class flat_view : public flat_view_interface<flat_view<T>> {
 public:
   using value_type = T;
+
+  /**
+   * Default ctor.
+   *
+   * Constructs a view with no data.
+   */
+  flat_view() noexcept : flat_view{nullptr, 0U} {}
 
   /**
    * Ctor.
@@ -89,16 +129,6 @@ public:
    * Return reference to the `i`th data element without bounds checking.
    */
   auto& operator[](std::size_t i) const noexcept
-  {
-    return data_[i];
-  }
-
-  /**
-   * Return reference to the `i`th data element without bounds checking.
-   *
-   * @note This is provided to have consistent feel with non-flat views.
-   */
-  auto& operator()(std::size_t i) const noexcept
   {
     return data_[i];
   }
@@ -128,6 +158,13 @@ public:
   static constexpr auto data_order = R;
 
   /**
+   * Default ctor.
+   *
+   * Constructs a view with no data.
+   */
+  matrix_view() noexcept : matrix_view{nullptr, 0U, 0U} {}
+
+  /**
    * Ctor.
    *
    * @note Number of view elements must be at least `rows` * `cols`.
@@ -136,6 +173,9 @@ public:
    * @param rows Number of rows in the view
    * @param cols Number of columns in the view
    */
+  matrix_view(T* data, std::size_t rows, std::size_t cols) noexcept
+    : data_{data}, rows_{rows}, cols_{cols}
+  {}
 
   /**
    * Return pointer to first element in view.
@@ -161,16 +201,6 @@ public:
    * Return reference to the `i`th data element without bounds checking.
    */
   auto& operator[](std::size_t i) const noexcept
-  {
-    return data_[i];
-  }
-
-  /**
-   * Return reference to the `i`th data element without bounds checking.
-   *
-   * @note This is provided to have consistent feel with non-flat views.
-   */
-  auto& operator()(std::size_t i) const noexcept
   {
     return data_[i];
   }
