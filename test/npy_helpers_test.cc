@@ -29,8 +29,8 @@ namespace {
  */
 void sine(npygl::ndarray_flat_view<double> view) noexcept
 {
-  for (decltype(view.size()) i = 0; i < view.size(); i++)
-    view[i] = std::sin(view[i]);
+  for (auto& v : view)
+    v = std::sin(v);
 }
 
 // C++17 if constexpr and fold expressions

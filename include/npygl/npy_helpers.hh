@@ -358,6 +358,16 @@ public:
   auto size() const noexcept { return size_; }
 
   /**
+   * Return pointer to the data buffer's first element.
+   */
+  auto begin() const noexcept { return data_; }
+
+  /**
+   * Return pointer to one past the last element in the data buffer.
+   */
+  auto end() const noexcept { return data_ + size_; }
+
+  /**
    * Return reference to the `i`th data element without bounds checking.
    */
   auto& operator[](std::size_t i) const noexcept
