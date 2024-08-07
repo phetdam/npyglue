@@ -33,6 +33,17 @@ void sine(npygl::ndarray_flat_view<double> view) noexcept
     v = std::sin(v);
 }
 
+/**
+ * Compute the inverse sine of the view elements.
+ *
+ * @param view NumPy array view
+ */
+void asine(npygl::ndarray_flat_view<double> view) noexcept
+{
+  for (auto& v : view)
+    v = std::asin(v);
+}
+
 // C++17 if constexpr and fold expressions
 #if NPYGL_HAS_CC_17
 /**
@@ -156,6 +167,9 @@ int main()
     has_type<int, double, float>(ar) << std::endl;
   // apply sine function to NumPy array and print it again
   sine(ar);
-  std::cout << res << std::endl;
+  std::cout << "sine transform:\n" << res << std::endl;
+  // apply inverse sine function to NumPy array and print it again
+  asine(ar);
+  std::cout << "inverse sine transform:\n" << res << std::endl;
   return EXIT_SUCCESS;
 }
