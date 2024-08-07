@@ -252,6 +252,9 @@ public:
     {
       // VIRTUAL_ENV has path to venv virtual env root directory
       auto venv = std::getenv("VIRTUAL_ENV");
+      // not in virtual environment
+      if (!venv)
+        return true;
       // program name must be in static storage
       static const auto progname = [venv]
       {
