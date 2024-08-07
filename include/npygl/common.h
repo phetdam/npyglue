@@ -23,6 +23,16 @@
 #endif  // !defined(__cplusplus)
 
 /**
+ * Concatenate arguments without macro expansion.
+ */
+#define NPYGL_CONCAT_I(a, b) a ## b
+
+/**
+ * Concatenate arguments with macro expansion.
+ */
+#define NPYGL_CONCAT(a, b) NPYGL_CONCAT_I(a, b)
+
+/**
  * Stringify argument without macro expansion.
  */
 #define NPYGL_STRINGIFY_I(x) #x
@@ -36,5 +46,13 @@
  * Macro indicating an unused argument.
  */
 #define NPYGL_UNUSED(x)
+
+/**
+ * Macro for expanding arguments unchanged.
+ *
+ * This is useful when dealing with multi-argument templates and macros because
+ * without it, a template like `A<T, U>` is expanded into two macro arguments.
+ */
+#define NPYGL_IDENTITY(...) __VA_ARGS__
 
 #endif  // NPYGL_COMMON_H_

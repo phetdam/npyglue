@@ -48,10 +48,16 @@ if(MSVC)
         /Wall
         # C4514: unreferenced inline function has been removed
         /wd4514
+        # C4625: copy ctor was implicitly defined as deleted
+        /wd4625
         # C4626: assignment operator was implicitly defined as deleted
         /wd4626
         # C4820: padding added after struct member
         /wd4820
+        # C5026: move ctor was implicitly defined as deleted
+        /wd5026
+        # C5027: move assignment operator was implicitly defined as deleted
+        /wd5027
         # C5045: compiler will insert Spectre mitigation if using /QSpectre
         /wd5045
     )

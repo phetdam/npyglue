@@ -21,6 +21,7 @@
 #include <string>
 
 #include "npygl/features.h"
+#include "npygl/warnings.h"
 
 #if NPYGL_HAS_CC_17
 #include <string_view>
@@ -266,7 +267,10 @@ public:
       }();
       // set program name
       // FIXME: deprecated in 3.11, use custom initialization
+NPYGL_MSVC_WARNING_PUSH()
+NPYGL_MSVC_WARNING_DISABLE(4996)
       Py_SetProgramName(progname.c_str());
+NPYGL_MSVC_WARNING_POP()
       return true;
     }();
 #endif  // _WIN32

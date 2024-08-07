@@ -13,6 +13,9 @@
 
 #include <gtest/gtest.h>
 
+#include "npygl/common.h"
+#include "npygl/warnings.h"
+
 namespace {
 
 /**
@@ -21,7 +24,10 @@ namespace {
 struct flt_input_1 {
   std::vector<float> input() const
   {
+NPYGL_MSVC_WARNING_PUSH()
+NPYGL_MSVC_WARNING_DISABLE(4305)
     return {4.3, 4.222, 0.1, 12.22, 3.4};
+NPYGL_MSVC_WARNING_POP()
   }
 
   auto operator()(float x) const noexcept
@@ -119,7 +125,7 @@ struct flt_input_3 {
     T* data_;
   };
 
-  auto input() const
+  auto input() const noexcept
   {
     static double ar[] = {4.33, 2.344, 1.5151, 8.9};
     return array_wrapper{ar};
@@ -148,8 +154,10 @@ struct flt_input_3 {
 template <typename InType>
 class FlatViewTest : public ::testing::Test {};
 
-using FlatViewTestTypes = ::testing::Types<flt_input_1, flt_input_2, flt_input_3>;
-TYPED_TEST_SUITE(FlatViewTest, FlatViewTestTypes);
+TYPED_TEST_SUITE(
+  FlatViewTest,
+  NPYGL_IDENTITY(::testing::Types<flt_input_1, flt_input_2, flt_input_3>)
+);
 
 /**
  * Test that modification through a `flat_view` works as expected.
