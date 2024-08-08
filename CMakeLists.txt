@@ -93,6 +93,14 @@ else()
     message(STATUS "Google Test version: None")
 endif()
 
+# find SWIG + ensure it supports Python
+find_package(SWIG 4.0.2 COMPONENTS python)
+if(SWIG_FOUND)
+    message(STATUS "SWIG version: ${SWIG_VERSION}")
+else()
+    message(STATUS "SWIG version: None")
+endif()
+
 # project include directory
 set(NPYGL_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/include)
 include_directories(${NPYGL_INCLUDE_DIR})
