@@ -56,6 +56,7 @@
 #include "npygl/features.h"
 // TODO: change to npygl/py_object.hh
 #include "npygl/py_helpers.hh"
+#include "npygl/range_views.hh"
 
 // C++17
 #if NPYGL_HAS_CC_17
@@ -345,7 +346,7 @@ inline auto make_ndarray(PyObject* obj) noexcept
  * @tparam T Data type
  */
 template <typename T>
-class ndarray_flat_view {
+class ndarray_flat_view : public flat_view_interface<ndarray_flat_view<T>> {
 public:
   using value_type = T;
 
@@ -373,29 +374,9 @@ public:
   auto size() const noexcept { return size_; }
 
   /**
-   * Return pointer to the data buffer's first element.
-   */
-  auto begin() const noexcept { return data_; }
-
-  /**
-   * Return pointer to one past the last element in the data buffer.
-   */
-  auto end() const noexcept { return data_ + size_; }
-
-  /**
    * Return reference to the `i`th data element without bounds checking.
    */
   auto& operator[](std::size_t i) const noexcept
-  {
-    return data_[i];
-  }
-
-  /**
-   * Return reference to the `i`th data element without bounds checking.
-   *
-   * @note This is provided to have consistent feel with the non-flat view.
-   */
-  auto& operator()(std::size_t i) const noexcept
   {
     return data_[i];
   }
