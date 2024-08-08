@@ -1,9 +1,14 @@
 /**
- * @file npygl_ndarray.i
+ * @file ndarray.i
  * @author Derek Huang
  * @brief SWIG interface file for npyglue NumPy array helpers
  * @copyright MIT License
  */
+
+// ensure SWIG is running in C++ mode
+#ifndef __cplusplus
+#error "ndarray.i: SWIG C++ processing must be enabled with -c++"
+#endif  // __cplusplus
 
 %{
 #include <npygl/npy_helpers.hh>  // includes <numpy/ndarrayobject.h>
