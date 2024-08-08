@@ -300,11 +300,11 @@ inline auto make_ndarray(PyObject* obj, int type, int flags) noexcept
  * @tparam T NumPy array data buffer C type
  *
  * @param obj Python object to create NumPy array from
- * @param flags NumPy array requirement flags, default `NPY_ARRAY_DEFAULT`
+ * @param flags NumPy array requirement flags, e.g. `NPY_ARRAY_DEFAULT`
  * @returns `py_object` owning the created array
  */
 template <typename T>
-inline auto make_ndarray(PyObject* obj, int flags = NPY_ARRAY_DEFAULT) noexcept
+inline auto make_ndarray(PyObject* obj, int flags) noexcept
 {
   return make_ndarray(
     obj,
@@ -315,6 +315,21 @@ inline auto make_ndarray(PyObject* obj, int flags = NPY_ARRAY_DEFAULT) noexcept
 #endif  // !NPYGL_HAS_CC_17
     flags
   );
+}
+
+/**
+ * Create a new NumPy array of a specifed type from an existing Python object.
+ *
+ * The default array creation flags, `NPY_ARRAY_DEFAULT | NPY_ARRAY_ENSURECOPY`,
+ * ensure that a new aligned, row-major order new NumPy array is returned.
+ *
+ * @param obj Python object to create NumPy array from
+ * @returns `py_object` owning the created array
+ */
+template <typename T>
+inline auto make_ndarray(PyObject* obj) noexcept
+{
+  return make_ndarray<T>(obj, NPY_ARRAY_DEFAULT | NPY_ARRAY_ENSURECOPY);
 }
 
 /**
