@@ -10,9 +10,6 @@
 #include <npygl/py_helpers.hh>
 %}
 
-// TODO: use %define in order to create typemap macros for the relevant NumPy
-// types that have npy_type_traits specializations
-
 /**
  * Typemap macro for converting Python input into a new NumPy array to modify.
  *
