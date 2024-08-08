@@ -199,6 +199,26 @@ inline bool npy_api_import(const py_instance& /*python*/) noexcept
   return !PyArray_ImportNumPyAPI();
 }
 
+}  // namespace npygl
+
+/**
+ * Stream the string representation of the NumPy array as with `repr()`.
+ *
+ * On error the Python exception trace is printed with `PyErr_Print`. Note that
+ * this will also clear the error indicator so use with care.
+ *
+ * @note In order for ADL to work this is defined in the top-level namespace.
+ *
+ * @param out Output stream
+ * @param arr NumPy array to stream
+ */
+inline auto& operator<<(std::ostream& out, PyArrayObject* arr)
+{
+  return out << reinterpret_cast<PyObject*>(arr);
+}
+
+namespace npygl {
+
 /**
  * Check if a Python object is a NumPy array.
  *

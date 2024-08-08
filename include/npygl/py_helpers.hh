@@ -668,31 +668,54 @@ inline auto py_str(PyObject* obj) noexcept
 }
 
 /**
- * Stream the string representation of the Python object as with `repr()`.
+ * Write the `repr()` of the Python object to an output stream.
  *
- * On error the Python exception trace is printed with `PyErr_Print`. Note that
- * this will also clear the error indicator so use with care.
+ * On error `false` is returned and a Python exception is set.
  *
  * @param out Output stream
  * @param obj Python object to stream
+ * @returns `true` on success, `false` on error
  */
-auto& operator<<(std::ostream& out, PyObject* obj)
+inline bool py_repr(std::ostream& out, PyObject* obj)
 {
   // get repr() of obj
   auto repr = py_repr(obj);
-  if (py_error_print())
-    return out;
+  if (!repr)
+    return false;
   // get string [view] from repr
 #if NPYGL_HAS_CC_17
   auto view = py_utf8_view(repr);
 #else
   auto view = py_utf8_string(repr);
 #endif  // !NPYGL_HAS_CC_17
-  if (py_error_print())
-    return out;
+  if (view.empty())
+    return false;
   // stream
-  return out << view;
+  out << view;
+  return true;
 }
+
+}  // namespace npygl
+
+/**
+ * Stream the string representation of the Python object as with `repr()`.
+ *
+ * On error the Python exception trace is printed with `PyErr_Print`. Note that
+ * this will also clear the error indicator so use with care.
+ *
+ * @note In order for ADL to work this is defined in the top-level namespace.
+ *
+ * @param out Output stream
+ * @param obj Python object to stream
+ */
+inline auto& operator<<(std::ostream& out, PyObject* obj)
+{
+  if (!npygl::py_repr(out, obj))
+    PyErr_Print();
+  return out;
+}
+
+namespace npygl {
 
 /**
  * Stream the string representation of the Python object as with `repr()`.

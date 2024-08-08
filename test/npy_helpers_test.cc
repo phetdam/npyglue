@@ -167,9 +167,9 @@ int main()
     has_type<int, double, float>(ar) << std::endl;
   // apply sine function to NumPy array and print it again
   sine(ar);
-  std::cout << "sine transform:\n" << res << std::endl;
+  std::cout << "sine transform:\n" << ar << std::endl;
   // apply inverse sine function to NumPy array and print it again
   asine(ar);
-  std::cout << "inverse sine transform:\n" << res << std::endl;
+  std::cout << "inverse sine transform:\n" << ar << std::endl;
   return EXIT_SUCCESS;
 }
