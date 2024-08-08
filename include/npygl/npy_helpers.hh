@@ -346,9 +346,16 @@ inline auto make_ndarray(PyObject* obj) noexcept
  * @tparam T Data type
  */
 template <typename T>
-class ndarray_flat_view : public flat_view_interface<ndarray_flat_view<T>> {
+class ndarray_flat_view : public flat_view<T> {
 public:
   using value_type = T;
+
+  /**
+   * Default ctor.
+   *
+   * Constructs a view with no data.
+   */
+  ndarray_flat_view() noexcept = default;
 
   /**
    * Ctor.
@@ -358,32 +365,13 @@ public:
    * @param arr NumPy array
    */
   ndarray_flat_view(PyArrayObject* arr) noexcept
-    : data_{static_cast<T*>(PyArray_DATA(arr))},
-      // static_cast required to avoid C2397 narrowing error with MSVC
-      size_{static_cast<decltype(size_)>(PyArray_SIZE(arr))}
+    : flat_view<T>{
+        static_cast<T*>(PyArray_DATA(arr)),
+        // static_cast avoids C2397 narrowing error with MSVC since uniform
+        // initialization prohibits implicit narrowing conversions
+        static_cast<std::size_t>(PyArray_SIZE(arr))
+      }
   {}
-
-  /**
-   * Return pointer to the NumPy array's data buffer.
-   */
-  auto data() const noexcept { return data_; }
-
-  /**
-   * Return number of elements in the NumPy array.
-   */
-  auto size() const noexcept { return size_; }
-
-  /**
-   * Return reference to the `i`th data element without bounds checking.
-   */
-  auto& operator[](std::size_t i) const noexcept
-  {
-    return data_[i];
-  }
-
-private:
-  T* data_;
-  std::size_t size_;
 };
 
 /**
