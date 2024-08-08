@@ -14,8 +14,8 @@
 #include <iostream>
 
 #include "npygl/features.h"
-#include "npygl/py_helpers.hh"
 #include "npygl/npy_helpers.hh"
+#include "npygl/py_helpers.hh"
 
 #if !NPYGL_HAS_CC_17
 #include <type_traits>
