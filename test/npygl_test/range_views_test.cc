@@ -7,6 +7,7 @@
 
 #include "npygl/range_views.hh"
 
+#include <algorithm>
 #include <cmath>
 #include <cstdint>
 #include <functional>
@@ -183,13 +184,11 @@ TYPED_TEST(FlatViewTest, TransformTest)
   TypeParam input{};
   // expected values
   auto expected = input.input();
-  for (auto& v : expected)
-    v = input(v);
+  std::transform(expected.begin(), expected.end(), expected.begin(), input);
   // actual values using view
   auto actual = input.input();
   auto view = input.view(actual);
-  for (auto& v : view)
-    v = input(v);
+  std::transform(view.begin(), view.end(), view.begin(), input);
   // expect equality (we used the exact same inputs)
   EXPECT_EQ(expected, actual);
 }
