@@ -14,43 +14,42 @@
 // types that have npy_type_traits specializations
 
 /**
- * Typemap converting Python input into new double NumPy array to modify.
+ * Typemap macro for converting Python input into a new NumPy array to modify.
+ *
+ * This macro simplifies creation of `npygl::ndarray_flat_view<T>` typemaps
+ * for all the the types that have `npy_type_traits` specializations.
+ *
+ * @param type C/C++ view class element type
  */
-%typemap(in) npygl::ndarray_flat_view<double> AR_INOUT (npygl::py_object res)
+%define NPYGL_FLAT_VIEW_INOUT_TYPEMAP(type)
+/**
+ * Typemap converting Python input into new NumPy array to modify.
+ *
+ * This is intended to be applied to a view through which changes are made.
+ */
+%typemap(in) npygl::ndarray_flat_view<type> AR_INOUT (npygl::py_object res)
 {
   // attempt to create new output array to modify through view
-  res = npygl::make_ndarray<double>($input);
+  res = npygl::make_ndarray<type>($input);
   if (!res)
     SWIG_fail;
   // create view
-  $1 = npygl::ndarray_flat_view<double>{res.as<PyArrayObject>()};
+  $1 = npygl::ndarray_flat_view<type>{res.as<PyArrayObject>()};
 }
 
 /**
- * Typemap releasing modified double NumPy array back to Python.
+ * Typemap releasing modified NumPy array back to Python.
  */
-%typemap(argout) npygl::ndarray_flat_view<double> AR_INOUT {
+%typemap(argout) npygl::ndarray_flat_view<type> AR_INOUT {
   // release value back to Python
   $result = res$argnum.release();
 }
+%enddef
 
-/**
- * Typemap converting Python input into new float NumPy array to modify.
- */
-%typemap(in) npygl::ndarray_flat_view<float> AR_INOUT (npygl::py_object res)
-{
-  // attempt to create new output array to modify through view
-  res = npygl::make_ndarray<float>($input);
-  if (!res)
-    SWIG_fail;
-  // create view
-  $1 = npygl::ndarray_flat_view<float>{res.as<PyArrayObject>()};
-}
-
-/**
- * Typemap releasing modified double NumPy array back to Python.
- */
-%typemap(argout) npygl::ndarray_flat_view<float> AR_INOUT {
-  // release value back to Python
-  $result = res$argnum.release();
-}
+// supported int + out flat view typemaps
+NPYGL_FLAT_VIEW_INOUT_TYPEMAP(double)
+NPYGL_FLAT_VIEW_INOUT_TYPEMAP(float)
+NPYGL_FLAT_VIEW_INOUT_TYPEMAP(int)
+NPYGL_FLAT_VIEW_INOUT_TYPEMAP(unsigned int)
+NPYGL_FLAT_VIEW_INOUT_TYPEMAP(long)
+NPYGL_FLAT_VIEW_INOUT_TYPEMAP(unsigned long)
