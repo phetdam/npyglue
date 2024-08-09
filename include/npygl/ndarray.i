@@ -29,8 +29,7 @@
  *
  * This is intended to be applied to a view through which changes are made.
  */
-%typemap(in) npygl::ndarray_flat_view<type> AR_INOUT (npygl::py_object res)
-{
+%typemap(in) npygl::ndarray_flat_view<type> AR_INOUT (npygl::py_object res) {
   // attempt to create new output array to modify through view
   res = npygl::make_ndarray<type>($input);
   if (!res)
@@ -46,7 +45,25 @@
   // release value back to Python
   $result = res$argnum.release();
 }
-%enddef
+%enddef  // NPYGL_FLAT_VIEW_INOUT_TYPEMAP(type)
+
+/**
+ * Typemap application macro for applying the flat view in/out typemap.
+ *
+ * @param type C/C++ view class element type
+ */
+%define NPYGL_APPLY_FLAT_VIEW_INOUT_TYPEMAP(type)
+%apply npygl::ndarray_flat_view<type> AR_INOUT { npygl::ndarray_flat_view<type> };
+%enddef  // NPYGL_APPLY_FLAT_VIEW_INOUT_TYPEMAP(type)
+
+/**
+ * Typemap clearing macro for the flat view typemaps.
+ *
+ * @param type C/C++ view class element type
+ */
+%define NPYGL_CLEAR_FLAT_VIEW_TYPEMAPS(type)
+%clear npygl::ndarray_flat_view<type>;
+%enddef  // NPYGL_CLEAR_FLAT_VIEW_TYPEMAPS(type)
 
 // supported int + out flat view typemaps
 NPYGL_FLAT_VIEW_INOUT_TYPEMAP(double)
