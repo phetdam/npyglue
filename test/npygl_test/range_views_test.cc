@@ -8,9 +8,11 @@
 #include "npygl/range_views.hh"
 
 #include <algorithm>
+#include <cassert>
 #include <cmath>
 #include <cstdint>
 #include <functional>
+#include <stdexcept>
 
 #include <gtest/gtest.h>
 
@@ -22,7 +24,7 @@ namespace {
 /**
  * `FlatViewTest` input for a `std::vector<float>`.
  */
-struct flt_input_1 {
+struct fvt_input_1 {
   using value_type = float;
   using container_type = std::vector<value_type>;
   using view_type = npygl::flat_view<value_type>;
@@ -49,7 +51,7 @@ NPYGL_MSVC_WARNING_POP()
 /**
  * `FlatViewTest` input for a `std::vector<double>`.
  */
-struct flt_input_2 {
+struct fvt_input_2 {
   using value_type = double;
   using container_type = std::vector<value_type>;
   using view_type = npygl::flat_view<value_type>;
@@ -137,7 +139,7 @@ private:
 /**
  * `FlatViewTest` input for a static unsigned int array wrapper.
  */
-struct flt_input_3 {
+struct fvt_input_3 {
   using value_type = unsigned int;
   using view_type = npygl::flat_view<value_type>;
 
@@ -172,7 +174,7 @@ class FlatViewTest : public ::testing::Test {};
 
 TYPED_TEST_SUITE(
   FlatViewTest,
-  NPYGL_IDENTITY(::testing::Types<flt_input_1, flt_input_2, flt_input_3>)
+  NPYGL_IDENTITY(::testing::Types<fvt_input_1, fvt_input_2, fvt_input_3>)
 );
 
 /**
@@ -191,6 +193,145 @@ TYPED_TEST(FlatViewTest, TransformTest)
   std::transform(view.begin(), view.end(), view.begin(), input);
   // expect equality (we used the exact same inputs)
   EXPECT_EQ(expected, actual);
+}
+
+/**
+ * `MatrixViewTest` input for a `std::vector<float>` and C data ordering.
+ */
+struct mvt_input_1 {
+  using value_type = float;
+  using container_type = std::vector<value_type>;
+  using view_type = npygl::matrix_view<value_type>;
+
+  constexpr std::size_t rows() const noexcept { return 3u; }
+  constexpr std::size_t cols() const noexcept { return 2u; }
+
+  container_type input() const
+  {
+    return {3.45f, 4.111f, 34.34f, 1.22f, 4.61f, 9.992f};
+  }
+
+  auto operator()(value_type x) const noexcept
+  {
+    return std::sin(x) * 1.34f;
+  }
+
+  view_type view(container_type& values) const
+  {
+    assert(values.size() == rows() * cols());
+    return {values.data(), rows(), cols()};
+  }
+};
+
+/**
+ * `MatrixViewTest` input for a `std::vector<double>` and Fortran data ordering.
+ */
+struct mvt_input_2 {
+  using value_type = double;
+  using container_type = std::vector<value_type>;
+  using view_type = npygl::matrix_view<value_type, npygl::element_order::f>;
+
+  constexpr std::size_t rows() const noexcept { return 2u; }
+  constexpr std::size_t cols() const noexcept { return 3u; }
+
+  container_type input() const
+  {
+    return {2.334, 41.22, 1.1112, 0.012, 4.161, 5.445};
+  }
+
+  auto operator()(value_type x) const noexcept
+  {
+    return 0.5 * x * x + 2.4 * x - 1.45;
+  }
+
+  view_type view(container_type& values) const
+  {
+    assert(values.size() == rows() * cols());
+    return {values.data(), rows(), cols()};
+  }
+};
+
+/**
+ * Test fixture template for `matrix_view` testing.
+ *
+ * @tparam InType Class type with `input()`, `operator()`, and `view()` members
+ *  that generate the test input, transform each input value, and create a
+ *  `matrix_view` from the input respectively.
+ */
+template <typename InType>
+class MatrixViewTest : public ::testing::Test {};
+
+TYPED_TEST_SUITE(
+  MatrixViewTest,
+  NPYGL_IDENTITY(::testing::Types<mvt_input_1, mvt_input_2>)
+);
+
+/**
+ * Test that modification through the `matrix_view` as a flat view works.
+ */
+TYPED_TEST(MatrixViewTest, FlatTransformTest)
+{
+  // input instance (in case of statefulness)
+  TypeParam input{};
+  // expected values
+  auto expected = input.input();
+  for (auto& v : expected)
+    v = input(v);
+  // actual values using view (but treating as flat view)
+  auto actual = input.input();
+  auto view = input.view(actual);
+  for (auto& v : view)
+    v = input(v);
+  // expect equality since inputs are identical
+  EXPECT_EQ(expected, actual);
+}
+
+/**
+ * Test that modification through the `matrix_view` as a matrix works.
+ */
+TYPED_TEST(MatrixViewTest, MatrixTransformTest)
+{
+  // input instance (in case of statefulness)
+  TypeParam input{};
+  // expected values
+  auto expected = input.input();
+  for (auto& v : expected)
+    v = input(v);
+  // actual values using view (but treating as matrix view)
+  auto actual = input.input();
+  auto view = input.view(actual);
+  for (decltype(view.rows()) i = 0; i < view.rows(); i++)
+    for (decltype(view.cols()) j = 0; j < view.cols(); j++)
+      view(i, j) = input(view(i, j));
+  // expect equality since inputs are identical
+  EXPECT_EQ(expected, actual);
+}
+
+/**
+ * Test that C and Fortran data layout index as expected.
+ */
+TYPED_TEST(MatrixViewTest, IndexingTest)
+{
+  // input instance (in case of statefulness) + view type
+  TypeParam input{};
+  using view_type = typename TypeParam::view_type;
+  // values + view
+  auto values = input.input();
+  auto view = input.view(values);
+  // test only makes sense if both rows and columns are > 1
+  ASSERT_GE(view.rows(), 1u) << "view must have more than one row";
+  ASSERT_GE(view.cols(), 1u) << "view must have more than one col";
+  // view type from input
+  // C ordering check (check addresses)
+  if constexpr (view_type::data_order == npygl::element_order::c)
+    EXPECT_EQ(&view[view.cols() - 1], &view(0u, view.cols() - 1)) <<
+      "flat indexing to " << view.cols() - 1 << " != C order [0, " <<
+      view.cols() - 1 << "]";
+  // Fortran ordering check
+  else
+    EXPECT_EQ(&view[view.rows() - 1], &view(view.rows() - 1, 0u)) <<
+      "flat indexing to " << view.rows() - 1 << " != Fortran order [" <<
+      view.rows() - 1 << ", 0]";
 }
 
 }  // namespace
