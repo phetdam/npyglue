@@ -216,7 +216,7 @@ struct mvt_input_1 {
     return std::sin(x) * 1.34f;
   }
 
-  view_type view(container_type& values) const
+  view_type view(container_type& values) const noexcept
   {
     assert(values.size() == rows() * cols());
     return {values.data(), rows(), cols()};
@@ -244,10 +244,39 @@ struct mvt_input_2 {
     return 0.5 * x * x + 2.4 * x - 1.45;
   }
 
-  view_type view(container_type& values) const
+  view_type view(container_type& values) const noexcept
   {
     assert(values.size() == rows() * cols());
     return {values.data(), rows(), cols()};
+  }
+};
+
+/**
+ * `MatrixViewTest` input for a double array and Fortran data ordering.
+ */
+struct mvt_input_3 {
+  using value_type = double;
+  using view_type = npygl::matrix_view<value_type, npygl::element_order::f>;
+
+  constexpr std::size_t rows() const noexcept { return 4u; }
+  constexpr std::size_t cols() const noexcept { return 2u; }
+
+  auto input() const noexcept
+  {
+    static value_type ar[] = {3.44, 1.453, 49.11, 2.33, 1.1, 3.232, 3.4, 5.11};
+    return array_wrapper{ar};
+  }
+
+  auto operator()(value_type x) const noexcept
+  {
+    return std::cos(x) * std::sin(x) * 0.943;
+  }
+
+  template <std::size_t N>
+  view_type view(array_wrapper<value_type, N> ar) const noexcept
+  {
+    assert(static_cast<std::size_t>(ar.end() - ar.begin()) == rows() * cols());
+    return {ar.begin(), rows(), cols()};
   }
 };
 
@@ -263,7 +292,7 @@ class MatrixViewTest : public ::testing::Test {};
 
 TYPED_TEST_SUITE(
   MatrixViewTest,
-  NPYGL_IDENTITY(::testing::Types<mvt_input_1, mvt_input_2>)
+  NPYGL_IDENTITY(::testing::Types<mvt_input_1, mvt_input_2, mvt_input_3>)
 );
 
 /**
