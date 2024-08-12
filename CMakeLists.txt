@@ -67,6 +67,15 @@ else()
     add_compile_options(-Wall)
 endif()
 
+# check if we have C++20 available
+if(cxx_std_20 IN_LIST CMAKE_CXX_COMPILE_FEATURES)
+    set(NPYGL_HAS_CC_20 ON)
+    message(STATUS "C++20 support: Yes")
+else()
+    set(NPYGL_HAS_CC_20 OFF)
+    message(STATUS "C++20 support: No")
+endif()
+
 # find Python 3. not tested with Python 2
 find_package(Python3 COMPONENTS Development Interpreter NumPy)
 if(Python3_Interpreter_FOUND)
@@ -101,15 +110,6 @@ if(SWIG_FOUND)
     message(STATUS "SWIG version: ${SWIG_VERSION}")
 else()
     message(STATUS "SWIG version: None")
-endif()
-
-# check if we have C++20 available
-if(cxx_std_20 IN_LIST CMAKE_CXX_COMPILE_FEATURES)
-    set(NPYGL_HAS_CC_20 ON)
-    message(STATUS "C++20 support: Enabled")
-else()
-    set(NPYGL_HAS_CC_20 OFF)
-    message(STATUS "C++20 support: Disabled")
 endif()
 
 # project include directory

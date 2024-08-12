@@ -19,13 +19,10 @@
 #include <ostream>
 #include <sstream>
 #include <string>
+#include <string_view>
 
 #include "npygl/features.h"
 #include "npygl/warnings.h"
-
-#if NPYGL_HAS_CC_17
-#include <string_view>
-#endif  // !NPYGL_HAS_CC_17
 
 namespace npygl {
 
@@ -330,7 +327,6 @@ inline auto py_import(const char* name) noexcept
   return py_object{PyImport_ImportModule(name)};
 }
 
-#if NPYGL_HAS_CC_17
 /**
  * Import the given Python module.
  *
@@ -342,7 +338,6 @@ inline auto py_import(std::string_view name) noexcept
 {
   return py_import(name.data());
 }
-#endif  // !NPYGL_HAS_CC_17
 
 /**
  * Set the Python error indicator for the current thread.
@@ -355,6 +350,35 @@ inline auto py_error(PyObject* exc, const char* message) noexcept
 {
   PyErr_SetString(exc, message);
   return nullptr;
+}
+
+/**
+ * Set the Python error indicator for the current thread.
+ *
+ * @param exc Exception type to set
+ * @param message Exception message
+ * @returns `nullptr` for use in `PyCFunction` return statements
+ */
+inline auto py_error(PyObject* exc, std::string_view message) noexcept
+{
+  return py_error(exc, message.data());
+}
+
+/**
+ * Set the Python error indicator for the current thread.
+ *
+ * @tparam Ts... Argument types
+ *
+ * @param exc Exception type to set
+ * @param args... Arguments to format in exception message
+ * @returns `nullptr` for use in `PyCFunction` return statements
+ */
+template <typename... Ts>
+inline auto py_error(PyObject* exc, Ts&&... args)
+{
+  std::stringstream ss;
+  (ss << ... << args);
+  return py_error(exc, ss.str().c_str());
 }
 
 /**
@@ -397,6 +421,18 @@ inline void py_error_exit(PyObject* exc, const char* message) noexcept
 /**
  * Set the Python error indicator, print the exception trace, and exit.
  *
+ * @param exc Exception type to set
+ * @param message Exception message
+ */
+[[noreturn]]
+inline void py_error_exit(PyObject* exc, std::string_view message) noexcept
+{
+  py_error_exit(exc, message.data());
+}
+
+/**
+ * Set the Python error indicator, print the exception trace, and exit.
+ *
  * @param expr Expression to set error and exit if `true`
  * @param exc Exception type to set
  * @param message Exception message
@@ -405,48 +441,6 @@ inline void py_error_exit(bool expr, PyObject* exc, const char* message) noexcep
 {
   if (expr)
     py_error_exit(exc, message);
-}
-
-#if NPYGL_HAS_CC_17
-/**
- * Set the Python error indicator for the current thread.
- *
- * @param exc Exception type to set
- * @param message Exception message
- * @returns `nullptr` for use in `PyCFunction` return statements
- */
-inline auto py_error(PyObject* exc, std::string_view message) noexcept
-{
-  return py_error(exc, message.data());
-}
-
-/**
- * Set the Python error indicator for the current thread.
- *
- * @tparam Ts... Argument types
- *
- * @param exc Exception type to set
- * @param args... Arguments to format in exception message
- * @returns `nullptr` for use in `PyCFunction` return statements
- */
-template <typename... Ts>
-inline auto py_error(PyObject* exc, Ts&&... args)
-{
-  std::stringstream ss;
-  (ss << ... << args);
-  return py_error(exc, ss.str().c_str());
-}
-
-/**
- * Set the Python error indicator, print the exception trace, and exit.
- *
- * @param exc Exception type to set
- * @param message Exception message
- */
-[[noreturn]]
-inline void py_error_exit(PyObject* exc, std::string_view message) noexcept
-{
-  py_error_exit(exc, message.data());
 }
 
 /**
@@ -480,7 +474,6 @@ inline void py_error_exit(bool expr, PyObject* exc, Ts&&... args)
   (ss << ... << args);
   py_error_exit(exc, ss.str().c_str());
 }
-#endif  // !NPYGL_HAS_CC_17
 
 /**
  * Retrieve the attribute with the given name from the Python object.
@@ -495,7 +488,6 @@ inline auto py_getattr(PyObject* obj, const char* name) noexcept
   return py_object{PyObject_GetAttrString(obj, name)};
 }
 
-#if NPYGL_HAS_CC_17
 /**
  * Retrieve the attribute with the given name from the Python object.
  *
@@ -508,7 +500,6 @@ inline auto py_getattr(PyObject* obj, std::string_view name) noexcept
 {
   return py_getattr(obj, name.data());
 }
-#endif  // !NPYGL_HAS_CC_17
 
 /**
  * Check if the Python object has an attribute of the given name.
@@ -522,7 +513,6 @@ inline bool py_hasattr(PyObject* obj, const char* name) noexcept
   return !!PyObject_HasAttrString(obj, name);
 }
 
-#if NPYGL_HAS_CC_17
 /**
  * Check if the Python object has an attribute of the given name.
  *
@@ -533,7 +523,6 @@ inline bool py_hasattr(PyObject* obj, std::string_view name) noexcept
 {
   return py_hasattr(obj, name.data());
 }
-#endif  // !NPYGL_HAS_CC_17
 
 /**
  * Call the Python object with the given positional arguments.
@@ -594,7 +583,6 @@ inline std::string py_utf8_string(PyObject* obj)
   return {data, static_cast<std::size_t>(size)};
 }
 
-#if NPYGL_HAS_CC_17
 /**
  * Return a UTF-8 encoded string view from a Python Unicode (string) object.
  *
@@ -616,7 +604,6 @@ inline std::string_view py_utf8_view(PyObject* obj) noexcept
   // note: can't use ternary expression; no deducable common type
   return {data, static_cast<std::size_t>(size)};
 }
-#endif  // NPYGL_HAS_CC_17
 
 /**
  * Print the Python object to the given file.
@@ -683,11 +670,7 @@ inline bool py_repr(std::ostream& out, PyObject* obj)
   if (!repr)
     return false;
   // get string [view] from repr
-#if NPYGL_HAS_CC_17
   auto view = py_utf8_view(repr);
-#else
-  auto view = py_utf8_string(repr);
-#endif  // !NPYGL_HAS_CC_17
   if (view.empty())
     return false;
   // stream

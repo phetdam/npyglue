@@ -12,10 +12,6 @@
 
 #include "npygl/features.h"
 
-#if !NPYGL_HAS_CC_17
-#include <type_traits>
-#endif  // !NPYGL_HAS_CC_17
-
 namespace npygl {
 
 /**
@@ -214,60 +210,16 @@ public:
    */
   auto& operator()(std::size_t i, std::size_t j) const noexcept
   {
-#if NPYGL_HAS_CC_17
     if constexpr (R == element_order::c)
       return data_[cols_ * i + j];
     else
       return data_[i + rows_ * j];
-#else
-    return indexer<R>{this}(i, j);
-#endif  // !NPYGL_HAS_CC17
   }
 
 private:
   T* data_;
   std::size_t rows_;
   std::size_t cols_;
-
-#if !NPYGL_HAS_CC_17
-  /**
-   * Indexer struct to handle different data layouts.
-   *
-   * @tparam O Element ordering
-   */
-  template <element_order O, typename = void>
-  struct indexer {
-    /**
-     * Return row-major reference to the view's `(i, j)` data element.
-     */
-    auto& operator()(std::size_t i, std::size_t j) const noexcept
-    {
-      return view->data()[view->cols() * i + j];
-    }
-
-    // pointer to parent view
-    const matrix_view<T, O>* view;
-  };
-
-  /**
-   * Specialization for Fortran-style ordering.
-   *
-   * @tparam O Element ordering
-   */
-  template <element_order O>
-  struct indexer<O, std::enable_if_t<O == element_order::f>> {
-    /**
-     * Return column-major reference to the view's `(i, j)` data element.
-     */
-    auto& operator()(std::size_t i, std::size_t j) const noexcept
-    {
-      return view->data()[i + view->rows() * j];
-    }
-
-    // pointer to parent view
-    const matrix_view<T, O>* view;
-  };
-#endif  // !NPYGL_HAS_CC_17
 };
 
 }  // namespace npygl
