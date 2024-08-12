@@ -130,10 +130,13 @@ struct has_npy_type_traits : std::false_type {};
 /**
  * True specialization checking if a type has NumPy type traits.
  *
+ * We discard cv-qualifiers since only the non-qualified type matters.
+ *
  * @tparam T type
  */
 template <typename T>
-struct has_npy_type_traits<T, std::void_t<npy_type_traits<T>>> : std::true_type {};
+struct has_npy_type_traits<
+  T, std::void_t<npy_type_traits<std::remove_cv_t<T>>> > : std::true_type {};
 
 #if NPYGL_HAS_CC_17
 /**
@@ -185,6 +188,16 @@ std::string npy_typename_list()
   return npy_typename_list<T1>() + ", " + npy_typename_list<T2, Ts...>();
 }
 #endif  // !NPYGL_HAS_CC_17
+
+#if NPYGL_HAS_CC_20
+/**
+ * Concept for a C/C++ type that can be a possible NumPy data type.
+ *
+ * @tparam T type
+ */
+template <typename T>
+concept npy_type = has_npy_type_traits_v<T>;
+#endif  // !NPYGL_HAS_CC_20
 
 /**
  * Import the NumPy C API and make it available for use.
@@ -361,8 +374,6 @@ inline auto make_ndarray(PyObject* obj) noexcept
  *
  * Data buffer must be known to be aligned and writable if need be before use.
  *
- * @todo Create `ndarray_view_base` holding the fields + getters.
- *
  * @tparam T Data type
  */
 template <typename T>
@@ -441,6 +452,27 @@ inline const auto& npy_include_dir()
   return path;
 }
 #endif  // !NPYGL_HAS_CC_17
+
+#if NPYGL_HAS_CC_20
+/**
+ * Create a `std::span` of the specified type from the NumPy array.
+ *
+ * Data buffer must be known to be aligned and writable if need be before use.
+ *
+ * @tparam T Data type
+ *
+ * @param arr NumPy array
+ */
+template <npy_type T>
+inline std::span<T> make_span(PyArrayObject* arr) noexcept
+{
+  return {
+    static_cast<T*>(PyArray_DATA(arr)),
+    // static_cast avoids C2397 narrowing error with MSVC
+    static_cast<std::size_t>(PyArray_SIZE(arr))
+  };
+}
+#endif  // !NPYGL_HAS_CC_20
 
 }  // namespace npygl
 
