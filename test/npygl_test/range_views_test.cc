@@ -20,10 +20,6 @@
 #include "npygl/features.h"
 #include "npygl/warnings.h"
 
-#if !NPYGL_HAS_CC_17
-#include <type_traits>
-#endif  // !NPYGL_HAS_CC_17
-
 namespace {
 
 /**
@@ -123,7 +119,6 @@ public:
   template <std::size_t N_>
   bool operator==(array_wrapper<T, N_> other) const noexcept
   {
-#if NPYGL_HAS_CC_17
     // if different sizes, definitely not equal
     if constexpr (N != N_)
       return false;
@@ -135,54 +130,10 @@ public:
           return false;
       return true;
     }
-#else
-  return equals_op<N, N_>{this}(other);
-#endif  // !NPYGL_HAS_CC_17
   }
 
 private:
   T* data_;
-
-#if !NPYGL_HAS_CC_17
-  /**
-   * Helper struct providing specialization behavior for `operator==`.
-   *
-   * Defaults to `false` if the array sizes don't match.
-   *
-   * @tparam N1 Number of elements in array
-   */
-  template <std::size_t N1, std::size_t N2, typename = void>
-  struct equals_op {
-    bool operator()(array_wrapper<T, N2> other) const noexcept
-    {
-      return false;
-    }
-
-    // pointer to parent wrapper
-    const array_wrapper<T, N1>* wrapper;
-  };
-
-  /**
-   * Specialization when the array sizes actually match.
-   *
-   * @tparam N1 Desired number of array elements
-   * @tparam N2 Actual number of array elements
-   */
-  template <std::size_t N1, std::size_t N2>
-  struct equals_op<N1, N2, std::enable_if_t<N1 == N2>> {
-    bool operator()(array_wrapper<T, N2> other) const noexcept
-    {
-      // same size so no need to track two sizes
-      for (decltype(N1) i = 0; i < N1; i++)
-        if (*(wrapper->begin() + i) != *(other.begin() + i))
-          return false;
-      return true;
-    }
-
-    // pointer to parent wrapper
-    const array_wrapper<T, N1>* wrapper;
-  };
-#endif  // !NPYGL_HAS_CC_17
 };
 
 /**
@@ -195,11 +146,7 @@ struct fvt_input_3 {
   auto input() const noexcept
   {
     static value_type ar[] = {4U, 1U, 13U, 15U, 888U, 71U, 190U};
-#if NPYGL_HAS_CC_17
     return array_wrapper{ar};
-#else
-    return array_wrapper<value_type, std::extent<decltype(ar)>::value>{ar};
-#endif  // !NPYGL_HAS_CC_17
   }
 
   auto operator()(value_type x) const noexcept
@@ -317,11 +264,7 @@ struct mvt_input_3 {
   auto input() const noexcept
   {
     static value_type ar[] = {3.44, 1.453, 49.11, 2.33, 1.1, 3.232, 3.4, 5.11};
-#if NPYGL_HAS_CC_17
     return array_wrapper{ar};
-#else
-    return array_wrapper<value_type, std::extent<decltype(ar)>::value>{ar};
-#endif  // !NPYGL_HAS_CC_17
   }
 
   auto operator()(value_type x) const noexcept
@@ -393,51 +336,6 @@ TYPED_TEST(MatrixViewTest, MatrixTransformTest)
   EXPECT_EQ(expected, actual);
 }
 
-#if !NPYGL_HAS_CC_17
-/**
- * Helper struct for determining the indexing test element order.
- *
- * @tparam V Matrix view type
- */
-template <typename V, typename = void>
-struct indexing_test_op {
-  /**
-   * Perform equality testing logic for C ordered data.
-   */
-  void operator()() const noexcept
-  {
-    EXPECT_EQ(&view[view.cols() - 1], &view(0u, view.cols() - 1)) <<
-      "flat indexing to " << view.cols() - 1 << " != C order [0, " <<
-      view.cols() - 1 << "]";
-  }
-
-  // pointer to view
-  const V& view;
-};
-
-/**
- * Specialization for Fortran-ordered test logic.
- *
- * @tparam V Matrix view type
- */
-template <typename V>
-struct indexing_test_op<
-  V, std::enable_if_t<V::data_order == npygl::element_order::f> > {
-  /**
-   * Perform equality testing logic for C ordered data.
-   */
-  void operator()() const noexcept
-  {
-    EXPECT_EQ(&view[view.rows() - 1], &view(view.rows() - 1, 0u)) <<
-      "flat indexing to " << view.rows() - 1 << " != Fortran order [" <<
-      view.rows() - 1 << ", 0]";
-  }
-
-  // pointer to view
-  const V& view;
-};
-#endif  // !NPYGL_HAS_CC17
-
 /**
  * Test that C and Fortran data layout index as expected.
  */
@@ -445,19 +343,13 @@ TYPED_TEST(MatrixViewTest, IndexingTest)
 {
   // input instance (in case of statefulness) + view type
   TypeParam input{};
-  // GCC complains about unused typedef
-NPYGL_GNU_WARNING_PUSH()
-NPYGL_GNU_WARNING_DISABLE(unused-local-typedefs)
   using view_type = typename TypeParam::view_type;
-NPYGL_GNU_WARNING_POP()
   // values + view
   auto values = input.input();
   auto view = input.view(values);
   // test only makes sense if both rows and columns are > 1
   ASSERT_GE(view.rows(), 1u) << "view must have more than one row";
   ASSERT_GE(view.cols(), 1u) << "view must have more than one col";
-  // view type from input
-#if NPYGL_HAS_CC_17
   // C ordering check (check addresses)
   if constexpr (view_type::data_order == npygl::element_order::c)
     EXPECT_EQ(&view[view.cols() - 1], &view(0u, view.cols() - 1)) <<
@@ -468,9 +360,6 @@ NPYGL_GNU_WARNING_POP()
     EXPECT_EQ(&view[view.rows() - 1], &view(view.rows() - 1, 0u)) <<
       "flat indexing to " << view.rows() - 1 << " != Fortran order [" <<
       view.rows() - 1 << ", 0]";
-#else
-  indexing_test_op<decltype(view)>{view}();
-#endif  // !NPYGL_HAS_CC_17
 }
 
 }  // namespace
