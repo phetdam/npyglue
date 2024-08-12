@@ -52,6 +52,40 @@
 }
 %enddef  // NPYGL_FLAT_VIEW_INOUT_TYPEMAP(type)
 
+// C++20 features
+#if __cplusplus >= 202002L
+/**
+ * Typemap macro for converting Python input into a new NumPy array to modify.
+ *
+ * This macro simplifies creation of `std::span<T>` typemaps for relevant types.
+ *
+ * @param type C/C++ type with `npy_type_traits` specialization
+ */
+%define NPYGL_STL_SPAN_INOUT_TYPEMAP(type)
+/**
+ * Typemap converting Python input into new NumPy array to modify.
+ *
+ * This is intended to be applied to a view through which changes are made.
+ */
+%typemap(in) std::span<type> AR_INOUT (npygl::py_object res) {
+  // attempt to create new output array to modify through view
+  res = npygl::make_ndarray<type>($input);
+  if (!res)
+    SWIG_fail;
+  // create STL span
+  $1 = npygl::make_span<type>(res.as<PyArrayObject>());
+}
+
+/**
+ * Typemap releasing modified NumPy array back to Python.
+ */
+%typemap(argout) std::span<type> AR_INOUT {
+  // release value back to Python
+  $result = res$argnum.release();
+}
+%enddef  // NPYGL_STL_SPAN_INOUT_TYPEMAP(type)
+#endif  // __cplusplus < 202002L
+
 /**
  * Typemap application macro for applying the flat view in/out typemap.
  *
@@ -70,10 +104,39 @@
 %clear npygl::ndarray_flat_view<type>;
 %enddef  // NPYGL_CLEAR_FLAT_VIEW_TYPEMAPS(type)
 
-// supported int + out flat view typemaps
+#if __cplusplus >= 202002L
+/**
+ * Typemap application macro for applying the STL span in/out typemap.
+ *
+ * @param type C/C++ type with `npy_type_traits` specialization
+ */
+%define NPYGL_APPLY_STL_SPAN_INOUT_TYPEMAP(type)
+%apply std::span<type> AR_INOUT { std::span<type> };
+%enddef  // NPYGL_APPLY_STL_SPAN_INOUT_TYPEMAP(type)
+
+/**
+ * Typemap clearing macro for the STL span typemaps.
+ *
+ * @param type C/C++ type with `npy_type_traits` specialization
+ */
+%define NPYGL_CLEAR_STL_SPAN_TYPEMAPS(type)
+%clear std::span<type>;
+%enddef  // NPYGL_CLEAR_STL_SPAN_TYPEMAPS(type)
+#endif  // __cplusplus < 202002L
+
+// supported in + out flat view typemaps
 NPYGL_FLAT_VIEW_INOUT_TYPEMAP(double)
 NPYGL_FLAT_VIEW_INOUT_TYPEMAP(float)
 NPYGL_FLAT_VIEW_INOUT_TYPEMAP(int)
 NPYGL_FLAT_VIEW_INOUT_TYPEMAP(unsigned int)
 NPYGL_FLAT_VIEW_INOUT_TYPEMAP(long)
 NPYGL_FLAT_VIEW_INOUT_TYPEMAP(unsigned long)
+
+#if __cplusplus >= 202002L
+// support in + out STL span typemaps
+NPYGL_STL_SPAN_INOUT_TYPEMAP(double)
+NPYGL_STL_SPAN_INOUT_TYPEMAP(float)
+NPYGL_STL_SPAN_INOUT_TYPEMAP(int)
+NPYGL_STL_SPAN_INOUT_TYPEMAP(unsigned int)
+NPYGL_STL_SPAN_INOUT_TYPEMAP(unsigned long)
+#endif  // __cplusplus < 202002L

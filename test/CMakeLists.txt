@@ -3,7 +3,7 @@ cmake_minimum_required(VERSION ${CMAKE_MINIMUM_REQUIRED_VERSION})
 add_subdirectory(npygl_test)
 
 # py_helpers_test: Python helpers tests
-if(BUILD_TESTS AND Python3_Development_FOUND)
+if(Python3_Development_FOUND)
     add_executable(py_helpers_test py_helpers_test.cc)
     target_link_libraries(py_helpers_test PRIVATE Python3::Python)
     # usually no Python debug runtime library
@@ -17,7 +17,7 @@ if(BUILD_TESTS AND Python3_Development_FOUND)
 endif()
 
 # npy_helpers_test: NumPy Python helpers tests
-if(BUILD_TESTS AND Python3_Development_FOUND)
+if(Python3_Development_FOUND AND Python3_NumPy_FOUND)
     # C++17
     add_executable(npy_helpers_test npy_helpers_test.cc)
     target_link_libraries(
@@ -53,4 +53,24 @@ if(BUILD_TESTS AND Python3_Development_FOUND)
         endif()
         add_test(NAME npy_helpers_test_cc20 COMMAND npy_helpers_test_cc20)
     endif()
+endif()
+
+# npygl_ndarray_test: SWIG ndarray.i helpers test
+if(SWIG_FOUND AND Python3_Development_FOUND AND Python3_NumPy_FOUND)
+    # enable C++ mode
+    set_source_files_properties(npygl_ndarray_test.i PROPERTIES CPLUSPLUS ON)
+    swig_add_library(
+        npygl_ndarray_test
+        TYPE MODULE
+        LANGUAGE python
+        # generated output artifacts path
+        OUTPUT_DIR ${CMAKE_BINARY_DIR}
+        # generated wrapper source output path
+        OUTFILE_DIR ${CMAKE_CURRENT_SOURCE_DIR}
+        SOURCES npygl_ndarray_test.i
+    )
+    target_link_libraries(
+        npygl_ndarray_test PRIVATE
+        Python3::NumPy Python3::Python
+    )
 endif()
