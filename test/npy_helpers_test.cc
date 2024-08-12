@@ -17,11 +17,12 @@
 #include "npygl/npy_helpers.hh"
 #include "npygl/py_helpers.hh"
 
-#if !NPYGL_HAS_CC_17
-#include <type_traits>
-#endif  // !NPYGL_HAS_CC_17
+#if NPYGL_HAS_CC_20
+#include <span>
+#endif  // NPYGL_HAS_CC_20
 
 namespace {
+
 /**
  * Compute the sine of the view elements.
  *
@@ -44,8 +45,30 @@ void asine(npygl::ndarray_flat_view<double> view) noexcept
     v = std::asin(v);
 }
 
-// C++17 if constexpr and fold expressions
-#if NPYGL_HAS_CC_17
+#if NPYGL_HAS_CC_20
+/**
+ * Compute the sine of the view elements.
+ *
+ * @param view Data buffer view
+ */
+void sine(std::span<double> view) noexcept
+{
+  for (auto& v : view)
+    v = std::sin(v);
+}
+
+/**
+ * Compute the inverse sine of the view elements.
+ *
+ * @param view Data buffer view
+ */
+void asine(std::span<double> view) noexcept
+{
+  for (auto& v : view)
+    v = std::asin(v);
+}
+#endif  // NPYGL_HAS_CC_20
+
 /**
  * Check if the NumPy array type corresponds to one of the C/C++ types.
  *
@@ -74,61 +97,6 @@ bool has_type(PyArrayObject* arr) noexcept
   );
   return match;
 }
-#else
-/**
- * Callable to check if a NumPy array is of a given C/C++ type.
- *
- * @tparam T C/C++ type to check NumPy array type against
- */
-template <typename T, typename = void>
-struct npy_checker {
-  bool operator()(PyArrayObject* NPYGL_UNUSED(arg)) const noexcept
-  {
-    return false;
-  }
-};
-
-/**
- * True specialization that actually checks if the type matches.
- *
- * @tparam T C/C++ type to check NumPy array type against
- */
-template <typename T>
-struct npy_checker<T, std::enable_if_t<npygl::has_npy_type_traits<T>::value>> {
-  bool operator()(PyArrayObject* arr) const noexcept
-  {
-    return npygl::is_type<T>(arr);
-  }
-};
-
-/**
- * Check if the NumPy array type corresponds to the C/C++ type.
- *
- * @tparam T C/C++ type to check NumPy array type against
- *
- * @param arr NumPy array
- */
-template <typename T>
-bool has_type(PyArrayObject* arr) noexcept
-{
-  return npy_checker<T>{}(arr);
-}
-
-/**
- * Check if the NumPy array type corresponds to the given C/C++ types.
- *
- * @tparam T1 First type
- * @tparam T2 Second type
- * @tparam Ts... Subsequent types
- *
- * @param arr NumPy array
- */
-template <typename T1, typename T2, typename... Ts>
-bool has_type(PyArrayObject* arr) noexcept
-{
-  return has_type<T1>(arr) || has_type<T2, Ts...>(arr);
-}
-#endif  // !NPYGL_HAS_CC_17
 
 }  // namespace
 
@@ -171,5 +139,13 @@ int main()
   // apply inverse sine function to NumPy array and print it again
   asine(ar);
   std::cout << "inverse sine transform:\n" << ar << std::endl;
+#if NPYGL_HAS_CC_20
+  // apply sine function to NumPy array via span and print
+  sine(npygl::make_span<double>(ar));
+  std::cout << "span sine transform:\n" << ar << std::endl;
+  // apply inverse since function to NumPy array via span and print
+  asine(npygl::make_span<double>(ar));
+  std::cout << "span inverse sine transform:\n" << ar << std::endl;
+#endif  // NPYGL_HAS_CC_20
   return EXIT_SUCCESS;
 }
