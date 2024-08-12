@@ -103,6 +103,15 @@ else()
     message(STATUS "SWIG version: None")
 endif()
 
+# check if we have C++20 available
+if(cxx_std_20 IN_LIST CMAKE_CXX_COMPILE_FEATURES)
+    set(NPYGL_HAS_CC_20 ON)
+    message(STATUS "C++20 support: Enabled")
+else()
+    set(NPYGL_HAS_CC_20 OFF)
+    message(STATUS "C++20 support: Disabled")
+endif()
+
 # project include directory
 set(NPYGL_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/include)
 include_directories(${NPYGL_INCLUDE_DIR})
