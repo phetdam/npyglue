@@ -118,14 +118,14 @@ public:
    * @note This is different than `std::array<T, N>::operator==` which only
    *  works on arrays that are of the same compile-time length.
    *
-   * @tparam N1 Size of the other `array_wrapper`
+   * @tparam N_ Size of the other `array_wrapper`
    */
-  template <std::size_t N1>
-  bool operator==(array_wrapper<T, N1> other) const noexcept
+  template <std::size_t N_>
+  bool operator==(array_wrapper<T, N_> other) const noexcept
   {
 #if NPYGL_HAS_CC_17
     // if different sizes, definitely not equal
-    if constexpr (N != N1)
+    if constexpr (N != N_)
       return false;
     // other perform elementwise check
     else {
@@ -136,7 +136,7 @@ public:
       return true;
     }
 #else
-  return equals_op<N, N1>{this}(other);
+  return equals_op<N, N_>{this}(other);
 #endif  // !NPYGL_HAS_CC_17
   }
 
