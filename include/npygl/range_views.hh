@@ -12,6 +12,10 @@
 
 #include "npygl/features.h"
 
+#if !NPYGL_HAS_CC_17
+#include <type_traits>
+#endif  // !NPYGL_HAS_CC_17
+
 namespace npygl {
 
 /**
@@ -216,7 +220,7 @@ public:
     else
       return data_[i + rows_ * j];
 #else
-    return indexer<T, R>{this}(i, j);
+    return indexer<R>{this}(i, j);
 #endif  // !NPYGL_HAS_CC17
   }
 
@@ -229,43 +233,39 @@ private:
   /**
    * Indexer struct to handle different data layouts.
    *
-   * @note We need the extra `T_` parameter since explicit specializations must
-   *  be done at the namespace scope (and so cannot be done in nested scope).
-   *
-   * @tparam T_ Element type
-   * @tparam O Element ordering (C-style)
+   * @tparam O Element ordering
    */
-  template <typename T_, element_order O>
+  template <element_order O, typename = void>
   struct indexer {
     /**
      * Return row-major reference to the view's `(i, j)` data element.
      */
-    auto operator()(std::size_t i, std::size_t j) const noexcept
+    auto& operator()(std::size_t i, std::size_t j) const noexcept
     {
       return view->data()[view->cols() * i + j];
     }
 
     // pointer to parent view
-    const matrix_view<T_>* view;
+    const matrix_view<T, O>* view;
   };
 
   /**
    * Specialization for Fortran-style ordering.
    *
-   * @tparam T_ Element type
+   * @tparam O Element ordering
    */
-  template <typename T_>
-  struct indexer<T_, element_order::f> {
+  template <element_order O>
+  struct indexer<O, std::enable_if_t<O == element_order::f>> {
     /**
      * Return column-major reference to the view's `(i, j)` data element.
      */
-    auto operator()(std::size_t i, std::size_t j) const noexcept
+    auto& operator()(std::size_t i, std::size_t j) const noexcept
     {
       return view->data()[i + view->rows() * j];
     }
 
     // pointer to parent view
-    const matrix_view<T_>* view;
+    const matrix_view<T, O>* view;
   };
 #endif  // !NPYGL_HAS_CC_17
 };

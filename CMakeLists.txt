@@ -48,6 +48,8 @@ if(MSVC)
         /Wall
         # C4514: unreferenced inline function has been removed
         /wd4514
+        # C4623: default ctor was implicitly defined as deleted
+        /wd4623
         # C4625: copy ctor was implicitly defined as deleted
         /wd4625
         # C4626: assignment operator was implicitly defined as deleted
