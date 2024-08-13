@@ -63,12 +63,21 @@ if(SWIG_FOUND AND Python3_Development_FOUND AND Python3_NumPy_FOUND)
         npygl_ndarray_test
         TYPE MODULE
         LANGUAGE python
-        # generated output artifacts path
-        OUTPUT_DIR ${CMAKE_BINARY_DIR}
+        # generated output artifacts path. for multi-config generators we need
+        # to include the extra per-config subdirectory manually
+        OUTPUT_DIR
+            ${CMAKE_BINARY_DIR}$<${NPYGL_MULTI_CONFIG_GENERATOR}:/$<CONFIG>>
         # generated wrapper source output path
         OUTFILE_DIR ${CMAKE_CURRENT_SOURCE_DIR}
         SOURCES npygl_ndarray_test.i
     )
+    # usually no Python debug runtime library
+    if(MSVC AND PY_MSVC_ALWAYS_RELEASE)
+        set_target_properties(
+            npygl_ndarray_test PROPERTIES
+            MSVC_RUNTIME_LIBRARY MultiThreadedDLL
+        )
+    endif()
     target_link_libraries(
         npygl_ndarray_test PRIVATE
         Python3::NumPy Python3::Python
