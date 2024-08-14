@@ -55,12 +55,12 @@ if(Python3_Development_FOUND AND Python3_NumPy_FOUND)
     endif()
 endif()
 
-# npygl_ndarray_test: SWIG ndarray.i helpers test
+# npygl_math: SWIG Python math functions module
 if(SWIG_FOUND AND Python3_Development_FOUND AND Python3_NumPy_FOUND)
     # enable C++ mode
-    set_source_files_properties(npygl_ndarray_test.i PROPERTIES CPLUSPLUS ON)
+    set_source_files_properties(npygl_math.i PROPERTIES CPLUSPLUS ON)
     swig_add_library(
-        npygl_ndarray_test
+        npygl_math
         TYPE MODULE
         LANGUAGE python
         # generated output artifacts path. for multi-config generators we need
@@ -69,17 +69,23 @@ if(SWIG_FOUND AND Python3_Development_FOUND AND Python3_NumPy_FOUND)
             ${CMAKE_BINARY_DIR}$<${NPYGL_MULTI_CONFIG_GENERATOR}:/$<CONFIG>>
         # generated wrapper source output path
         OUTFILE_DIR ${CMAKE_CURRENT_SOURCE_DIR}
-        SOURCES npygl_ndarray_test.i
+        SOURCES npygl_math.i
     )
+    # compile for Python 3
+    set_target_properties(npygl_math PROPERTIES SWIG_COMPILE_OPTIONS -py3)
     # usually no Python debug runtime library
     if(MSVC AND PY_MSVC_ALWAYS_RELEASE)
         set_target_properties(
-            npygl_ndarray_test PROPERTIES
+            npygl_math PROPERTIES
             MSVC_RUNTIME_LIBRARY MultiThreadedDLL
         )
     endif()
-    target_link_libraries(
-        npygl_ndarray_test PRIVATE
-        Python3::NumPy Python3::Python
+    target_link_libraries(npygl_math PRIVATE Python3::NumPy Python3::Python)
+    # unittest test script
+    add_test(
+        NAME npygl_math_test
+        COMMAND python ${CMAKE_CURRENT_SOURCE_DIR}/npygl_math_test.py
+        WORKING_DIRECTORY
+            ${CMAKE_BINARY_DIR}$<${NPYGL_MULTI_CONFIG_GENERATOR}:/$<CONFIG>>
     )
 endif()
