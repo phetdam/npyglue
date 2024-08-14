@@ -68,11 +68,27 @@ if(SWIG_FOUND AND Python3_Development_FOUND AND Python3_NumPy_FOUND)
         OUTPUT_DIR
             ${CMAKE_BINARY_DIR}$<${NPYGL_MULTI_CONFIG_GENERATOR}:/$<CONFIG>>
         # generated wrapper source output path
+        # note: we could use OUTPUT_DIR/gensrc for this to avoid WSL/Windows
+        # builds sometimes (?) recompiling the SWIG file
         OUTFILE_DIR ${CMAKE_CURRENT_SOURCE_DIR}
         SOURCES npygl_math.i
     )
-    # compile for Python 3
-    set_target_properties(npygl_math PROPERTIES SWIG_COMPILE_OPTIONS -py3)
+    # silence some MSVC warnings
+    if(MSVC)
+        target_compile_options(
+            npygl_math PRIVATE
+            # C4365: signed/unsigned mismatch during type conversion
+            /wd4365
+            # C4668: macro not defined, replacing with 0 (__GNUC__ not defined)
+            /wd4668
+        )
+    endif()
+    # compile for Python 3. from SWIG 4.1 onwards however we need to use
+    # %feature("python:annotations", "c") directive instead
+    # FIXME: SWIG 4.1+ will not have the C++ type annotations
+    if(SWIG_VERSION VERSION_LESS 4.1)
+        set_target_properties(npygl_math PROPERTIES SWIG_COMPILE_OPTIONS -py3)
+    endif()
     # usually no Python debug runtime library
     if(MSVC AND PY_MSVC_ALWAYS_RELEASE)
         set_target_properties(
