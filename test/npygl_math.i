@@ -11,7 +11,7 @@
 "\n"
 "This C++ extension module contains math functions that operate on Python\n"
 "sequences and return a new NumPy array, possibly with a specific data type."
-%enddef
+%enddef  // MODULE_DOCSTRING
 
 %module(docstring=MODULE_DOCSTRING) npygl_math
 
