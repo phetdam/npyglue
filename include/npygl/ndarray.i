@@ -154,7 +154,7 @@ NPYGL_STL_SPAN_INOUT_TYPEMAP(unsigned long)
 %define NPYGL_NPYDOC_PARAMETERS()
 "Parameters\n"
 "----------\n"
-%enddef  // NPYGL_NPYDOC_PARAMETERS
+%enddef  // NPYGL_NPYDOC_PARAMETERS()
 
 /**
  * Macro for starting the returns section of the NumPy docstring.
@@ -166,4 +166,4 @@ name " : " type "\n"
 %define NPYGL_NPYDOC_RETURNS()
 "Returns\n"
 "-------\n"
-%enddef  // NPYGL_NPYDOC_RETURNS
+%enddef  // NPYGL_NPYDOC_RETURNS()
