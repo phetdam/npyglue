@@ -283,6 +283,8 @@ inline bool is_behaved(PyArrayObject* arr) noexcept
 /**
  * Create a NumPy array of a specifed type from an existing Python object.
  *
+ * On error the `py_object` is empty and a Python exception is set.
+ *
  * @param obj Python object to create NumPy array from
  * @param type NumPy type number, e.g. `NPY_DOUBLE`
  * @param flags NumPy array requirement flags, e.g. `NPY_ARRAY_DEFAULT`
@@ -295,6 +297,8 @@ inline auto make_ndarray(PyObject* obj, int type, int flags) noexcept
 
 /**
  * Create a NumPy array of a specifed type from an existing Python object.
+ *
+ * On error the `py_object` is empty and a Python exception is set.
  *
  * @tparam T NumPy array data buffer C type
  *
@@ -313,6 +317,8 @@ inline auto make_ndarray(PyObject* obj, int flags) noexcept
  *
  * The default array creation flags, `NPY_ARRAY_DEFAULT | NPY_ARRAY_ENSURECOPY`,
  * ensure that a new aligned, row-major order new NumPy array is returned.
+ *
+ * On error the `py_object` is empty and a Python exception is set.
  *
  * @param obj Python object to create NumPy array from
  * @returns `py_object` owning the created array
