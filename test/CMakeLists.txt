@@ -55,6 +55,25 @@ if(Python3_Development_FOUND AND Python3_NumPy_FOUND)
     endif()
 endif()
 
+# pymath: Python math functions module
+if(Python3_Development_FOUND AND Python3_NumPy_FOUND)
+    add_library(pymath MODULE pymath.cc)
+    # no "lib" prefix for POSIX systems
+    set_target_properties(pymath PROPERTIES PREFIX "")
+    # .pyd suffix on Windows
+    if(WIN32)
+        set_target_properties(pymath PROPERTIES SUFFIX ".pyd")
+    endif()
+    target_link_libraries(pymath PRIVATE Python3::NumPy Python3::Python)
+    # usually no Python debug runtime library
+    if(MSVC AND PY_MSVC_ALWAYS_RELEASE)
+        set_target_properties(
+            pymath PROPERTIES
+            MSVC_RUNTIME_LIBRARY MultiThreadedDLL
+        )
+    endif()
+endif()
+
 # helper variable to determine if we can build SWIG + NumPy extension module
 if(SWIG_FOUND AND Python3_Development_FOUND AND Python3_NumPy_FOUND)
     set(NPYGL_SWIG_NPY_AVAILABLE ON)
