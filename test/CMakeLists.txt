@@ -55,8 +55,18 @@ if(Python3_Development_FOUND AND Python3_NumPy_FOUND)
     endif()
 endif()
 
-# pymath_swig: SWIG Python math functions module
+# helper variable to determine if we can build SWIG + NumPy extension module
 if(SWIG_FOUND AND Python3_Development_FOUND AND Python3_NumPy_FOUND)
+    set(NPYGL_SWIG_NPY_AVAILABLE ON)
+else()
+    set(NPYGL_SWIG_NPY_AVAILABLE OFF)
+endif()
+
+# pymath_swig: SWIG Python math functions module
+# TODO: add CMake module with npygl_add_swig_py3_module() function to make the
+# common SWIG tweaks, e.g. MSVC warning suppression, output dir, SWIG <4.1 and
+# below use of -py3, debug/release Python runtime library, less tedious
+if(NPYGL_SWIG_NPY_AVAILABLE)
     # enable C++ mode
     set_source_files_properties(pymath_swig.i PROPERTIES CPLUSPLUS ON)
     swig_add_library(
