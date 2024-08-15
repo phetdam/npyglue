@@ -1,6 +1,7 @@
 """Python test script for the pymath C++ extension modules.
 
-Currently only supports testing of the SWIG module.
+Provides command-line options for controlling what pymath extension module
+variant is loaded, e.g. hand vs. SWIG wrapped, default C++ vs. C++20 standard.
 
 .. codeauthor:: Derek Huang <djh458@stern.nyu.edu>
 """
@@ -10,7 +11,9 @@ from argparse import (
     ArgumentParser,
     RawDescriptionHelpFormatter
 )
+import importlib
 import os
+from os.path import abspath, dirname, relpath
 import sys
 from typing import Iterable, Optional
 import unittest
@@ -18,11 +21,15 @@ import unittest
 import numpy as np
 from numpy.testing import assert_allclose
 
+# current working directory + file directory
+_cwd = os.getcwd()
+_home_dir = dirname(abspath(__file__))
+
 # add current working directory to import path
 sys.path.insert(0, os.getcwd())
 
-# TODO: lazily set this so we can change which libraries are being imported
-import pymath_swig as pm  # type: ignore
+# module handle. this is set by main() after looking at CLI options
+pm = None
 
 
 class HelpFormatter(ArgumentDefaultsHelpFormatter, RawDescriptionHelpFormatter):
@@ -109,12 +116,40 @@ def main(args: Optional[Iterable[str]] = None) -> int:
     # parse CLI arguments
     ap = ArgumentParser(description=__doc__, formatter_class=HelpFormatter)
     ap.add_argument(
+        "-f",
+        "--flavor",
+        choices=("hand", "swig"),
+        default="hand",
+        help="C++ function wrapping method"
+    )
+    ap.add_argument(
+        "-std",
+        "--cc-standard",
+        choices=("cc", "cc20"),
+        default="cc",
+        help="C++ standard used during compilation"
+    )
+    ap.add_argument(
         "-v",
         "--verbose",
         action="store_true",
         help="Run more verbosely"
     )
     argn = ap.parse_args(args=args)
+    # determine name of the pymath library we are going to load
+    mod_name = "pymath"
+    if argn.flavor == "swig":
+        mod_name += "_swig"
+    if argn.cc_standard != "cc":
+        mod_name += f"_{argn.cc_standard}"
+    # indicate what will be loaded
+    if argn.verbose:
+        print(f"loading {mod_name} from {relpath(_cwd, _home_dir)}...")
+    # attempt to import
+    global pm
+    pm = importlib.import_module(mod_name)
+    if argn.verbose:
+        print(f"loading {mod_name} from {relpath(_cwd, _home_dir)}... done")
     # run tests. trick unittest.main into thinking there are no CLI args
     res = unittest.main(argv=(sys.argv[0],), exit=False, verbosity=1 + argn.verbose)
     return 0 if res.result.wasSuccessful() else 1

@@ -74,6 +74,13 @@ if(Python3_Development_FOUND AND Python3_NumPy_FOUND)
             MSVC_RUNTIME_LIBRARY MultiThreadedDLL
         )
     endif()
+    # unittest test script
+    add_test(
+        NAME pymath_test
+        COMMAND python ${CMAKE_CURRENT_SOURCE_DIR}/pymath_test.py
+        WORKING_DIRECTORY
+            ${CMAKE_BINARY_DIR}$<${NPYGL_MULTI_CONFIG_GENERATOR}:/$<CONFIG>>
+    )
     # C++20
     if(NPYGL_HAS_CC_20)
         add_library(pymath_cc20 MODULE pymath.cc)
@@ -94,6 +101,13 @@ if(Python3_Development_FOUND AND Python3_NumPy_FOUND)
                 MSVC_RUNTIME_LIBRARY MultiThreadedDLL
             )
         endif()
+        # unittest test script
+        add_test(
+            NAME pymath_cc20_test
+            COMMAND python ${CMAKE_CURRENT_SOURCE_DIR}/pymath_test.py -std cc20
+            WORKING_DIRECTORY
+                ${CMAKE_BINARY_DIR}$<${NPYGL_MULTI_CONFIG_GENERATOR}:/$<CONFIG>>
+        )
     endif()
 endif()
 
@@ -151,8 +165,8 @@ if(NPYGL_SWIG_NPY_AVAILABLE)
     target_link_libraries(pymath_swig PRIVATE Python3::NumPy Python3::Python)
     # unittest test script
     add_test(
-        NAME pymath_test
-        COMMAND python ${CMAKE_CURRENT_SOURCE_DIR}/pymath_test.py
+        NAME pymath_swig_test
+        COMMAND python ${CMAKE_CURRENT_SOURCE_DIR}/pymath_test.py -f swig
         WORKING_DIRECTORY
             ${CMAKE_BINARY_DIR}$<${NPYGL_MULTI_CONFIG_GENERATOR}:/$<CONFIG>>
     )
