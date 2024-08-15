@@ -138,7 +138,7 @@ def main(args: Optional[Iterable[str]] = None) -> int:
     argn = ap.parse_args(args=args)
     # determine name of the pymath library we are going to load
     mod_name = "pymath"
-    if argn.flavor == "swig":
+    if argn.flavor != "hand":
         mod_name += f"_{argn.flavor}"
     if argn.cc_standard != "cc":
         mod_name += f"_{argn.cc_standard}"
