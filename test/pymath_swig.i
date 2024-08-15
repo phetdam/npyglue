@@ -1,7 +1,7 @@
 /**
- * @file npygl_math.i
+ * @file pymath_swig.i
  * @author Derek Huang
- * @brief SWIG C++ module with math functions testing the ndarray.i helpers
+ * @brief SWIG C++ Python extension module for math functions
  * @copyright MIT License
  */
 
@@ -13,60 +13,22 @@
 "sequences and return a new NumPy array, possibly with a specific data type."
 %enddef  // MODULE_DOCSTRING
 
-%module(docstring=MODULE_DOCSTRING) npygl_math
+%module(docstring=MODULE_DOCSTRING) pymath_swig
 
 %include "npygl/ndarray.i"
+%include "npygl/testing/math.hh"
 
 %{
 #define SWIG_FILE_WITH_INIT
 
-#include <algorithm>
-
-#include "npygl/npy_helpers.hh"  // include <numpy/ndarrayobject.h>
+#include "npygl/npy_helpers.hh"  // includes <numpy/ndarrayobject.h>
 #include "npygl/py_helpers.hh"
+#include "npygl/testing/math.hh"
 %}
 
+// NumPy array API needs initialization during module load
 %init %{
 import_array();
-%}
-
-// using %inline directive so we don't have to declare twice
-%inline %{
-namespace npygl {
-namespace testing {
-
-/**
- * Function that simply doubles its argument.
- *
- * @tparam T type
- *
- * @param view NumPy array view
- */
-template <typename T>
-void array_double(ndarray_flat_view<T> view) noexcept
-{
-  for (auto& v : view)
-    v = 2 * v;
-}
-
-/**
- * Function that compresses the values of the argument to the unit circle.
- *
- * In other words, all the values will fall in `[-1, 1]`.
- *
- * @tparam T type
- *
- * @param view NumPy array view
- */
-template <typename T>
-void unit_compress(ndarray_flat_view<T> view) noexcept
-{
-  auto radius = *std::max_element(view.begin(), view.end());
-  std::for_each(view.begin(), view.end(), [&radius](auto& x) { x /= radius; });
-}
-
-}  // namespace testing
-}  // namespace npygl
 %}
 
 // instantiate different versions of array_double and unit_compress
