@@ -31,7 +31,7 @@ namespace testing {
  * @param view Span to operate on
  */
 template <typename T>
-void array_double(std::span<double> view) noexcept
+void array_double(std::span<T> view) noexcept
 {
   for (auto& v : view)
     v = 2 * v;

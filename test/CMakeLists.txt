@@ -56,7 +56,9 @@ if(Python3_Development_FOUND AND Python3_NumPy_FOUND)
 endif()
 
 # pymath: Python math functions module
+# TODO: add CMake script to simplify adding Python extension modules
 if(Python3_Development_FOUND AND Python3_NumPy_FOUND)
+    # C++17
     add_library(pymath MODULE pymath.cc)
     # no "lib" prefix for POSIX systems
     set_target_properties(pymath PROPERTIES PREFIX "")
@@ -71,6 +73,27 @@ if(Python3_Development_FOUND AND Python3_NumPy_FOUND)
             pymath PROPERTIES
             MSVC_RUNTIME_LIBRARY MultiThreadedDLL
         )
+    endif()
+    # C++20
+    if(NPYGL_HAS_CC_20)
+        add_library(pymath_cc20 MODULE pymath.cc)
+        set_target_properties(
+            pymath_cc20 PROPERTIES
+            PREFIX ""
+            CXX_STANDARD 20
+            CXX_STANDARD_REQUIRED ON
+        )
+        if(WIN32)
+            set_target_properties(pymath_cc20 PROPERTIES SUFFIX ".pyd")
+        endif()
+        target_link_libraries(pymath_cc20 PRIVATE Python3::NumPy Python3::Python)
+        # again, usually no Python debug runtime library
+        if(MSVC AND PY_MSVC_ALWAYS_RELEASE)
+            set_target_properties(
+                pymath_cc20 PROPERTIES
+                MSVC_RUNTIME_LIBRARY MultiThreadedDLL
+            )
+        endif()
     endif()
 endif()
 

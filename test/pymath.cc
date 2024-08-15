@@ -9,12 +9,17 @@
 #include <Python.h>
 
 #include "npygl/common.h"
+#include "npygl/features.h"
 #include "npygl/npy_helpers.hh"  // includes <numpy/ndarrayobject.h>
 #include "npygl/py_helpers.hh"
 #include "npygl/testing/math.hh"
 
-// module name macro
+// module name macro. for C++20 we build under a different name
+#if NPYGL_HAS_CC_20
+#define MODULE_NAME pymath_cc20
+#else
 #define MODULE_NAME pymath
+#endif  // !NPYGL_HAS_CC_20
 
 // static linkage to follow Python extension module conventions
 namespace {
@@ -45,28 +50,38 @@ npygl::py_object parse_ndarray(PyObject* args) noexcept
 
 // TODO: add Python docstring
 template <typename T>
-PyObject* array_double(PyObject*, PyObject* args) noexcept
+PyObject* array_double(PyObject* /*self*/, PyObject* args) noexcept
 {
+  using npygl::testing::array_double;
   // create output array
   auto ar = parse_ndarray<T>(args);
   if (!ar)
     return nullptr;
   // double the values + release value back to Python
   // note: template keyword required to tell compiler as() is a member template
-  npygl::testing::array_double<T>(ar.template as<PyArrayObject>());
+#if NPYGL_HAS_CC_20
+  array_double(npygl::make_span<T>(ar.template as<PyArrayObject>()));
+#else
+  array_double<T>(ar.template as<PyArrayObject>());
+#endif  // !NPYGL_HAS_CC_20
   return ar.release();
 }
 
 // TODO: add Python docstring
 template <typename T>
-PyObject* unit_compress(PyObject*, PyObject* args) noexcept
+PyObject* unit_compress(PyObject* /*self*/, PyObject* args) noexcept
 {
+  using npygl::testing::unit_compress;
   // create output array
   auto ar = parse_ndarray<T>(args);
   if (!ar)
     return nullptr;
   // compress + release value back to Python
-  npygl::testing::unit_compress<T>(ar.template as<PyArrayObject>());
+#if NPYGL_HAS_CC_20
+  unit_compress(npygl::make_span<T>(ar.template as<PyArrayObject>()));
+#else
+  unit_compress<T>(ar.template as<PyArrayObject>());
+#endif  // !NPYGL_HAS_CC_20
   return ar.release();
 }
 
