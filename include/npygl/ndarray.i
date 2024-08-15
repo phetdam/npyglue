@@ -20,6 +20,18 @@
 #include <npygl/py_helpers.hh>
 %}
 
+// forward declaration of the ndarray_flat_view template in the npygl namespace
+// so that SWIG can properly match typemaps against unqualified use of the type
+// name inside a namespace in processed C++ code without us needing to %include
+// the actual header. npy_helpers.hh is too complicated for SWIG and would
+// require that #ifndef SWIG ... #endif blocks be sprinkled throughout.
+namespace npygl {
+
+template <typename T>
+class ndarray_flat_view;
+
+}  // namespace npygl
+
 /**
  * Typemap macro for converting Python input into a new NumPy array to modify.
  *
@@ -52,12 +64,30 @@
 }
 %enddef  // NPYGL_FLAT_VIEW_INOUT_TYPEMAP(type)
 
-// C++20 features
-#if __cplusplus >= 202002L
+/**
+ * Typemap application macro for applying the flat view in/out typemap.
+ *
+ * @param type C/C++ view class element type
+ */
+%define NPYGL_APPLY_FLAT_VIEW_INOUT_TYPEMAP(type)
+%apply npygl::ndarray_flat_view<type> AR_INOUT { npygl::ndarray_flat_view<type> };
+%enddef  // NPYGL_APPLY_FLAT_VIEW_INOUT_TYPEMAP(type)
+
+/**
+ * Typemap clearing macro for the flat view typemaps.
+ *
+ * @param type C/C++ view class element type
+ */
+%define NPYGL_CLEAR_FLAT_VIEW_TYPEMAPS(type)
+%clear npygl::ndarray_flat_view<type>;
+%enddef  // NPYGL_CLEAR_FLAT_VIEW_TYPEMAPS(type)
+
 /**
  * Typemap macro for converting Python input into a new NumPy array to modify.
  *
  * This macro simplifies creation of `std::span<T>` typemaps for relevant types.
+ *
+ * @note Requires C++20 compiler to be used on generated code.
  *
  * @param type C/C++ type with `npy_type_traits` specialization
  */
@@ -84,27 +114,7 @@
   $result = res$argnum.release();
 }
 %enddef  // NPYGL_STL_SPAN_INOUT_TYPEMAP(type)
-#endif  // __cplusplus < 202002L
 
-/**
- * Typemap application macro for applying the flat view in/out typemap.
- *
- * @param type C/C++ view class element type
- */
-%define NPYGL_APPLY_FLAT_VIEW_INOUT_TYPEMAP(type)
-%apply npygl::ndarray_flat_view<type> AR_INOUT { npygl::ndarray_flat_view<type> };
-%enddef  // NPYGL_APPLY_FLAT_VIEW_INOUT_TYPEMAP(type)
-
-/**
- * Typemap clearing macro for the flat view typemaps.
- *
- * @param type C/C++ view class element type
- */
-%define NPYGL_CLEAR_FLAT_VIEW_TYPEMAPS(type)
-%clear npygl::ndarray_flat_view<type>;
-%enddef  // NPYGL_CLEAR_FLAT_VIEW_TYPEMAPS(type)
-
-#if __cplusplus >= 202002L
 /**
  * Typemap application macro for applying the STL span in/out typemap.
  *
@@ -122,7 +132,6 @@
 %define NPYGL_CLEAR_STL_SPAN_TYPEMAPS(type)
 %clear std::span<type>;
 %enddef  // NPYGL_CLEAR_STL_SPAN_TYPEMAPS(type)
-#endif  // __cplusplus < 202002L
 
 // supported in + out flat view typemaps
 NPYGL_FLAT_VIEW_INOUT_TYPEMAP(double)
@@ -132,11 +141,9 @@ NPYGL_FLAT_VIEW_INOUT_TYPEMAP(unsigned int)
 NPYGL_FLAT_VIEW_INOUT_TYPEMAP(long)
 NPYGL_FLAT_VIEW_INOUT_TYPEMAP(unsigned long)
 
-#if __cplusplus >= 202002L
-// support in + out STL span typemaps
+// support in + out C++20 STL span typemaps
 NPYGL_STL_SPAN_INOUT_TYPEMAP(double)
 NPYGL_STL_SPAN_INOUT_TYPEMAP(float)
 NPYGL_STL_SPAN_INOUT_TYPEMAP(int)
 NPYGL_STL_SPAN_INOUT_TYPEMAP(unsigned int)
 NPYGL_STL_SPAN_INOUT_TYPEMAP(unsigned long)
-#endif  // __cplusplus < 202002L

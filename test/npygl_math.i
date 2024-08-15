@@ -43,7 +43,7 @@ namespace testing {
  * @param view NumPy array view
  */
 template <typename T>
-void array_double(npygl::ndarray_flat_view<T> view) noexcept
+void array_double(ndarray_flat_view<T> view) noexcept
 {
   for (auto& v : view)
     v = 2 * v;
@@ -59,7 +59,7 @@ void array_double(npygl::ndarray_flat_view<T> view) noexcept
  * @param view NumPy array view
  */
 template <typename T>
-void unit_compress(npygl::ndarray_flat_view<T> view) noexcept
+void unit_compress(ndarray_flat_view<T> view) noexcept
 {
   auto radius = *std::max_element(view.begin(), view.end());
   std::for_each(view.begin(), view.end(), [&radius](auto& x) { x /= radius; });

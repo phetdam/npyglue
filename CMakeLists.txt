@@ -109,6 +109,8 @@ find_package(SWIG 4.0.2 COMPONENTS python)
 if(SWIG_FOUND)
     include(UseSWIG)
     message(STATUS "SWIG version: ${SWIG_VERSION}")
+    # global SWIG options
+    set(CMAKE_SWIG_FLAGS -Wall)
 else()
     message(STATUS "SWIG version: None")
 endif()
