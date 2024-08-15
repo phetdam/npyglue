@@ -42,13 +42,11 @@ NPYGL_APPLY_FLAT_VIEW_INOUT_TYPEMAP(float)
   "autodoc",
   "Double the incoming input array.\n"
   "\n"
-  "Parameters\n"
-  "----------\n"
+  NPYGL_NPYDOC_PARAMETERS()
   "view : collections.Sequence\n"
   "    Input sequence of numeric values to double\n"
   "\n"
-  "Returns\n"
-  "-------\n"
+  NPYGL_NPYDOC_RETURNS()
   "numpy.ndarray"
 );
 %template(array_double) npygl::testing::array_double<double>;
@@ -60,13 +58,11 @@ NPYGL_APPLY_FLAT_VIEW_INOUT_TYPEMAP(float)
   "\n"
   "The returned NumPy array will have ``dtype=float32``.\n"
   "\n"
-  "Parameters\n"
-  "----------\n"
+  NPYGL_NPYDOC_PARAMETERS()
   "view : collections.Sequence\n"
-  "    Input sequence of numeric values to double\n"
+  "    Input sequence of numeric values to compress\n"
   "\n"
-  "Returns\n"
-  "-------\n"
+  NPYGL_NPYDOC_RETURNS()
   "numpy.ndarray"
 );
 %template(farray_double) npygl::testing::array_double<float>;
@@ -75,13 +71,11 @@ NPYGL_APPLY_FLAT_VIEW_INOUT_TYPEMAP(float)
   "autodoc",
   "Compress incoming values into the range [-1, 1].\n"
   "\n"
-  "Parameters\n"
-  "----------\n"
+  NPYGL_NPYDOC_PARAMETERS()
   "view : collections.Sequence\n"
   "    Input sequence of numeric values to compress\n"
   "\n"
-  "Returns\n"
-  "-------\n"
+  NPYGL_NPYDOC_RETURNS()
   "numpy.ndarray"
 );
 %template(unit_compress) npygl::testing::unit_compress<double>;
@@ -92,13 +86,11 @@ NPYGL_APPLY_FLAT_VIEW_INOUT_TYPEMAP(float)
   "\n"
   "The returned NumPy array will have ``dtype=float32``.\n"
   "\n"
-  "Parameters\n"
-  "----------\n"
+  NPYGL_NPYDOC_PARAMETERS()
   "view : collections.Sequence\n"
   "    Input sequence of numeric values to compress\n"
   "\n"
-  "Returns\n"
-  "-------\n"
+  NPYGL_NPYDOC_RETURNS()
   "numpy.ndarray"
 );
 %template(funit_compress) npygl::testing::unit_compress<float>;

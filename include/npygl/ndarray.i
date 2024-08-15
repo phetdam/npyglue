@@ -147,3 +147,23 @@ NPYGL_STL_SPAN_INOUT_TYPEMAP(float)
 NPYGL_STL_SPAN_INOUT_TYPEMAP(int)
 NPYGL_STL_SPAN_INOUT_TYPEMAP(unsigned int)
 NPYGL_STL_SPAN_INOUT_TYPEMAP(unsigned long)
+
+/**
+ * Macro for starting the parameters section of the NumPy docstring.
+ */
+%define NPYGL_NPYDOC_PARAMETERS()
+"Parameters\n"
+"----------\n"
+%enddef  // NPYGL_NPYDOC_PARAMETERS
+
+/**
+ * Macro for starting the returns section of the NumPy docstring.
+ */
+%define NPYGL_NPYDOC_NAMED_ENTRY(name, type)
+name " : " type "\n"
+%enddef
+
+%define NPYGL_NPYDOC_RETURNS()
+"Returns\n"
+"-------\n"
+%enddef  // NPYGL_NPYDOC_RETURNS
