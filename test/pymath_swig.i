@@ -33,8 +33,8 @@ import_array();
 
 // instantiate different versions of array_double and unit_compress
 // note: SWIG can understand use of namespaces but we are explicit here
-NPYGL_APPLY_FLAT_VIEW_INOUT_TYPEMAP(double)
-NPYGL_APPLY_FLAT_VIEW_INOUT_TYPEMAP(float)
+NPYGL_APPLY_FLAT_VIEW_INOUT_TYPEMAPS(double)
+NPYGL_APPLY_FLAT_VIEW_INOUT_TYPEMAPS(float)
 
 // note: %feature not tagging correctly when namespaces are involved. we just
 // globally apply the docstring each time and overwrite it with the next

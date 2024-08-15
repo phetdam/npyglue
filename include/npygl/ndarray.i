@@ -65,13 +65,39 @@ class ndarray_flat_view;
 %enddef  // NPYGL_FLAT_VIEW_INOUT_TYPEMAP(type)
 
 /**
- * Typemap application macro for applying the flat view in/out typemap.
+ * Typemap application macro for applying a flat view in/out typemap.
+ *
+ * This macro is used to apply the typemap to a specific type + name pair.
+ *
+ * @param type C/C++ view class element type
+ * @param name Parameter name to apply typemap to
+ */
+%define NPYGL_APPLY_FLAT_VIEW_INOUT_TYPEMAP(type, name)
+%apply npygl::ndarray_flat_view<type> AR_INOUT {
+  npygl::ndarray_flat_view<type> name
+};
+%enddef  // NPYGL_APPLY_FLAT_VIEW_INOUT_TYPEMAP(type, name)
+
+/**
+ * Typemap application macro for applying all flat view in/out typemaps.
+ *
+ * This macro applies the typemap to every occurrence of the type.
  *
  * @param type C/C++ view class element type
  */
-%define NPYGL_APPLY_FLAT_VIEW_INOUT_TYPEMAP(type)
+%define NPYGL_APPLY_FLAT_VIEW_INOUT_TYPEMAPS(type)
 %apply npygl::ndarray_flat_view<type> AR_INOUT { npygl::ndarray_flat_view<type> };
-%enddef  // NPYGL_APPLY_FLAT_VIEW_INOUT_TYPEMAP(type)
+%enddef  // NPYGL_APPLY_FLAT_VIEW_INOUT_TYPEMAPS(type)
+
+/**
+ * Typemap clearing macro for a single flat view typemap.
+ *
+ * @param type C/C++ view class element type
+ * @param name Parameter name typemap was applied to
+ */
+%define NPYGL_CLEAR_FLAT_VIEW_TYPEMAP(type, name)
+%clear npygl::ndarray_flat_view<type> name;
+%enddef   // NPYGL_CLEAR_FLAT_VIEW_TYPEMAP(type, name)
 
 /**
  * Typemap clearing macro for the flat view typemaps.
@@ -91,7 +117,7 @@ class ndarray_flat_view;
  *
  * @param type C/C++ type with `npy_type_traits` specialization
  */
-%define NPYGL_STL_SPAN_INOUT_TYPEMAP(type)
+%define NPYGL_STD_SPAN_INOUT_TYPEMAP(type)
 /**
  * Typemap converting Python input into new NumPy array to modify.
  *
@@ -113,25 +139,49 @@ class ndarray_flat_view;
   // release value back to Python
   $result = res$argnum.release();
 }
-%enddef  // NPYGL_STL_SPAN_INOUT_TYPEMAP(type)
+%enddef  // NPYGL_STD_SPAN_INOUT_TYPEMAP(type)
 
 /**
- * Typemap application macro for applying the STL span in/out typemap.
+ * Typemap application macro for applying a STL span in/out typemap.
+ *
+ * This macro is used to apply the typemap to a specific type + name pair.
+ *
+ * @param type C/C++ type with `npy_type_traits` specialization
+ * @param name Parameter name to apply typemape to
+ */
+%define NPYGL_APPLY_STD_SPAN_INOUT_TYPEMAP(type, name)
+%apply std::span<type> AR_INOUT { std::span<type> name };
+%enddef  // NPYGL_APPLY_STD_SPAN_INOUT_TYPEMAP(type, name)
+
+/**
+ * Typemap application macro for applying all STL span in/out typemaps.
+ *
+ * This macro applies the typemap to every occurrence of the type.
  *
  * @param type C/C++ type with `npy_type_traits` specialization
  */
-%define NPYGL_APPLY_STL_SPAN_INOUT_TYPEMAP(type)
+%define NPYGL_APPLY_STD_SPAN_INOUT_TYPEMAPS(type)
 %apply std::span<type> AR_INOUT { std::span<type> };
-%enddef  // NPYGL_APPLY_STL_SPAN_INOUT_TYPEMAP(type)
+%enddef  // NPYGL_APPLY_STD_SPAN_INOUT_TYPEMAPS(type)
+
+/**
+ * Typemap clearing macro for a single STL span typemap.
+ *
+ * @param type C/C++ type with `npy_type_traits` specialization
+ * @param name Parameter name typemap was applied to
+ */
+%define NPYGL_CLEAR_STD_SPAN_TYPEMAP(type, name)
+%clear std::span<type> name;
+%enddef  // NPYGL_CLEAR_STD_SPAN_TYPEMAP(type, name)
 
 /**
  * Typemap clearing macro for the STL span typemaps.
  *
  * @param type C/C++ type with `npy_type_traits` specialization
  */
-%define NPYGL_CLEAR_STL_SPAN_TYPEMAPS(type)
+%define NPYGL_CLEAR_STD_SPAN_TYPEMAPS(type)
 %clear std::span<type>;
-%enddef  // NPYGL_CLEAR_STL_SPAN_TYPEMAPS(type)
+%enddef  // NPYGL_CLEAR_STD_SPAN_TYPEMAPS(type)
 
 // supported in + out flat view typemaps
 NPYGL_FLAT_VIEW_INOUT_TYPEMAP(double)
@@ -142,11 +192,11 @@ NPYGL_FLAT_VIEW_INOUT_TYPEMAP(long)
 NPYGL_FLAT_VIEW_INOUT_TYPEMAP(unsigned long)
 
 // support in + out C++20 STL span typemaps
-NPYGL_STL_SPAN_INOUT_TYPEMAP(double)
-NPYGL_STL_SPAN_INOUT_TYPEMAP(float)
-NPYGL_STL_SPAN_INOUT_TYPEMAP(int)
-NPYGL_STL_SPAN_INOUT_TYPEMAP(unsigned int)
-NPYGL_STL_SPAN_INOUT_TYPEMAP(unsigned long)
+NPYGL_STD_SPAN_INOUT_TYPEMAP(double)
+NPYGL_STD_SPAN_INOUT_TYPEMAP(float)
+NPYGL_STD_SPAN_INOUT_TYPEMAP(int)
+NPYGL_STD_SPAN_INOUT_TYPEMAP(unsigned int)
+NPYGL_STD_SPAN_INOUT_TYPEMAP(unsigned long)
 
 /**
  * Macro for starting the parameters section of the NumPy docstring.
