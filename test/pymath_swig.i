@@ -5,15 +5,39 @@
  * @copyright MIT License
  */
 
+// C++ dialect string. this is conditionally defined based on the -D macros
+// that are passed to SWIG when it is run; we use these to specify the C++
+// standard that the generated C++ code will likely be generated for.
+#if defined(NPYGL_SWIG_CC_20)
+%define NPYGL_CC_STRING
+"C++20"
+%enddef  // NPYGL_CC_STRING
+#else
+%define NPYGL_CC_STRING
+"C++"
+%enddef  // NPYGL_CC_STRING
+#endif  // !defined(NPYGL_SWIG_CC_20) && !defined(NPYGL_SWIG_CC_17)
+
 // module docstring
 %define MODULE_DOCSTRING
-"npyglue math functions SWIG test module.\n"
+"npyglue math functions " NPYGL_CC_STRING " SWIG test module.\n"
 "\n"
 "This C++ extension module contains math functions that operate on Python\n"
 "sequences and return a new NumPy array, possibly with a specific data type."
 %enddef  // MODULE_DOCSTRING
 
-%module(docstring=MODULE_DOCSTRING) pymath_swig
+// module name depends on C++ standard
+#if defined(NPYGL_SWIG_CC_20)
+%define MODULE_NAME
+pymath_swig_cc20
+%enddef  // MODULE_NAME
+#else
+%define MODULE_NAME
+pymath_swig
+%enddef  // MODULE_NAME
+#endif  // !defined(NPYGL_SWIG_CC_20)
+
+%module(docstring=MODULE_DOCSTRING) MODULE_NAME
 
 %include "npygl/ndarray.i"
 %include "npygl/testing/math.hh"
@@ -21,9 +45,14 @@
 %{
 #define SWIG_FILE_WITH_INIT
 
+#include "npygl/features.h"
 #include "npygl/npy_helpers.hh"  // includes <numpy/ndarrayobject.h>
 #include "npygl/py_helpers.hh"
 #include "npygl/testing/math.hh"
+
+#if NPYGL_HAS_CC_20
+#include <span>
+#endif  // !NPYGL_HAS_CC_20
 %}
 
 // NumPy array API needs initialization during module load
@@ -33,8 +62,13 @@ import_array();
 
 // instantiate different versions of array_double and unit_compress
 // note: SWIG can understand use of namespaces but we are explicit here
+#if defined(NPYGL_SWIG_CC_20)
+NPYGL_APPLY_STD_SPAN_INOUT_TYPEMAPS(double)
+NPYGL_APPLY_STD_SPAN_INOUT_TYPEMAPS(float)
+#else
 NPYGL_APPLY_FLAT_VIEW_INOUT_TYPEMAPS(double)
 NPYGL_APPLY_FLAT_VIEW_INOUT_TYPEMAPS(float)
+#endif  // !defined(NPYGL_SWIG_CC_20)
 
 // note: %feature not tagging correctly when namespaces are involved. we just
 // globally apply the docstring each time and overwrite it with the next
@@ -95,5 +129,10 @@ NPYGL_APPLY_FLAT_VIEW_INOUT_TYPEMAPS(float)
 );
 %template(funit_compress) npygl::testing::unit_compress<float>;
 
+#if defined(NPYGL_SWIG_CC_20)
+NPYGL_CLEAR_STD_SPAN_TYPEMAPS(double)
+NPYGL_CLEAR_STD_SPAN_TYPEMAPS(float)
+#else
 NPYGL_CLEAR_FLAT_VIEW_TYPEMAPS(double)
 NPYGL_CLEAR_FLAT_VIEW_TYPEMAPS(float)
+#endif  // !defined(NPYGL_SWIG_CC_20)
