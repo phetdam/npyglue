@@ -136,7 +136,7 @@ if(NPYGL_SWIG_NPY_AVAILABLE)
         # generated wrapper source output path
         # note: we could use OUTPUT_DIR/gensrc for this to avoid WSL/Windows
         # builds sometimes (?) recompiling the SWIG file
-        OUTFILE_DIR ${CMAKE_CURRENT_SOURCE_DIR}
+        OUTFILE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/pymath_swig
         SOURCES pymath_swig.i
     )
     # silence some MSVC warnings
