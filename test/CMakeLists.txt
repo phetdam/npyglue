@@ -36,7 +36,6 @@ if(Python3_Development_FOUND AND Python3_NumPy_FOUND)
 endif()
 
 # pymath: Python math functions module
-# TODO: add CMake script to simplify adding Python extension modules
 if(Python3_Development_FOUND AND Python3_NumPy_FOUND)
     # C++17
     npygl_add_py3_extension(
