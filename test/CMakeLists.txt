@@ -39,21 +39,12 @@ endif()
 # TODO: add CMake script to simplify adding Python extension modules
 if(Python3_Development_FOUND AND Python3_NumPy_FOUND)
     # C++17
-    add_library(pymath MODULE pymath.cc)
-    # no "lib" prefix for POSIX systems
-    set_target_properties(pymath PROPERTIES PREFIX "")
-    # .pyd suffix on Windows
-    if(WIN32)
-        set_target_properties(pymath PROPERTIES SUFFIX ".pyd")
-    endif()
-    target_link_libraries(pymath PRIVATE Python3::NumPy Python3::Python)
-    # usually no Python debug runtime library
-    if(MSVC AND PY_MSVC_ALWAYS_RELEASE)
-        set_target_properties(
-            pymath PROPERTIES
-            MSVC_RUNTIME_LIBRARY MultiThreadedDLL
-        )
-    endif()
+    npygl_add_py3_extension(
+        TARGET pymath
+        SOURCES pymath.cc
+        LIBRARIES Python3::NumPy
+        USE_RELEASE_CRT ${PY_MSVC_ALWAYS_RELEASE}
+    )
     # unittest test script
     add_test(
         NAME pymath_test
@@ -63,20 +54,13 @@ if(Python3_Development_FOUND AND Python3_NumPy_FOUND)
     )
     # C++20
     if(NPYGL_HAS_CC_20)
-        add_library(pymath_cc20 MODULE pymath.cc)
-        set_target_properties(pymath_cc20 PROPERTIES PREFIX "")
+        npygl_add_py3_extension(
+            TARGET pymath_cc20
+            SOURCES pymath.cc
+            LIBRARIES Python3::NumPy
+            USE_RELEASE_CRT ${PY_MSVC_ALWAYS_RELEASE}
+        )
         npygl_require_cc_std(TARGET pymath_cc20 CC_STD 20)
-        if(WIN32)
-            set_target_properties(pymath_cc20 PROPERTIES SUFFIX ".pyd")
-        endif()
-        target_link_libraries(pymath_cc20 PRIVATE Python3::NumPy Python3::Python)
-        # again, usually no Python debug runtime library
-        if(MSVC AND PY_MSVC_ALWAYS_RELEASE)
-            set_target_properties(
-                pymath_cc20 PROPERTIES
-                MSVC_RUNTIME_LIBRARY MultiThreadedDLL
-            )
-        endif()
         # unittest test script
         add_test(
             NAME pymath_cc20_test

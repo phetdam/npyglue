@@ -8,6 +8,11 @@
 // C++ dialect string. this is conditionally defined based on the -D macros
 // that are passed to SWIG when it is run; we use these to specify the C++
 // standard that the generated C++ code will likely be generated for.
+//
+// in particular, the NPYGL_SWIG_CC_20 macro is used to determine whether or
+// not we want SWIG to generate the wrapper code in a way that enables the
+// C++20 features/overloads in the processed headers.
+//
 #if defined(NPYGL_SWIG_CC_20)
 %define NPYGL_CC_STRING
 "C++20"
