@@ -66,6 +66,22 @@ function(npygl_add_py3_executable)
 endfunction()
 
 # TODO: test out and add doc comments
+##
+# Add a Python C/C++ extension module.
+#
+# Arguments:
+#   TARGET target
+#       Name of the Python extension module target
+#   SOURCES source1...
+#       Target sources needed for compilation
+#   LIBRARIES library...
+#       Additional library targets besides Python3::Python needed for linking
+#   USE_RELEASE_CRT (ON|OFF)
+#       Indicate whether or not the dynamic release C runtime should be used,
+#       which ensures that on Windows, the release Python runtime library is
+#       used. This can be passed a condition and has no effect when not
+#       compiling for Windows. Generally should always be ON.
+#
 function(npygl_add_py3_extension)
     # target name + whether or not to use release C runtime on Windows
     set(SINGLE_VALUE_ARGS TARGET USE_RELEASE_CRT)
