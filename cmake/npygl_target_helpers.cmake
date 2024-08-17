@@ -1,6 +1,27 @@
 cmake_minimum_required(VERSION ${CMAKE_MINIMUM_REQUIRED_VERSION})
 
 ##
+# Require that a target is compiled under a particular C++ standard.
+#
+# Arguments:
+#   TARGET target
+#       Name of the target being compiled
+#   CC_STD std
+#       C++ standard to compile under, e.g. a value for CXX_STANDARD like 20
+#
+function(npygl_require_cc_std)
+    # target name and C++ standard
+    set(SINGLE_VALUE_ARGS TARGET CC_STD)
+    cmake_parse_arguments(HOST "" "${SINGLE_VALUE_ARGS}" "" ${ARGV})
+    # set target properties (standard is required)
+    set_target_properties(
+        ${HOST_TARGET} PROPERTIES
+        CXX_STANDARD ${HOST_CC_STD}
+        CXX_STANDARD_REQUIRED ON
+    )
+endfunction()
+
+##
 # Add a C/C++ executable that embeds the Python 3 interpreter.
 #
 # This function provides some convenience logic, e.g. ensuring that we are
@@ -57,6 +78,7 @@ function(npygl_add_py3_extension)
     )
     # add module, ensure no library prefix, .pyd suffix on Windows
     add_library(${HOST_TARGET} MODULE ${HOST_SOURCES})
+    # technically, could encase in a if(UNIX) ... endif() block
     set_target_properties(${HOST_TARGET} PROPERTIES PREFIX "")
     if(WIN32)
         set_target_properties(${HOST_TARGET} PROPERTIES SUFFIX ".pyd")
@@ -65,4 +87,11 @@ function(npygl_add_py3_extension)
         ${HOST_TARGET} PRIVATE
         Python3::Python ${HOST_LIBRARIES}
     )
+    # usually no Python debug runtime library
+    if(MSVC AND HOST_USE_RELEASE_CRT)
+        set_target_properties(
+            ${HOST_TARGET} PROPERTIES
+            MSVC_RUNTIME_LIBRARY MultiThreadedDLL
+        )
+    endif()
 endfunction()
