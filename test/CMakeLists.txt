@@ -30,11 +30,7 @@ if(Python3_Development_FOUND AND Python3_NumPy_FOUND)
             LIBRARIES Python3::NumPy
             USE_RELEASE_CRT ${PY_MSVC_ALWAYS_RELEASE}
         )
-        set_target_properties(
-            npy_helpers_test_cc20 PROPERTIES
-            CXX_STANDARD 20
-            CXX_STANDARD_REQUIRED ON
-        )
+        npygl_require_cc_std(TARGET npy_helpers_test_cc20 CC_STD 20)
         add_test(NAME npy_helpers_test_cc20 COMMAND npy_helpers_test_cc20)
     endif()
 endif()
@@ -68,12 +64,8 @@ if(Python3_Development_FOUND AND Python3_NumPy_FOUND)
     # C++20
     if(NPYGL_HAS_CC_20)
         add_library(pymath_cc20 MODULE pymath.cc)
-        set_target_properties(
-            pymath_cc20 PROPERTIES
-            PREFIX ""
-            CXX_STANDARD 20
-            CXX_STANDARD_REQUIRED ON
-        )
+        set_target_properties(pymath_cc20 PROPERTIES PREFIX "")
+        npygl_require_cc_std(TARGET pymath_cc20 CC_STD 20)
         if(WIN32)
             set_target_properties(pymath_cc20 PROPERTIES SUFFIX ".pyd")
         endif()

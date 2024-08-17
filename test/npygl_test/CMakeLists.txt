@@ -12,11 +12,7 @@ if(GTest_FOUND)
     # C++20
     if(NPYGL_HAS_CC_20)
         add_executable(npygl_test_cc20 ${NPYGL_TEST_SOURCES})
-        set_target_properties(
-            npygl_test_cc20 PROPERTIES
-            CXX_STANDARD 20
-            CXX_STANDARD_REQUIRED ON
-        )
+        npygl_require_cc_std(TARGET npygl_test_cc20 CC_STD 20)
         target_link_libraries(
             npygl_test_cc20 PRIVATE
             GTest::gtest GTest::gtest_main
