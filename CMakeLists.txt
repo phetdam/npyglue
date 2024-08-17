@@ -115,6 +115,10 @@ else()
     message(STATUS "SWIG version: None")
 endif()
 
+# set CMake module path and import Python 3 target helpers
+set(CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
+include(npygl_py3_targets)
+
 # project include directory
 set(NPYGL_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/include)
 include_directories(${NPYGL_INCLUDE_DIR})
