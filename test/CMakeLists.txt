@@ -82,46 +82,13 @@ endif()
 # common SWIG tweaks, e.g. MSVC warning suppression, output dir, SWIG <4.1 and
 # below use of -py3, debug/release Python runtime library, less tedious
 if(NPYGL_SWIG_NPY_AVAILABLE)
-    # enable C++ mode
-    set_source_files_properties(pymath_swig.i PROPERTIES CPLUSPLUS ON)
-    swig_add_library(
-        pymath_swig
-        TYPE MODULE
-        LANGUAGE python
-        # generated output artifacts path. for multi-config generators we need
-        # to include the extra per-config subdirectory manually
-        OUTPUT_DIR
-            ${CMAKE_BINARY_DIR}$<${NPYGL_MULTI_CONFIG_GENERATOR}:/$<CONFIG>>
-        # generated wrapper source output path
-        # note: we could use OUTPUT_DIR/gensrc for this to avoid WSL/Windows
-        # builds sometimes (?) recompiling the SWIG file
-        OUTFILE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/pymath_swig
+    npygl_add_swig_py3_module(
+        TARGET pymath_swig
+        CC_COMPILE ON
         SOURCES pymath_swig.i
+        LIBRARIES Python3::NumPy
+        USE_RELEASE_CRT ${PY_MSVC_ALWAYS_RELEASE}
     )
-    # silence some MSVC warnings
-    if(MSVC)
-        target_compile_options(
-            pymath_swig PRIVATE
-            # C4365: signed/unsigned mismatch during type conversion
-            /wd4365
-            # C4668: macro not defined, replacing with 0 (__GNUC__ not defined)
-            /wd4668
-        )
-    endif()
-    # compile for Python 3. from SWIG 4.1 onwards however we need to use
-    # %feature("python:annotations", "c") directive instead
-    # FIXME: SWIG 4.1+ will not have the C++ type annotations
-    if(SWIG_VERSION VERSION_LESS 4.1)
-        set_target_properties(pymath_swig PROPERTIES SWIG_COMPILE_OPTIONS -py3)
-    endif()
-    # usually no Python debug runtime library
-    if(MSVC AND PY_MSVC_ALWAYS_RELEASE)
-        set_target_properties(
-            pymath_swig PROPERTIES
-            MSVC_RUNTIME_LIBRARY MultiThreadedDLL
-        )
-    endif()
-    target_link_libraries(pymath_swig PRIVATE Python3::NumPy Python3::Python)
     # unittest test script
     add_test(
         NAME pymath_swig_test

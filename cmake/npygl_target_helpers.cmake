@@ -32,7 +32,7 @@ endfunction()
 #       Name of the executable target
 #   SOURCES source1...
 #       Target sources needed for compilation
-#   LIBRARIES library...
+#   LIBRARIES library1...
 #       Additional library targets besides Python3::Python needed for linking
 #   USE_RELEASE_CRT (ON|OFF)
 #       Indicate whether or not the dynamic release C runtime should be used,
@@ -73,7 +73,7 @@ endfunction()
 #       Name of the Python extension module target
 #   SOURCES source1...
 #       Target sources needed for compilation
-#   LIBRARIES library...
+#   LIBRARIES library1...
 #       Additional library targets besides Python3::Python needed for linking
 #   USE_RELEASE_CRT (ON|OFF)
 #       Indicate whether or not the dynamic release C runtime should be used,
@@ -109,4 +109,79 @@ function(npygl_add_py3_extension)
             MSVC_RUNTIME_LIBRARY MultiThreadedDLL
         )
     endif()
+endfunction()
+
+##
+# Add a SWIG-generated Python C/C++ extension module.
+#
+# Arguments:
+#   TARGET target
+#       Name of the SWIG-generated Python extension module target
+#   CC_COMPILE (ON|OFF)
+#       Enabled/disable SWIG C++ mode (defaults to OFF)
+#   SOURCES source1...
+#       Target sources needed for compilation
+#   LIBRARIES library1...
+#       Additional library targets besides Python3::Python needed for linking
+#   USE_RELEASE_CRT (ON|OFF)
+#       Indicate whether or not the dynamic release C runtime should be used,
+#       which ensures that on Windows, the release Python runtime library is
+#       used. This can be passed a condition and has no effect when not
+#       compiling for Windows. Generally should always be ON.
+#
+function(npygl_add_swig_py3_module)
+    # target name, C++ mode, whether or not use release C runtime on Windows
+    set(SINGLE_VALUE_ARGS TARGET CC_COMPILE USE_RELEASE_CRT)
+    # source list + libraries to link against
+    set(MULTI_VALUE_ARGS SOURCES LIBRARIES)
+    # parse arguments
+    cmake_parse_arguments(
+        HOST
+        "" "${SINGLE_VALUE_ARGS}" "${MULTI_VALUE_ARGS}" ${ARGV}
+    )
+    # enable SWIG C++ mode
+    if(HOST_CC_COMPILE)
+        set_source_files_properties(${HOST_SOURCES} PROPERTIES CPLUSPLUS ON)
+    endif()
+    swig_add_library(
+        ${HOST_TARGET}
+        TYPE MODULE
+        LANGUAGE python
+        # generated output artifacts path. for multi-config generators we need
+        # to include the extra per-config subdirectory manually
+        OUTPUT_DIR
+            ${CMAKE_BINARY_DIR}$<${NPYGL_MULTI_CONFIG_GENERATOR}:/$<CONFIG>>
+        # generated wrapper source output path
+        # note: we could use OUTPUT_DIR/gensrc for this to avoid WSL/Windows
+        # builds sometimes (?) recompiling the SWIG file
+        OUTFILE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/${HOST_TARGET}
+        SOURCES ${HOST_SOURCES}
+    )
+    # silence some MSVC warnings we can't do anything about
+    if(MSVC)
+        target_compile_options(
+            ${HOST_TARGET} PRIVATE
+            # C4365: signed/unsigned mismatch during type conversion
+            /wd4365
+            # C4668: macro not defined, replacing with 0 (__GNUC__ not defined)
+            /wd4668
+        )
+    endif()
+    # compile for Python 3. from SWIG 4.1 onwards however we need to use
+    # %feature("python:annotations", "c") directive instead
+    # FIXME: SWIG 4.1+ will not have the C++ type annotations
+    if(SWIG_VERSION VERSION_LESS 4.1)
+        set_target_properties(${HOST_TARGET} PROPERTIES SWIG_COMPILE_OPTIONS -py3)
+    endif()
+    # usually no Python debug runtime library
+    if(MSVC AND PY_MSVC_ALWAYS_RELEASE)
+        set_target_properties(
+            ${HOST_TARGET} PROPERTIES
+            MSVC_RUNTIME_LIBRARY MultiThreadedDLL
+        )
+    endif()
+    target_link_libraries(
+        ${HOST_TARGET} PRIVATE
+        Python3::Python ${HOST_LIBRARIES}
+    )
 endfunction()
