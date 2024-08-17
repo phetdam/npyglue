@@ -65,7 +65,6 @@ function(npygl_add_py3_executable)
     endif()
 endfunction()
 
-# TODO: test out and add doc comments
 ##
 # Add a Python C/C++ extension module.
 #
