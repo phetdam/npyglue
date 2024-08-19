@@ -129,8 +129,12 @@ endfunction()
 #       SWIG interface input file for wrapper generation
 #   SWIG_CC (ON|OFF)
 #       Enabled/disable SWIG C++ mode (defaults to OFF)
+#   SWIG_DEFINES macro1...
+#       SWIG macros to define when running SWIG
+#   SWIG_OPTIONS option1...
+#       Additional options to pass to SWIG
 #   SOURCES source1...
-#       Target C/C++ sources needed for compilation
+#       Additional C/C++ sources needed for compilation
 #   LIBRARIES library1...
 #       Additional library targets besides Python3::Python needed for linking
 #   USE_RELEASE_CRT (ON|OFF)
@@ -143,7 +147,7 @@ function(npygl_add_swig_py3_module)
     # target name, SWIG source, SWIG C++ mode, use release C runtime on Windows
     set(SINGLE_VALUE_ARGS TARGET INTERFACE SWIG_CC USE_RELEASE_CRT)
     # source list + libraries to link against
-    set(MULTI_VALUE_ARGS SOURCES LIBRARIES)
+    set(MULTI_VALUE_ARGS SOURCES LIBRARIES SWIG_DEFINES SWIG_OPTIONS)
     # parse arguments
     cmake_parse_arguments(
         HOST
@@ -167,6 +171,19 @@ function(npygl_add_swig_py3_module)
         OUTFILE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/${HOST_TARGET}
         SOURCES ${HOST_INTERFACE} ${HOST_SOURCES}
     )
+    # add SWIG compile definitions and options
+    if(HOST_SWIG_DEFINES)
+        set_property(
+            TARGET ${HOST_TARGET} PROPERTY
+            SWIG_COMPILE_DEFINITIONS ${HOST_SWIG_DEFINES}
+        )
+    endif()
+    if(HOST_SWIG_OPTIONS)
+        set_property(
+            TARGET ${HOST_TARGET} PROPERTY
+            SWIG_COMPILE_OPTIONS ${HOST_SWIG_OPTIONS}
+        )
+    endif()
     # silence some MSVC warnings we can't do anything about
     if(MSVC)
         target_compile_options(
