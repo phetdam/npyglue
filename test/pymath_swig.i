@@ -32,17 +32,14 @@
 %enddef  // MODULE_DOCSTRING
 
 // module name depends on C++ standard
+// note: originally we tried to define a MODULE_NAME macro but CMake ended up
+// incorrectly generating the Python wrapper as MODULE_NAME.py for the Visual
+// Studio generators. Makefiles were fine so maybe it's an escaping issue
 #if defined(NPYGL_SWIG_CC_20)
-%define MODULE_NAME
-pymath_swig_cc20
-%enddef  // MODULE_NAME
+%module(docstring=MODULE_DOCSTRING) pymath_swig_cc20
 #else
-%define MODULE_NAME
-pymath_swig
-%enddef  // MODULE_NAME
+%module(docstring=MODULE_DOCSTRING) pymath_swig
 #endif  // !defined(NPYGL_SWIG_CC_20)
-
-%module(docstring=MODULE_DOCSTRING) MODULE_NAME
 
 %include "npygl/ndarray.i"
 %include "npygl/testing/math.hh"
