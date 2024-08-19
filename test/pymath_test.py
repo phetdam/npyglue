@@ -13,17 +13,12 @@ from argparse import (
 )
 import importlib
 import os
-from os.path import abspath, dirname, relpath
 import sys
 from typing import Iterable, Optional
 import unittest
 
 import numpy as np
 from numpy.testing import assert_allclose
-
-# current working directory + file directory
-_cwd = os.getcwd()
-_home_dir = dirname(abspath(__file__))
 
 # add current working directory to import path
 sys.path.insert(0, os.getcwd())
@@ -144,12 +139,12 @@ def main(args: Optional[Iterable[str]] = None) -> int:
         mod_name += f"_{argn.cc_standard}"
     # indicate what will be loaded
     if argn.verbose:
-        print(f"loading {mod_name} from {relpath(_cwd, _home_dir)}...")
+        print(f"loading {mod_name}...")
     # attempt to import
     global pm
     pm = importlib.import_module(mod_name)
     if argn.verbose:
-        print(f"loading {mod_name} from {relpath(_cwd, _home_dir)}... done")
+        print(f"loading {mod_name}... done")
     # run tests. trick unittest.main into thinking there are no CLI args
     res = unittest.main(argv=(sys.argv[0],), exit=False, verbosity=1 + argn.verbose)
     return 0 if res.result.wasSuccessful() else 1
