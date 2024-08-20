@@ -168,9 +168,12 @@ if(NPYGL_SWIG_NPY_AVAILABLE)
             ${PM_SWIG_CC20_TARGET} PROPERTIES
             OUTPUT_NAME _${PM_SWIG_CC20_TARGET}
         )
-        # no lib prefix on UNIX systems
+        # no lib prefix on UNIX systems and Windows has .pyd suffix
         if(UNIX)
             set_target_properties(${PM_SWIG_CC20_TARGET} PROPERTIES PREFIX "")
+        endif()
+        if(WIN32)
+            set_target_properties(${PM_SWIG_CC20_TARGET} PROPERTIES SUFFIX ".pyd")
         endif()
         # silence some MSVC warnings we can't do anything about
         if(MSVC)
