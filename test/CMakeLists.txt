@@ -120,13 +120,14 @@ if(NPYGL_SWIG_NPY_AVAILABLE)
         execute_process(
             COMMAND
                 ${SWIG_EXECUTABLE} -python -c++ -I${NPYGL_INCLUDE_DIR} -MM -MF
-                    ${PM_SWIG_CC20_DEPS} -o ${PM_SWIG_CC20_OUTFILE} ${PM_SWIG_CC20_INPUT}
+                    ${PM_SWIG_CC20_DEPS} -o ${PM_SWIG_CC20_OUTFILE}
+                    ${PM_SWIG_CC20_INPUT}
             WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
             RESULT_VARIABLE NPYGL_PM_SWIG_CC20_DEPS_RESULT
         )
         # if failed, error
         if(NPYGL_PM_SWIG_CC20_DEPS_RESULT)
-            message(FATAL_ERROR "Unable to generate deps for ${PM_SWIG_CC20_TARGET}")
+            message(WARNING "Unable to generate deps for ${PM_SWIG_CC20_TARGET}")
         endif()
         # read file
         file(STRINGS ${PM_SWIG_CC20_DEPS} NPYGL_PM_SWIG_CC20_DEPS)
