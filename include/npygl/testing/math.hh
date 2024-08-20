@@ -9,6 +9,7 @@
 #define NPYGL_TESTING_MATH_HH_
 
 #include <algorithm>
+#include <cmath>
 
 #include "npygl/features.h"
 #include "npygl/npy_helpers.hh"
@@ -51,10 +52,83 @@ template <typename T>
 void array_double(ndarray_flat_view<T> view) noexcept
 {
 #if NPYGL_HAS_CC_20
+  // explicitly mention std::span in case flat_view gets similar ctor
   array_double(std::span{view.begin(), view.end()});
 #else
   for (auto& v : view)
     v = 2 * v;
+#endif  // !NPYGL_HAS_CC_20
+}
+#endif  // NPYGL_SWIG_CC_20
+
+#if defined(NPYGL_SWIG_CC_20) || NPYGL_HAS_CC_20
+/**
+ * Compute the sine of the view elements.
+ *
+ * @tparam T type
+ *
+ * @param view Span to operate on
+ */
+template <typename T>
+void sine(std::span<T> view) noexcept
+{
+  for (auto& v : view)
+    v = std::sin(v);
+}
+#endif  // !defined(NPYGL_SWIG_CC_20) && !NPYGL_HAS_CC_20
+
+#ifndef NPYGL_SWIG_CC_20
+/**
+ * Compute the sine of the view elements.
+ *
+ * @tparam T type
+ *
+ * @param view NumPy array view
+ */
+template <typename T>
+void sine(ndarray_flat_view<T> view) noexcept
+{
+#if NPYGL_HAS_CC_20
+  sine(std::span{view.begin(), view.end()});
+#else
+  for (auto& v : view)
+    v = std::sin(v);
+#endif  // !NPYGL_HAS_CC_20
+}
+#endif  // NPYGL_SWIG_CC_20
+
+#if defined(NPYGL_SWIG_CC_20) || NPYGL_HAS_CC_20
+/**
+ * Compute the inverse sine of the view elements.
+ *
+ * @tparam T type
+ *
+ * @param view Span to operate on
+ */
+template <typename T>
+void asine(std::span<T> view) noexcept
+{
+  for (auto& v : view)
+    v = std::asin(v);
+}
+#endif  // !defined(NPYGL_SWIG_CC_20) && !NPYGL_HAS_CC_20
+
+#ifndef NPYGL_SWIG_CC_20
+/**
+ * Compute the inverse sine of the view elements.
+ *
+ * @tparam T type
+ *
+ * @param view NumPy array view
+ */
+template <typename T>
+void asine(ndarray_flat_view<T> view) noexcept
+{
+#if NPYGL_HAS_CC_20
+  asine(std::span{view.begin(), view.end()});
+#else
+  for (auto& v : view)
+    v = std::asin(v);
 #endif  // !NPYGL_HAS_CC_20
 }
 #endif  // NPYGL_SWIG_CC_20

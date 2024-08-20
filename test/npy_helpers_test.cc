@@ -16,58 +16,9 @@
 #include "npygl/features.h"
 #include "npygl/npy_helpers.hh"
 #include "npygl/py_helpers.hh"
-
-#if NPYGL_HAS_CC_20
-#include <span>
-#endif  // NPYGL_HAS_CC_20
+#include "npygl/testing/math.hh"
 
 namespace {
-
-/**
- * Compute the sine of the view elements.
- *
- * @param view NumPy array view
- */
-void sine(npygl::ndarray_flat_view<double> view) noexcept
-{
-  for (auto& v : view)
-    v = std::sin(v);
-}
-
-/**
- * Compute the inverse sine of the view elements.
- *
- * @param view NumPy array view
- */
-void asine(npygl::ndarray_flat_view<double> view) noexcept
-{
-  for (auto& v : view)
-    v = std::asin(v);
-}
-
-#if NPYGL_HAS_CC_20
-/**
- * Compute the sine of the view elements.
- *
- * @param view Data buffer view
- */
-void sine(std::span<double> view) noexcept
-{
-  for (auto& v : view)
-    v = std::sin(v);
-}
-
-/**
- * Compute the inverse sine of the view elements.
- *
- * @param view Data buffer view
- */
-void asine(std::span<double> view) noexcept
-{
-  for (auto& v : view)
-    v = std::asin(v);
-}
-#endif  // NPYGL_HAS_CC_20
 
 /**
  * Check if the NumPy array type corresponds to one of the C/C++ types.
@@ -102,6 +53,8 @@ bool has_type(PyArrayObject* arr) noexcept
 
 int main()
 {
+  using npygl::testing::sine;
+  using npygl::testing::asine;
   // initialize Python + print version
   npygl::py_instance python;
   std::cout << Py_GetVersion() << std::endl;
@@ -133,18 +86,23 @@ int main()
   std::cout << "Has one of " <<
     npygl::npy_typename_list<int, double, float>() << ": " <<
     has_type<int, double, float>(ar) << std::endl;
+  // create view to modify NumPy array through
+  npygl::ndarray_flat_view<double> view{ar};
+#if NPYGL_HAS_CC_20
+  auto stl_view = npygl::make_span<double>(ar);
+#endif  // NPYGL_HAS_CC_20
   // apply sine function to NumPy array and print it again
-  sine(ar);
+  sine(view);
   std::cout << "sine transform:\n" << ar << std::endl;
   // apply inverse sine function to NumPy array and print it again
-  asine(ar);
+  asine(view);
   std::cout << "inverse sine transform:\n" << ar << std::endl;
 #if NPYGL_HAS_CC_20
   // apply sine function to NumPy array via span and print
-  sine(npygl::make_span<double>(ar));
+  sine(stl_view);
   std::cout << "span sine transform:\n" << ar << std::endl;
   // apply inverse since function to NumPy array via span and print
-  asine(npygl::make_span<double>(ar));
+  asine(stl_view);
   std::cout << "span inverse sine transform:\n" << ar << std::endl;
 #endif  // NPYGL_HAS_CC_20
   return EXIT_SUCCESS;
