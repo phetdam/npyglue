@@ -222,8 +222,10 @@ function(npygl_add_swig_py3_module)
     list(TRANSFORM DEPS_LIST STRIP)
     list(TRANSFORM DEPS_LIST REPLACE ":$" "")
     list(TRANSFORM DEPS_LIST REPLACE "\\\\" "/")
-    # pop first element to remove wrapper output file itself
+    # pop first element to remove wrapper output file name itself
     list(POP_FRONT DEPS_LIST)
+    # remove unneeded dependencies file
+    file(REMOVE ${DEPS_FILE})
     # custom command to build SWIG wrapper files when deps change. the target
     # language files are copied to build directory
     add_custom_command(
