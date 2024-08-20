@@ -147,11 +147,13 @@ if(NPYGL_SWIG_NPY_AVAILABLE)
             OUTPUT ${PM_SWIG_CC20_OUTFILE}
             COMMAND
                 ${SWIG_EXECUTABLE} -python -c++ -I${NPYGL_INCLUDE_DIR}
-                    ${PM_SWIG_CC20_DEFINES} -o ${PM_SWIG_CC20_OUTFILE}
+                    ${PM_SWIG_CC20_DEFINES} -o ${PM_SWIG_CC20_OUTFILE} -outdir
+                    ${CMAKE_BINARY_DIR}$<${NPYGL_MULTI_CONFIG_GENERATOR}:/$<CONFIG>>
                     ${PM_SWIG_CC20_INPUT}
             DEPENDS ${NPYGL_PM_SWIG_CC20_DEPS}
             WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
             COMMENT "Generating SWIG Python wrapper ${PM_SWIG_CC20_OUTNAME}"
+            COMMAND_EXPAND_LISTS
         )
         # create SWIG module
         add_library(${PM_SWIG_CC20_TARGET} MODULE ${PM_SWIG_CC20_OUTFILE})
