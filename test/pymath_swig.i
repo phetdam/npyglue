@@ -87,7 +87,6 @@ NPYGL_APPLY_FLAT_VIEW_INOUT_TYPEMAPS(float)
 );
 %template(array_double) npygl::testing::array_double<double>;
 
-// TODO: define SWIG macros to make writing the NumPy docstring easier
 %feature(
   "autodoc",
   "Double the incoming input array.\n"
@@ -130,6 +129,34 @@ NPYGL_APPLY_FLAT_VIEW_INOUT_TYPEMAPS(float)
   "numpy.ndarray"
 );
 %template(funit_compress) npygl::testing::unit_compress<float>;
+
+%feature(
+  "autodoc",
+  "Apply the sine function to the input array.\n"
+  "\n"
+  NPYGL_NPYDOC_PARAMETERS
+  "view : collections.Sequence\n"
+  "    Input sequence of numeric values to apply sine to\n"
+  "\n"
+  NPYGL_NPYDOC_RETURNS
+  "numpy.ndarray"
+);
+%template(sine) npygl::testing::sine<double>;
+
+%feature(
+  "autodoc",
+  "Apply the sine function to the input array.\n"
+  "\n"
+  "The returned NumPy array will have ``dtype=float32``.\n"
+  "\n"
+  NPYGL_NPYDOC_PARAMETERS
+  "view : collections.Sequence\n"
+  "    Input sequence of numeric values to apply sine to\n"
+  "\n"
+  NPYGL_NPYDOC_RETURNS
+  "numpy.ndarray"
+);
+%template(fsine) npygl::testing::sine<float>;
 
 #if defined(NPYGL_SWIG_CC_20)
 NPYGL_CLEAR_STD_SPAN_TYPEMAPS(double)

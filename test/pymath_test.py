@@ -95,6 +95,30 @@ class TestUnitCompress(unittest.TestCase):
         assert_allclose(pm.funit_compress(in_ar), in_ar / np.max(in_ar))
 
 
+class TestSine(unittest.TestCase):
+    """Test suite for sine tests."""
+
+    def test_sine_list(self):
+        """Test sine on a nested list."""
+        in_list = [[[4.3]], [[1.3343]], [[12]]]
+        assert_allclose(pm.sine(in_list), np.sin(in_list))
+
+    def test_fsine_list(self):
+        """Test fsine on a nested list."""
+        in_list = [[3.4, 2], [1.22, 4.5], [1.33, 1]]
+        assert_allclose(pm.fsine(in_list), np.sin(in_list, dtype=np.float32))
+
+    def test_sine_array(self):
+        """Test sine on a NumPy array."""
+        in_ar = np.array([[[3.444]], [[2.33]], [[1.2121]]])
+        assert_allclose(pm.sine(in_ar), np.sin(in_ar))
+
+    def test_fsine_array(self):
+        """Test fsine on a NumPy array."""
+        in_ar = np.array([[3.4, 2.11, 1.22], [2.323, 1.11, 1.141]], dtype=np.float32)
+        assert_allclose(pm.fsine(in_ar), np.sin(in_ar))
+
+
 def main(args: Optional[Iterable[str]] = None) -> int:
     """Main function.
 
