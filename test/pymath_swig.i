@@ -21,7 +21,7 @@
 %define NPYGL_CC_STRING
 "C++"
 %enddef  // NPYGL_CC_STRING
-#endif  // !defined(NPYGL_SWIG_CC_20) && !defined(NPYGL_SWIG_CC_17)
+#endif  // !defined(NPYGL_SWIG_CC_20)
 
 // module docstring
 %define MODULE_DOCSTRING

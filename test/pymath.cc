@@ -21,6 +21,15 @@
 #define MODULE_NAME pymath
 #endif  // !NPYGL_HAS_CC_20
 
+// C++ version string
+#if NPYGL_HAS_CC_20
+#define CC_STRING "C++20"
+#elif NPYGL_HAS_CC_17
+#define CC_STRING "C++17"
+#else
+#define CC_STRING "C++"
+#endif  // !NPYGL_HAS_CC_20 && !NPYGL_HAS_CC_17
+
 // static linkage to follow Python extension module conventions
 namespace {
 
@@ -41,11 +50,8 @@ npygl::py_object parse_ndarray(PyObject* args) noexcept
   // parse arguments
   if (!PyArg_ParseTuple(args, "O", &in))
     return {};
-  // create output array
-  auto ar = npygl::make_ndarray<T>(in);
-  if (!ar)
-    return {};
-  return ar;
+  // create output array (empty on error)
+  return npygl::make_ndarray<T>(in);
 }
 
 // TODO: add Python docstring
@@ -95,12 +101,20 @@ PyMethodDef mod_methods[] = {
   {}  // zero-initialized sentinel member
 };
 
+// module docstring
+PyDoc_STRVAR(
+  mod_doc,
+  "npyglue math functions " CC_STRING " hand-wrapped test module.\n"
+  "\n"
+  "This C++ extension module contains math functions that operate on Python\n"
+  "sequences and return a new NumPy array, possibly with a specific data type."
+);
+
 // module definition struct
 PyModuleDef mod_def = {
   PyModuleDef_HEAD_INIT,
   NPYGL_STRINGIFY(MODULE_NAME),
-  // TODO: add module docstring
-  "no documentation for now",
+  mod_doc,
   -1,
   mod_methods
 };
