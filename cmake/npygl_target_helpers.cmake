@@ -132,7 +132,7 @@ endfunction()
 #       Additional options to pass to SWIG
 #   SWIG_INCLUDE_DIRS dir1...
 #       Additional C/C++/SWIG include directories to pass to SWIG
-#   USE_TARGET_NAME (ON|OFF))
+#   USE_TARGET_NAME (ON|OFF)
 #       Indicate whether CMake target name should be used as the module name.
 #       This can be convenient to map the same source to different modules.
 #   SOURCES source1...
@@ -211,7 +211,7 @@ function(npygl_add_swig_py3_module)
     )
     # warn on error
     if(DEPS_RESULT)
-        message(WARNING "Unable to generated dependencies for ${HOST_TARGET}")
+        message(WARNING "Unable to generate dependencies for ${HOST_TARGET}")
     endif()
     # read dependencies file lines as strings
     file(STRINGS ${DEPS_FILE} DEPS_LIST)
