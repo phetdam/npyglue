@@ -86,22 +86,20 @@ int main()
   std::cout << "Has one of " <<
     npygl::npy_typename_list<int, double, float>() << ": " <<
     has_type<int, double, float>(ar) << std::endl;
-  // create view to modify NumPy array through
-  npygl::ndarray_flat_view<double> view{ar};
 #if NPYGL_HAS_CC_20
-  auto stl_view = npygl::make_span<double>(ar);
+
 #endif  // NPYGL_HAS_CC_20
-  // apply sine function to NumPy array and print it again
+  // apply sine + inverse sine functions to NumPy array via view and print
+  npygl::ndarray_flat_view<double> view{ar};
   sine(view);
   std::cout << "sine transform:\n" << ar << std::endl;
-  // apply inverse sine function to NumPy array and print it again
   asine(view);
   std::cout << "inverse sine transform:\n" << ar << std::endl;
 #if NPYGL_HAS_CC_20
-  // apply sine function to NumPy array via span and print
+  // apply sine + inverse function to NumPy array via span and print
+  auto stl_view = npygl::make_span<double>(ar);
   sine(stl_view);
   std::cout << "span sine transform:\n" << ar << std::endl;
-  // apply inverse since function to NumPy array via span and print
   asine(stl_view);
   std::cout << "span inverse sine transform:\n" << ar << std::endl;
 #endif  // NPYGL_HAS_CC_20
