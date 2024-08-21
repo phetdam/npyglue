@@ -72,6 +72,12 @@ NPYGL_APPLY_FLAT_VIEW_INOUT_TYPEMAPS(double)
 NPYGL_APPLY_FLAT_VIEW_INOUT_TYPEMAPS(float)
 #endif  // !defined(NPYGL_SWIG_CC_20)
 
+// SWIG 4.2 changes the way that Python function annotation works. instead of
+// passing -py3 to enable Python 3 function annotations, we use %feature
+#if SWIG_VERSION >= 0x040200
+%feature("python:annotations", "c");
+#endif  // SWIG_VERSION >= 0X040200
+
 // note: %feature not tagging correctly when namespaces are involved. we just
 // globally apply the docstring each time and overwrite it with the next
 %feature(
