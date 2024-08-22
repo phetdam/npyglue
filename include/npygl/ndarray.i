@@ -33,7 +33,7 @@ class ndarray_flat_view;
 }  // namespace npygl
 
 /**
- * Typemap macro for converting Python input a new read-only NumPy array.
+ * Typemap macro for converting Python input into a new read-only NumPy array.
  *
  * This macro simplifies creation of `npygl::ndarray_flat_view<T>` typemaps
  * for all the types that have `npy_type_traits` specializations.
@@ -43,13 +43,13 @@ class ndarray_flat_view;
  * @param type C/C++ view class element type
  */
 %define NPYGL_FLAT_VIEW_IN_TYPEMAP(type)
-%typemap(in) npygl::ndarray_flat_view<type> AR_IN (npygl::py_object res) {
-  // attempt to create new output array to modify (default flags, avoid copy)
-  res = npygl::make_ndarray<type>($input, NPY_ARRAY_DEFAULT);
-  if (!res)
+%typemap(in) npygl::ndarray_flat_view<type> AR_IN (npygl::py_object in) {
+  // attempt to create new input array (default flags, avoid copy if possible)
+  in = npygl::make_ndarray<type>($input, NPY_ARRAY_DEFAULT);
+  if (!in)
     SWIG_fail;
   // create view
-  $1 = npygl::ndarray_flat_view<type>{res.as<PyArrayObject>()};
+  $1 = npygl::ndarray_flat_view<type>{in.as<PyArrayObject>()};
 }
 %enddef  // NPYGL_FLAT_VIEW_IN_TYPEMAP(type)
 
