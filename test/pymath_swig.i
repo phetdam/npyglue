@@ -171,3 +171,39 @@ NPYGL_CLEAR_STD_SPAN_TYPEMAPS(float)
 NPYGL_CLEAR_FLAT_VIEW_TYPEMAPS(double)
 NPYGL_CLEAR_FLAT_VIEW_TYPEMAPS(float)
 #endif  // !defined(NPYGL_SWIG_CC_20)
+
+// input-only typemaps (this time, test application to a single name)
+// TODO: no std::span input typemaps yet
+NPYGL_APPLY_FLAT_VIEW_IN_TYPEMAP(double, view)
+NPYGL_APPLY_FLAT_VIEW_IN_TYPEMAP(float, view)
+
+%feature(
+  "autodoc",
+  "Compute the 1-norm of the flattened input array.\n"
+  "\n"
+  NPYGL_NPYDOC_PARAMETERS
+  "view : collections.Sequence\n"
+  "    Input sequence of numeric values to take 1-norm of\n"
+  "\n"
+  NPYGL_NPYDOC_RETURNS
+  "numpy.ndarray"
+);
+%template(norm1) npygl::testing::norm1<double>;
+
+%feature(
+  "autodoc",
+  "Compute the 1-norm of the flattened input array.\n"
+  "\n"
+  "The returned NumPy array will have ``dtype=float32``.\n"
+  "\n"
+  NPYGL_NPYDOC_PARAMETERS
+  "view : collections.Sequence\n"
+  "    Input sequence of numeric values to take 1-norm of\n"
+  "\n"
+  NPYGL_NPYDOC_RETURNS
+  "numpy.ndarray"
+);
+%template(fnorm1) npygl::testing::norm1<float>;
+
+NPYGL_CLEAR_FLAT_VIEW_TYPEMAP(double, view)
+NPYGL_CLEAR_FLAT_VIEW_TYPEMAP(float, view)

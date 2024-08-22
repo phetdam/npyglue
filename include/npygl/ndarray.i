@@ -229,6 +229,14 @@ class ndarray_flat_view;
 %clear std::span<type>;
 %enddef  // NPYGL_CLEAR_STD_SPAN_TYPEMAPS(type)
 
+// supported in flat view typemaps
+NPYGL_FLAT_VIEW_IN_TYPEMAP(double)
+NPYGL_FLAT_VIEW_IN_TYPEMAP(float)
+NPYGL_FLAT_VIEW_IN_TYPEMAP(int)
+NPYGL_FLAT_VIEW_IN_TYPEMAP(unsigned int)
+NPYGL_FLAT_VIEW_IN_TYPEMAP(long)
+NPYGL_FLAT_VIEW_IN_TYPEMAP(unsigned long)
+
 // supported in + out flat view typemaps
 NPYGL_FLAT_VIEW_INOUT_TYPEMAP(double)
 NPYGL_FLAT_VIEW_INOUT_TYPEMAP(float)
@@ -237,11 +245,12 @@ NPYGL_FLAT_VIEW_INOUT_TYPEMAP(unsigned int)
 NPYGL_FLAT_VIEW_INOUT_TYPEMAP(long)
 NPYGL_FLAT_VIEW_INOUT_TYPEMAP(unsigned long)
 
-// support in + out C++20 STL span typemaps
+// supported in + out C++20 STL span typemaps
 NPYGL_STD_SPAN_INOUT_TYPEMAP(double)
 NPYGL_STD_SPAN_INOUT_TYPEMAP(float)
 NPYGL_STD_SPAN_INOUT_TYPEMAP(int)
 NPYGL_STD_SPAN_INOUT_TYPEMAP(unsigned int)
+NPYGL_STD_SPAN_INOUT_TYPEMAP(long)
 NPYGL_STD_SPAN_INOUT_TYPEMAP(unsigned long)
 
 /**
