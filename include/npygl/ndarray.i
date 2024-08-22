@@ -33,10 +33,56 @@ class ndarray_flat_view;
 }  // namespace npygl
 
 /**
+ * Typemap macro for converting Python input a new read-only NumPy array.
+ *
+ * This macro simplifies creation of `npygl::ndarray_flat_view<T>` typemaps
+ * for all the types that have `npy_type_traits` specializations.
+ *
+ * Typically the type is a const-qualified type since the view is read-only.
+ *
+ * @param type C/C++ view class element type
+ */
+%define NPYGL_FLAT_VIEW_IN_TYPEMAP(type)
+%typemap(in) npygl::ndarray_flat_view<type> AR_IN (npygl::py_object res) {
+  // attempt to create new output array to modify (default flags, avoid copy)
+  res = npygl::make_ndarray<type>($input, NPY_ARRAY_DEFAULT);
+  if (!res)
+    SWIG_fail;
+  // create view
+  $1 = npygl::ndarray_flat_view<type>{res.as<PyArrayObject>()};
+}
+%enddef  // NPYGL_FLAT_VIEW_IN_TYPEMAP(type)
+
+/**
+ * Typemap application macro for applying a flat view in typemap.
+ *
+ * This macro is used to apply the typemap to a specific type + name pair.
+ *
+ * @param type C/C++ view class element type
+ * @param name Parameter name to apply typemap to
+ */
+%define NPYGL_APPLY_FLAT_VIEW_IN_TYPEMAP(type, name)
+%apply npygl::ndarray_flat_view<type> AR_IN {
+  npygl::ndarray_flat_view<type> name
+};
+%enddef  // NPYGL_APPLY_FLAT_VIEW_IN_TYPEMAP(type, name)
+
+/**
+ * Typemap application macro for applying all flat view in typemaps.
+ *
+ * This macro applies the typemap to every occurrence of the type.
+ *
+ * @param type C/C++ view class element type
+ */
+%define NPYGL_APPLY_FLAT_VIEW_IN_TYPEMAPS(type)
+%apply npygl::ndarray_flat_view<type> AR_IN { npygl::ndarray_flat_view<type> };
+%enddef  // NPYGL_APPLY_FLAT_VIEW_IN_TYPEMAPS(type)
+
+/**
  * Typemap macro for converting Python input into a new NumPy array to modify.
  *
  * This macro simplifies creation of `npygl::ndarray_flat_view<T>` typemaps
- * for all the the types that have `npy_type_traits` specializations.
+ * for all the types that have `npy_type_traits` specializations.
  *
  * @param type C/C++ view class element type
  */
