@@ -10,6 +10,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <numeric>
 
 #include "npygl/features.h"
 #include "npygl/npy_helpers.hh"
@@ -169,6 +170,94 @@ void unit_compress(ndarray_flat_view<T> view) noexcept
 #else
   auto radius = *std::max_element(view.begin(), view.end());
   std::for_each(view.begin(), view.end(), [&radius](auto& x) { x /= radius; });
+#endif  // !NPYGL_HAS_CC_20
+}
+#endif  // NPYGL_SWIG_CC_20
+
+#if defined(NPYGL_SWIG_CC_20) || NPYGL_HAS_CC_20
+/**
+ * Return the 1-norm of the given view.
+ *
+ * @tparam T type
+ *
+ * @param view Input span
+ */
+template <typename T>
+T norm1(std::span<T> view) noexcept
+{
+  return std::accumulate(
+    view.begin(),
+    view.end(),
+    T{},
+    [](const T& sum, const T& a) { return sum + std::abs(a); }
+  );
+}
+
+/**
+ * Return the 2-norm of the given view.
+ *
+ * @tparam T type
+ *
+ * @param view Input span
+ */
+template <typename T>
+T norm2(std::span<T> view) noexcept
+{
+  // sum of squared values
+  auto total = std::accumulate(
+    view.begin(),
+    view.end(),
+    T{},
+    [](const T& sum, const T& a) { return sum + a * a; }
+  );
+  return std::sqrt(total);
+}
+#endif  // !defined(NPYGL_SWIG_CC_20) && !NPYGL_HAS_CC_20
+
+#ifndef NPYGL_SWIG_CC_20
+/**
+ * Return the 1-norm of the given view.
+ *
+ * @tparam T type
+ *
+ * @param view NumPy array view
+ */
+template <typename T>
+T norm1(ndarray_flat_view<T> view) noexcept
+{
+#if NPYGL_HAS_CC_20
+  return norm1(std::span{view.begin(), view.end()});
+#else
+  return std::accumulate(
+    view.begin(),
+    view.end(),
+    T{},
+    [](const T& sum, const T& a) { return sum + std::abs(a); }
+  );
+#endif  // !NPYGL_HAS_CC_20
+}
+
+/**
+ * Return the 2-norm of the given view.
+ *
+ * @tparam T type
+ *
+ * @param view NumPy array view
+ */
+template <typename T>
+T norm2(ndarray_flat_view<T> view) noexcept
+{
+#if NPYGL_HAS_CC_20
+  return norm2(std::span{view.begin(), view.end()});
+#else
+  return std::sqrt(
+    std::accumulate(
+      view.begin(),
+      view.end(),
+      T{},
+      [](const T& sum, const T& a) { return sum + a * a; }
+    )
+  );
 #endif  // !NPYGL_HAS_CC_20
 }
 #endif  // NPYGL_SWIG_CC_20
