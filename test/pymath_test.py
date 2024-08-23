@@ -119,6 +119,20 @@ class TestSine(unittest.TestCase):
         assert_allclose(pm.fsine(in_ar), np.sin(in_ar))
 
 
+class TestNorm1(unittest.TestCase):
+    """Test suite for norm1 tests."""
+
+    def test_norm1_list(self):
+        """Test norm1 on a flat list."""
+        in_list = [1., 1.3, 1.222, 1.452, 6.55]
+        assert_allclose(pm.norm1(in_list), np.abs(in_list).sum())
+
+    def test_fnorm1_list(self):
+        """Test fnorm1 on a nested list."""
+        in_list = [[2.], [1.334], [2.4322], [5.44431]]
+        assert_allclose(pm.fnorm1(in_list), np.abs(in_list, dtype=np.float32).sum())
+
+
 def main(args: Optional[Iterable[str]] = None) -> int:
     """Main function.
 

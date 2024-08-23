@@ -155,6 +155,49 @@ class ndarray_flat_view;
 %enddef  // NPYGL_CLEAR_FLAT_VIEW_TYPEMAPS(type)
 
 /**
+ * Typemap macro for converting Python input into a new read-only NumPy array.
+ *
+ * This macro simplifies creation of `std::span<T>` typemaps for relevant types.
+ *
+ * Typically the type is a const-qualified type since the view is read-only.
+ *
+ * @param type C/C++ view class element type
+ */
+%define NPYGL_STD_SPAN_IN_TYPEMAP(type)
+%typemap(in) std::span<type> AR_IN (npygl::py_object in) {
+  // attempt to create new input array (default flags, avoid copy if possible)
+  in = npygl::make_ndarray<type>($input, NPY_ARRAY_DEFAULT);
+  if (!in)
+    SWIG_fail;
+  // create STL span
+  $1 = npygl::make_span<type>(in.as<PyArrayObject>());
+}
+%enddef  // NPYGL_STD_SPAN_IN_TYPEMAP(type)
+
+/**
+ * Typemap application macro for applying a STL span in typemap.
+ *
+ * This macro is used to apply the typemap to a specific type + name pair.
+ *
+ * @param type C/C++ view class element type
+ * @param name Parameter name to apply typemap to
+ */
+%define NPYGL_APPLY_STD_SPAN_IN_TYPEMAP(type, name)
+%apply std::span<type> AR_IN { std::span<type> name };
+%enddef  // NPYGL_APPLY_STD_SPAN_IN_TYPEMAP(type, name)
+
+/**
+ * Typemap application macro for applying all STL span in typemaps.
+ *
+ * This macro applies the typemap to every occurrence of the type.
+ *
+ * @param type C/C++ view class element type
+ */
+%define NPYGL_APPLY_STD_SPAN_IN_TYPEMAPS(type)
+%apply std::span<type> AR_IN { std::span<type> };
+%enddef  // NPYGL_APPLY_STD_SPAN_IN_TYPEMAPS(type)
+
+/**
  * Typemap macro for converting Python input into a new NumPy array to modify.
  *
  * This macro simplifies creation of `std::span<T>` typemaps for relevant types.
@@ -236,6 +279,14 @@ NPYGL_FLAT_VIEW_IN_TYPEMAP(int)
 NPYGL_FLAT_VIEW_IN_TYPEMAP(unsigned int)
 NPYGL_FLAT_VIEW_IN_TYPEMAP(long)
 NPYGL_FLAT_VIEW_IN_TYPEMAP(unsigned long)
+
+// supported in C++20 STL span typemaps
+NPYGL_STD_SPAN_IN_TYPEMAP(double)
+NPYGL_STD_SPAN_IN_TYPEMAP(float)
+NPYGL_STD_SPAN_IN_TYPEMAP(int)
+NPYGL_STD_SPAN_IN_TYPEMAP(unsigned int)
+NPYGL_STD_SPAN_IN_TYPEMAP(long)
+NPYGL_STD_SPAN_IN_TYPEMAP(unsigned long)
 
 // supported in + out flat view typemaps
 NPYGL_FLAT_VIEW_INOUT_TYPEMAP(double)

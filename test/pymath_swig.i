@@ -173,9 +173,13 @@ NPYGL_CLEAR_FLAT_VIEW_TYPEMAPS(float)
 #endif  // !defined(NPYGL_SWIG_CC_20)
 
 // input-only typemaps (this time, test application to a single name)
-// TODO: no std::span input typemaps yet
+#if defined(NPYGL_SWIG_CC_20)
+NPYGL_APPLY_STD_SPAN_IN_TYPEMAP(double, view)
+NPYGL_APPLY_STD_SPAN_IN_TYPEMAP(float, view)
+#else
 NPYGL_APPLY_FLAT_VIEW_IN_TYPEMAP(double, view)
 NPYGL_APPLY_FLAT_VIEW_IN_TYPEMAP(float, view)
+#endif  // !defined(NPYGL_SWIG_CC_20)
 
 %feature(
   "autodoc",
@@ -205,5 +209,10 @@ NPYGL_APPLY_FLAT_VIEW_IN_TYPEMAP(float, view)
 );
 %template(fnorm1) npygl::testing::norm1<float>;
 
+#if defined(NPYGL_SWIG_CC_20)
+NPYGL_CLEAR_STD_SPAN_TYPEMAP(double, view)
+NPYGL_CLEAR_STD_SPAN_TYPEMAP(float, view)
+#else
 NPYGL_CLEAR_FLAT_VIEW_TYPEMAP(double, view)
 NPYGL_CLEAR_FLAT_VIEW_TYPEMAP(float, view)
+#endif  // !defined(NPYGL_SWIG_CC_20)
