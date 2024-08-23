@@ -104,6 +104,74 @@ public:
   py_object(py_object&& other) noexcept : ref_{other.release()} {}
 
   /**
+   * Ctor.
+   *
+   * Creates a Python object from a float.
+   *
+   * On error, the created object is empty and a Python exception is set.
+   *
+   * @param value Float value
+   */
+  py_object(float value) noexcept : py_object{PyFloat_FromDouble(value)} {}
+
+  /**
+   * Ctor.
+   *
+   * Creates a Python object from a double.
+   *
+   * On error, the created object is empty and a Python exception is set.
+   *
+   * @param value Double value
+   */
+  py_object(double value) noexcept : py_object{PyFloat_FromDouble(value)} {}
+
+  /**
+   * Ctor.
+   *
+   * Creates a Python object from a boolean value.
+   *
+   * @param value Boolean value
+   */
+  py_object(bool value) noexcept : py_object{PyBool_FromLong(value)} {}
+
+  /**
+   * Ctor.
+   *
+   * Creates a Python object from a signed int.
+   *
+   * On error, the created object is empty and a Python exception is set.
+   *
+   * @param value Signed integer value
+   */
+  py_object(int value) noexcept : py_object{PyLong_FromLong(value)} {}
+
+  /**
+   * Ctor.
+   *
+   * Creates a Python object from an unsigned int.
+   *
+   * On error, the created object is empty and a Python exception is set.
+   *
+   * @param value Unsigned integer value
+   */
+  py_object(unsigned int value) noexcept
+    : py_object{PyLong_FromUnsignedLong(value)}
+  {}
+
+  /**
+   * Ctor.
+   *
+   * Creates a Python object from a `Py_complex` struct.
+   *
+   * On error, the created object is empty and a Python exception is set.
+   *
+   * @param value Complex number value
+   */
+  py_object(Py_complex value) noexcept
+    : py_object{PyComplex_FromCComplex(value)}
+  {}
+
+  /**
    * Dtor.
    */
   ~py_object()

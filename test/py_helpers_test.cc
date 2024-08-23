@@ -12,6 +12,53 @@
 
 #include "npygl/py_helpers.hh"
 
+namespace {
+
+/**
+ * Create and print a few scalars using the `py_object` ctor overloads.
+ */
+void test_scalars()
+{
+  // we create object first and call py_error_exit in order to catch errors
+  {
+    npygl::py_object v{4.33112f};
+    npygl::py_error_exit();
+    std::cout << "float -> float: " << v << std::endl;
+  }
+  {
+    npygl::py_object v{1.31323};
+    npygl::py_error_exit();
+    std::cout << "double -> float: " << v << std::endl;
+  }
+  {
+    npygl::py_object v{true};
+    npygl::py_error_exit();
+    std::cout << "true -> bool: " << v << std::endl;
+  }
+  {
+    npygl::py_object v{false};
+    npygl::py_error_exit();
+    std::cout << "false -> bool: " << v << std::endl;
+  }
+  {
+    npygl::py_object v{-45};
+    npygl::py_error_exit();
+    std::cout << "int -> int: " << v << std::endl;
+  }
+  {
+    npygl::py_object v{45U};
+    npygl::py_error_exit();
+    std::cout << "unsigned int -> int: " << v << std::endl;
+  }
+  {
+    npygl::py_object v{{4.3, 1.22}};
+    npygl::py_error_exit();
+    std::cout << "Py_complex -> complex: " << v << std::endl;
+  }
+}
+
+}  // namespace
+
 int main()
 {
   // initialize Python + print version
@@ -51,5 +98,7 @@ int main()
   }
   // check reference count again
   std::cout << "res ref count: " << Py_REFCNT(res) << std::endl;
+  // test scalars
+  test_scalars();
   return EXIT_SUCCESS;
 }
