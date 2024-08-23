@@ -283,7 +283,7 @@ PyDoc_STRVAR(
   "The returned NumPy array will have ``dtype=float32``.\n"
   "\n"
   NPYGL_NPYDOC_PARAMETERS
-  "view : collections.Sequence\n"
+  "ar : collections.Sequence\n"
   "    Input sequence of numeric values to take 1-norm of\n"
   "\n"
   NPYGL_NPYDOC_RETURNS
@@ -298,7 +298,7 @@ PyDoc_STRVAR(
   "For matrices this would correspond to the Frobenius norm.\n"
   "\n"
   NPYGL_NPYDOC_PARAMETERS
-  "view : collections.Sequence\n"
+  "ar : collections.Sequence\n"
   "    Input sequence of numeric values to take 2-norm of\n"
   "\n"
   NPYGL_NPYDOC_RETURNS
@@ -315,7 +315,7 @@ PyDoc_STRVAR(
   "The returned NumPy array will have ``dtype=float32``.\n"
   "\n"
   NPYGL_NPYDOC_PARAMETERS
-  "view : collections.Sequence\n"
+  "ar : collections.Sequence\n"
   "    Input sequence of numeric values to take 2-norm of\n"
   "\n"
   NPYGL_NPYDOC_RETURNS
