@@ -209,6 +209,38 @@ NPYGL_APPLY_FLAT_VIEW_IN_TYPEMAP(float, view)
 );
 %template(fnorm1) npygl::testing::norm1<float>;
 
+%feature(
+  "autodoc",
+  "Compute the 2-norm of the flattened input array.\n"
+  "\n"
+  "For matrices this would correspond to the Frobenius norm.\n"
+  "\n"
+  NPYGL_NPYDOC_PARAMETERS
+  "view : collections.Sequence\n"
+  "    Input sequence of numeric values to take 2-norm of\n"
+  "\n"
+  NPYGL_NPYDOC_RETURNS
+  "numpy.ndarray"
+);
+%template(norm2) npygl::testing::norm2<double>;
+
+%feature(
+  "autodoc",
+  "Compute the 2-norm of the flattened input array.\n"
+  "\n"
+  "For matrices this would correspond to the Frobenius norm.\n"
+  "\n"
+  "The returned NumPy array will have ``dtype=float32``.\n"
+  "\n"
+  NPYGL_NPYDOC_PARAMETERS
+  "view : collections.Sequence\n"
+  "    Input sequence of numeric values to take 2-norm of\n"
+  "\n"
+  NPYGL_NPYDOC_RETURNS
+  "numpy.ndarray"
+);
+%template(fnorm2) npygl::testing::norm2<float>;
+
 #if defined(NPYGL_SWIG_CC_20)
 NPYGL_CLEAR_STD_SPAN_TYPEMAP(double, view)
 NPYGL_CLEAR_STD_SPAN_TYPEMAP(float, view)

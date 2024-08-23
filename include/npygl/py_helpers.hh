@@ -782,6 +782,25 @@ inline auto& operator<<(std::ostream& out, const py_object& obj)
   return out << obj.ref();
 }
 
+/**
+ * Macro indicating the end marker of a docstring Argument Clinic signature.
+ *
+ * See https://devguide.python.org/development-tools/clinic/ for details on the
+ * Argument Clinic, especially the "How to override the generated signature"
+ * section for an example of what the post-processed docstring looks like.
+ */
+#define NPYGL_CLINIC_MARKER "--\n\n"
+
+/**
+ * Macro for starting the parameters section of the NumPy docstring.
+ */
+#define NPYGL_NPYDOC_PARAMETERS "Parameters\n----------\n"
+
+/**
+ * Macro for starting the returns section of the NumPy docstring.
+ */
+#define NPYGL_NPYDOC_RETURNS "Returns\n-------\n"
+
 }  // namespace npygl
 
 #endif  // NPYGL_PY_HELPERS_HH_
