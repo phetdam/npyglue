@@ -153,6 +153,36 @@ class TestNorm1(unittest.TestCase):
         assert_allclose(pm.fnorm1(in_ar), np.abs(in_ar, dtype=np.float32).sum())
 
 
+class TestNorm2(unittest.TestCase):
+    """Test suite for norm2 tests."""
+
+    def test_norm2_list(self):
+        """Test norm2 on a nested list."""
+        in_list = [[1., 2.3232], [1.444, 5.3232], [5.6666, 4.222]]
+        assert_allclose(pm.norm2(in_list), np.linalg.norm(in_list))
+
+    def test_fnorm2_list(self):
+        """Test fnorm2 on a nested list."""
+        in_list = [[[3.43434]], [[1.12121]], [[4.33]], [[7.545]]]
+        assert_allclose(
+            pm.fnorm2(in_list),
+            np.linalg.norm(np.array(in_list, dtype=np.float32))
+        )
+
+    def test_norm2_array(self):
+        """Test norm2 on a NumPy array."""
+        in_ar = np.array([1.3, 23.22, 1.44, 1.32, 1.2323, 6.55, 34.333])
+        assert_allclose(pm.norm2(in_ar), np.linalg.norm(in_ar))
+
+    def test_fnorm2_array(self):
+        """Test fnorm2 on a NumPy array."""
+        in_ar = np.array([[[[4.3]]], [[[8.333]]], [[[5.612]]]], dtype=np.float32)
+        assert_allclose(
+            pm.fnorm2(in_ar),
+            np.linalg.norm(np.array(in_ar, dtype=np.float32))
+        )
+
+
 def main(args: Optional[Iterable[str]] = None) -> int:
     """Main function.
 
