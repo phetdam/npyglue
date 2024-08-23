@@ -132,6 +132,26 @@ class TestNorm1(unittest.TestCase):
         in_list = [[2.], [1.334], [2.4322], [5.44431]]
         assert_allclose(pm.fnorm1(in_list), np.abs(in_list, dtype=np.float32).sum())
 
+    def test_norm1_tuple(self):
+        """Test norm1 on a tuple with nested lists."""
+        in_tup = ([(3., 2.)], [(4.33, 1.444)], ([1.342, 9.827],))
+        assert_allclose(pm.norm1(in_tup), np.abs(in_tup).sum())
+
+    def test_fnorm1_tuple(self):
+        """Test fnorm1 on a tuple with nested tuples."""
+        in_tup = (((1,),), ((3.2222,),), ((1.42423,),))
+        assert_allclose(pm.fnorm1(in_tup), np.abs(in_tup, dtype=np.float32).sum())
+
+    def test_norm1_array(self):
+        """Test norm1 on a NumPy array."""
+        in_ar = np.array([[[3., 1.212]], [[1.222, 1.2123]]])
+        assert_allclose(pm.norm1(in_ar), np.abs(in_ar).sum())
+
+    def test_fnorm1_array(self):
+        """Test fnorm1 on a flat NumPy array."""
+        in_ar = np.array([3., 1.212, 1.222, 1.22123], dtype=np.float32)
+        assert_allclose(pm.fnorm1(in_ar), np.abs(in_ar, dtype=np.float32).sum())
+
 
 def main(args: Optional[Iterable[str]] = None) -> int:
     """Main function.
