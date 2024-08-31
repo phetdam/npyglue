@@ -852,7 +852,7 @@ bool parse_args(
  * @returns `true` on success, `false` on error
  */
 template <std::size_t N>
-bool parse_args(PyObject* args, PyObject* (&objs)[N]) noexcept
+inline bool parse_args(PyObject* args, PyObject* (&objs)[N]) noexcept
 {
   return parse_args(args, objs, std::make_index_sequence<N>{});
 }

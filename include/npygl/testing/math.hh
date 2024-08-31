@@ -147,7 +147,7 @@ void asine(ndarray_flat_view<T> view) noexcept
  * @param view Span to operate on
  */
 template <typename T>
-void unit_compress(std::span<T> view) noexcept
+inline void unit_compress(std::span<T> view) noexcept
 {
   auto radius = *std::ranges::max_element(view);
   std::ranges::for_each(view, [&radius](auto& x) { x /= radius; });
@@ -165,7 +165,7 @@ void unit_compress(std::span<T> view) noexcept
  * @param view NumPy array view
  */
 template <typename T>
-void unit_compress(ndarray_flat_view<T> view) noexcept
+inline void unit_compress(ndarray_flat_view<T> view) noexcept
 {
 #if NPYGL_HAS_CC_20
   unit_compress(std::span{view.begin(), view.end()});
@@ -185,7 +185,7 @@ void unit_compress(ndarray_flat_view<T> view) noexcept
  * @param view Input span
  */
 template <typename T>
-T norm1(std::span<T> view) noexcept
+inline T norm1(std::span<T> view) noexcept
 {
   return std::accumulate(
     view.begin(),
@@ -205,7 +205,7 @@ T norm1(std::span<T> view) noexcept
  * @param view NumPy array view
  */
 template <typename T>
-T norm1(ndarray_flat_view<T> view) noexcept
+inline T norm1(ndarray_flat_view<T> view) noexcept
 {
 #if NPYGL_HAS_CC_20
   return norm1(std::span{view.begin(), view.end()});
@@ -229,7 +229,7 @@ T norm1(ndarray_flat_view<T> view) noexcept
  * @param view Input span
  */
 template <typename T>
-T norm2(std::span<T> view) noexcept
+inline T norm2(std::span<T> view) noexcept
 {
   // sum of squared values
   auto total = std::accumulate(
@@ -251,7 +251,7 @@ T norm2(std::span<T> view) noexcept
  * @param view NumPy array view
  */
 template <typename T>
-T norm2(ndarray_flat_view<T> view) noexcept
+inline T norm2(ndarray_flat_view<T> view) noexcept
 {
 #if NPYGL_HAS_CC_20
   return norm2(std::span{view.begin(), view.end()});
