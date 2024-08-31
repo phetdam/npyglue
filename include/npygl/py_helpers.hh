@@ -771,6 +771,21 @@ inline auto py_repr(PyObject* obj) noexcept
 }
 
 /**
+ * Return the string representation of the Python type object as with `repr()`.
+ *
+ * On error the returned `py_object` is empty and a Python exception is set.
+ *
+ * @note This overload removes the need for a `PyObject*` cast when using the
+ *  `Py_TYPE()` macro or a function returning a `PyTypeObject*`.
+ *
+ * @param obj Python type object
+ */
+inline auto py_repr(PyTypeObject* obj) noexcept
+{
+  return py_repr((PyObject*) obj);
+}
+
+/**
  * Return the string representation of the Python object as with `str()`.
  *
  * On error the returned `py_object` is empty and a Python exception is set.

@@ -40,7 +40,7 @@ PyObject* parse_args(PyObject* NPYGL_UNUSED(self), PyObject* args) noexcept
   // as calling repr(type(o)) for each of the Python objects
   npygl::py_object rs[N];
   for (decltype(N) i = 0; i < N; i++) {
-    rs[i] = npygl::py_repr((PyObject*) Py_TYPE(objs[i]));
+    rs[i] = npygl::py_repr(Py_TYPE(objs[i]));
     if (!rs[i])
       return nullptr;
   }
