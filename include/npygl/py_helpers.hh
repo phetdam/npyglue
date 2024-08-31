@@ -20,6 +20,7 @@
 #include <sstream>
 #include <string>
 #include <string_view>
+#include <type_traits>
 
 #include "npygl/features.h"
 #include "npygl/warnings.h"
@@ -800,6 +801,61 @@ inline auto& operator<<(std::ostream& out, const py_object& obj)
  * Macro for starting the returns section of the NumPy docstring.
  */
 #define NPYGL_NPYDOC_RETURNS "Returns\n-------\n"
+
+/**
+ * Parse Python arguments into an array of `PyObject` pointers.
+ *
+ * This uses the generic `"O"` conversion specifier with `PyArg_ParseTuple`.
+ *
+ * @note This function is intended for use with `METH_VARARGS` functions only.
+ *
+ * @tparam N Number of expected Python arguments
+ * @tparam Is... Sequence of array indices from 0 to N - 1 inclusive
+ *
+ * @param args Python arguments
+ * @param objs Array of `PyObject*` to convert to
+ * @param seq Index sequence indicating which elements of `objs` are populated
+ * @returns `true` on success, `false` on error
+ */
+template <std::size_t N, std::size_t... Is>
+bool parse_args(
+  PyObject* args,
+  PyObject* (&objs)[N],
+  std::index_sequence<Is...> NPYGL_UNUSED(seq)) noexcept
+{
+  // number of indices must be less than or equal to array size
+  static_assert(sizeof...(Is), "at least one index must be provided");
+  static_assert(sizeof...(Is) <= N, "index count cannot exceed array size");
+  // ensure none of the indices are outside of the array
+  // note: parentheses around Is < N are unnecessary but are just for clarity
+  static_assert(
+    std::conjunction_v<std::bool_constant<(Is < N)>...>,
+    "indices must only index within the provided array"
+  );
+  // format string. Is - Is is so we can involve the parameter pack here
+  constexpr const char parse_format[] = {('O' + (Is - Is))..., '\0'};
+  // parse args
+  return !!PyArg_ParseTuple(args, parse_format, &objs[Is]...);
+}
+
+/**
+ * Parse Python arguments into an array of `PyObject` pointers.
+ *
+ * This uses the generic `"O"` conversion specifier with `PyArg_ParseTuple`.
+ *
+ * @note This function is intended for use with `METH_VARARGS` functions only.
+ *
+ * @tparam N Number of expected Python arguments
+ *
+ * @param args Python arguments
+ * @param objs Array of `PyObject*` to convert to
+ * @returns `true` on success, `false` on error
+ */
+template <std::size_t N>
+bool parse_args(PyObject* args, PyObject* (&objs)[N]) noexcept
+{
+  return parse_args(args, objs, std::make_index_sequence<N>{});
+}
 
 }  // namespace npygl
 
