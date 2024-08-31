@@ -16,6 +16,9 @@
 #endif  // SWIGPYTHON
 
 %{
+#include <exception>
+#include <stdexcept>
+
 #include <npygl/npy_helpers.hh>  // includes <numpy/ndarrayobject.h>
 #include <npygl/py_helpers.hh>
 %}
@@ -44,8 +47,8 @@ class ndarray_flat_view;
  */
 %define NPYGL_FLAT_VIEW_IN_TYPEMAP(type)
 %typemap(in) npygl::ndarray_flat_view<type> AR_IN (npygl::py_object in) {
-  // attempt to create new input array (default flags, avoid copy if possible)
-  in = npygl::make_ndarray<type>($input, NPY_ARRAY_DEFAULT);
+  // attempt to create new input array (C order, avoid copy if possible)
+  in = npygl::make_ndarray<type>($input, NPY_ARRAY_IN_ARRAY);
   if (!in)
     SWIG_fail;
   // create view
@@ -165,8 +168,8 @@ class ndarray_flat_view;
  */
 %define NPYGL_STD_SPAN_IN_TYPEMAP(type)
 %typemap(in) std::span<type> AR_IN (npygl::py_object in) {
-  // attempt to create new input array (default flags, avoid copy if possible)
-  in = npygl::make_ndarray<type>($input, NPY_ARRAY_DEFAULT);
+  // attempt to create new input array (C order, avoid copy if possible)
+  in = npygl::make_ndarray<type>($input, NPY_ARRAY_IN_ARRAY);
   if (!in)
     SWIG_fail;
   // create STL span
@@ -319,3 +322,71 @@ NPYGL_STD_SPAN_INOUT_TYPEMAP(unsigned long)
 "Returns\n"
 "-------\n"
 %enddef  // NPYGL_NPYDOC_RETURNS
+
+/**
+ * Macro to enable a general C++ exception handler.
+ *
+ * The exception messages will simply use the `what()` members.
+ */
+%define NPYGL_ENABLE_EXCEPTION_HANDLER
+%exception {
+  try {
+    $action
+  }
+  // overflow
+  catch (const std::overflow_error& ex) {
+    PyErr_SetString(PyExc_OverflowError, ex.what());
+    SWIG_fail;
+  }
+  // incorrect argument value
+  catch (const std::invalid_argument& ex) {
+    PyErr_SetString(
+      PyExc_ValueError,
+      (std::string{"std::invalid_argument thrown. "} + ex.what()).c_str()
+    );
+    SWIG_fail;
+  }
+  // underflow error mapped to ArithmeticError
+  catch (const std::underflow_error& ex) {
+    PyErr_SetString(
+      PyExc_ArithmeticError,
+      (std::string{"std::underflow_error thrown. "} + ex.what()).c_str()
+    );
+    SWIG_fail;
+  }
+  // domain error mapped to ValueError
+  catch (const std::domain_error& ex) {
+    PyErr_SetString(
+      PyExc_ValueError,
+      (std::string{"std::domain_error thrown. "} + ex.what()).c_str()
+    );
+    SWIG_fail;
+  }
+  // range error considered a TypeError
+  catch (const std::range_error& ex) {
+    PyErr_SetString(
+      PyExc_TypeError,
+      (std::string{"std::range_error thrown. "} + ex.what()).c_str()
+    );
+    SWIG_fail;
+  }
+  // base case. shouldn't use PyExc_Exception directly (RuntimeError instead)
+  // this we use to catch std::runtime_error as well
+  catch (const std::exception& ex) {
+    PyErr_SetString(PyExc_RuntimeError, ex.what());
+    SWIG_fail;
+  }
+  // unknown exception (on Windows, could be SEH for example)
+  catch (...) {
+    PyErr_SetString(PyExc_RuntimeError, "Unknown C++ exception thrown");
+    SWIG_fail;
+  }
+}
+%enddef  // NPYGL_ENABLE_EXCEPTION_HANDLER
+
+/**
+ * Macro to disable any previously defined C++ `%exception` block.
+ */
+%define NPYGL_DISABLE_EXCEPTION_HANDLER
+%exception;
+%enddef  // NPYGL_DISABLE_EXCEPTION_HANDLER
