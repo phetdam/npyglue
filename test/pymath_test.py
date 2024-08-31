@@ -266,15 +266,11 @@ def main(args: Optional[Iterable[str]] = None) -> int:
         mod_name += f"_{argn.flavor}"
     if argn.cc_standard != "cc":
         mod_name += f"_{argn.cc_standard}"
-    # indicate what will be loaded
-    if argn.verbose:
-        print(f"loading {mod_name}...")
     # attempt to import
     global pm
     pm = importlib.import_module(mod_name)
-    if argn.verbose:
-        print(f"loading {mod_name}... done")
     # run tests. trick unittest.main into thinking there are no CLI args
+    print(f"Running {mod_name} tests")
     res = unittest.main(argv=(sys.argv[0],), exit=False, verbosity=1 + argn.verbose)
     return 0 if res.result.wasSuccessful() else 1
 
