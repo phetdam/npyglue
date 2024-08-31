@@ -8,6 +8,8 @@
 #define PY_SSIZE_T_CLEAN
 #include <Python.h>
 
+#include <cstdint>
+
 #include "npygl/common.h"
 #include "npygl/features.h"
 #include "npygl/npy_helpers.hh"  // includes <numpy/ndarrayobject.h>
@@ -36,7 +38,8 @@ namespace {
 /**
  * Parse a single argument from Python arguments into a NumPy array.
  *
- * On error the returned `py_object` is empty and an exception is set.
+ * On error the returned `py_object` is empty and an exception is set. In all
+ * cases the returned NumPy array object has `NPY_ARRAY_DEFAULT` flags.
  *
  * @tparam T NumPy array element type
  * @tparam C `true` to copy, `false` not to copy if possible
@@ -46,17 +49,16 @@ namespace {
 template <typename T, bool C = true>
 npygl::py_object parse_ndarray(PyObject* args) noexcept
 {
-  // Python input argument
-  PyObject* in;
-  // parse arguments
-  if (!PyArg_ParseTuple(args, "O", &in))
+  // parse Python arguments as objects
+  PyObject* objs[1];
+  if (!npygl::parse_args(args, objs))
     return {};
   // create output array (empty on error)
   if constexpr (C)
-    return npygl::make_ndarray<T>(in);
+    return npygl::make_ndarray<T>(*objs);
   // create new array only if necessary; increments refcount if already array
   else
-    return npygl::make_ndarray<T>(in, NPY_ARRAY_DEFAULT);
+    return npygl::make_ndarray<T>(*objs, NPY_ARRAY_DEFAULT);
 }
 
 /**
@@ -138,7 +140,7 @@ PyObject* norm1(PyObject* NPYGL_UNUSED(self), PyObject* arg) noexcept
 {
   using npygl::testing::norm1;
   // input array (if possible, no copy is made)
-  auto ar = npygl::make_ndarray<T>(arg, NPY_ARRAY_DEFAULT);
+  auto ar = npygl::make_ndarray<T>(arg, NPY_ARRAY_IN_ARRAY);
   if (!ar)
     return nullptr;
   // compute 1-norm
@@ -163,7 +165,7 @@ PyObject* norm2(PyObject* NPYGL_UNUSED(self), PyObject* arg) noexcept
 {
   using npygl::testing::norm2;
   // input array (if possible, no copy is made)
-  auto ar = npygl::make_ndarray<T>(arg, NPY_ARRAY_DEFAULT);
+  auto ar = npygl::make_ndarray<T>(arg, NPY_ARRAY_IN_ARRAY);
   if (!ar)
     return nullptr;
   // compute 2-norm
@@ -174,6 +176,44 @@ PyObject* norm2(PyObject* NPYGL_UNUSED(self), PyObject* arg) noexcept
 #endif  // !NPYGL_HAS_CC_20
   // could use npygl::py_object{res}.release() too
   return PyFloat_FromDouble(res);
+}
+
+/**
+ * Python wrapper template for `inner`.
+ *
+ * @note Only intended to work with floating point types.
+ *
+ * @tparam T Output element type
+ */
+template <typename T>
+PyObject* inner(PyObject* NPYGL_UNUSED(self), PyObject* args) noexcept
+{
+  using npygl::testing::inner;
+  // parse input objects
+  PyObject* objs[2];
+  if (!npygl::parse_args(args, objs))
+    return nullptr;
+  // create NumPy arrays
+  auto ar1 = npygl::make_ndarray<T>(objs[0], NPY_ARRAY_IN_ARRAY);
+  if (!ar1)
+    return nullptr;
+  auto ar2 = npygl::make_ndarray<T>(objs[1], NPY_ARRAY_IN_ARRAY);
+  if (!ar2)
+    return nullptr;
+  // get array views + return inner product
+#if NPYGL_HAS_CC_20
+  auto v1 = npygl::make_span<T>(ar1.template as<PyArrayObject>());
+  auto v2 = npygl::make_span<T>(ar2.template as<PyArrayObject>());
+#else
+  npygl::ndarray_flat_view<T> v1{ar1.template as<PyArrayObject>()};
+  npygl::ndarray_flat_view<T> v2{ar2.template as<PyArrayObject>()};
+#endif  // !NPYGL_HAS_CC_20
+  // sanity check for sizes
+  if (v1.size() != v2.size()) {
+    PyErr_SetString(PyExc_RuntimeError, "v1 and v2 must have the same size");
+    return nullptr;
+  }
+  return PyFloat_FromDouble(inner(v1, v2));
 }
 
 // wrapper method docstrings
@@ -321,6 +361,53 @@ PyDoc_STRVAR(
   NPYGL_NPYDOC_RETURNS
   "numpy.ndarray"
 );
+PyDoc_STRVAR(
+  inner_doc,
+  "inner(v1, v2)\n"
+  NPYGL_CLINIC_MARKER
+  "Compute the vector inner product.\n"
+  "\n"
+  ".. note::\n"
+  "\n"
+  "   No error is raised if the ndarrays have the same size but different\n"
+  "   shapes as they are both treated as flat vectors.\n"
+  "\n"
+  NPYGL_NPYDOC_PARAMETERS
+  "v1 : collections.Sequence\n"
+  "    Input sequence of numeric values to treat as a vector\n"
+  "v2 : collections.Sequence\n"
+  "    Input sequence of numeric values to treat as a vector\n"
+  "\n"
+  NPYGL_NPYDOC_RETURNS
+  "float"
+);
+PyDoc_STRVAR(
+  finner_doc,
+  "finner(v1, v2)\n"
+  NPYGL_CLINIC_MARKER
+  "Compute the vector inner product.\n"
+  "\n"
+  "If NumPy arrays are used for input they should have ``dtype=float32``.\n"
+  "\n"
+  ".. note::\n"
+  "\n"
+  "   No error is raised if the ndarrays have the same size but different\n"
+  "   shapes as they are both treated as flat vectors.\n"
+  "\n"
+  ".. note::\n"
+  "\n"
+  "   The return value is cast to double precision (float64) from single\n"
+  "   precision (float32) internally so the result may differ from inner's.\n"
+  "\n"
+  NPYGL_NPYDOC_PARAMETERS
+  "v1 : collections.Sequence\n"
+  "    Input sequence of numeric values to treat as a vector\n"
+  "v2 : collections.Sequence\n"
+  "    Input sequence of numeric values to treat as a vector\n"
+  "\n"
+  NPYGL_NPYDOC_RETURNS
+  "float"
+);
 
 // module method table
 PyMethodDef mod_methods[] = {
@@ -335,6 +422,8 @@ PyMethodDef mod_methods[] = {
   {"fnorm1", norm1<float>, METH_O, fnorm1_doc},
   {"norm2", norm2<double>, METH_O, norm2_doc},
   {"fnorm2", norm2<float>, METH_O, fnorm2_doc},
+  {"inner", inner<double>, METH_VARARGS, inner_doc},
+  {"finner", inner<float>, METH_VARARGS, finner_doc},
   {}  // zero-initialized sentinel member
 };
 
