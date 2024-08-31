@@ -90,7 +90,7 @@ class TestUnitCompress(unittest.TestCase):
         assert_allclose(pm.unit_compress(in_ar), in_ar / np.max(in_ar))
 
     def test_fcompress_array(self):
-        """Test ufnit_compress on a NumPy array."""
+        """Test funit_compress on a NumPy array."""
         in_ar = np.array([[[4.33]], [[3.22343]], [[3.11]]], dtype=np.float32)
         assert_allclose(pm.funit_compress(in_ar), in_ar / np.max(in_ar))
 
