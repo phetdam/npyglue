@@ -47,6 +47,8 @@
 %{
 #define SWIG_FILE_WITH_INIT
 
+#include <stdexcept>
+
 #include "npygl/features.h"
 #include "npygl/npy_helpers.hh"  // includes <numpy/ndarrayobject.h>
 #include "npygl/py_helpers.hh"
@@ -247,4 +249,105 @@ NPYGL_CLEAR_STD_SPAN_TYPEMAP(float, view)
 #else
 NPYGL_CLEAR_FLAT_VIEW_TYPEMAP(double, view)
 NPYGL_CLEAR_FLAT_VIEW_TYPEMAP(float, view)
+#endif  // !defined(NPYGL_SWIG_CC_20)
+
+// input-only typemaps
+#if defined(NPYGL_SWIG_CC_20)
+NPYGL_APPLY_STD_SPAN_IN_TYPEMAPS(double)
+NPYGL_APPLY_STD_SPAN_IN_TYPEMAPS(float)
+#else
+NPYGL_APPLY_FLAT_VIEW_IN_TYPEMAPS(double)
+NPYGL_APPLY_FLAT_VIEW_IN_TYPEMAPS(float)
+#endif  // !defined(NPYGL_SWIG_CC_20)
+
+// inner() has an internal assert() but does not do any input validation.
+// therefore, we must write our own wrapper for that validates and throws.
+// we therefore also need to temporarily use the exception handler so that the
+// exception is caught instead of causing the Python interpreter to crash.
+
+NPYGL_ENABLE_EXCEPTION_HANDLER
+
+%inline %{
+namespace npygl {
+namespace testing {
+
+// like in math.hh we need to enable the C++20 overloads explicitly by defining
+// NPYGL_SWIG_CC_20 but during real compilation we allow C++20 detection via
+// NPYGL_HAS_CC_20 to ensure the correct overloads are available
+
+/**
+ * Wrapper for `inner()` that throws on error and requires the same types.
+ */
+template <typename T>
+#if defined(NPYGL_SWIG_CC_20) || NPYGL_HAS_CC_20
+inline T py_inner(std::span<T> v1, std::span<T> v2)
+#else
+inline T py_inner(ndarray_flat_view<T> v1, ndarray_flat_view<T> v2)
+#endif  // !defined(NPYGL_SWIG_CC_20) && !NPYGL_HAS_CC_20
+{
+  if (v1.size() != v2.size())
+    throw std::runtime_error{"v1 and v2 must have the same number of elements"};
+  return inner(v1, v2);
+}
+
+}  // testing
+}  // namespace npygl
+%}
+
+%feature(
+  "autodoc",
+  "Compute the vector inner product.\n"
+  "\n"
+  ".. note::\n"
+  "\n"
+  "   No error is raised if the ndarrays have the same size but different\n"
+  "   shapes as they are both treated as flat vectors.\n"
+  "\n"
+  NPYGL_NPYDOC_PARAMETERS
+  "v1 : collections.Sequence\n"
+  "    Input sequence of numeric values to treat as a vector\n"
+  "v2 : collections.Sequence\n"
+  "    Input sequence of numeric values to treat as a vector\n"
+  "\n"
+  NPYGL_NPYDOC_RETURNS
+  "float"
+);
+%template(inner) npygl::testing::py_inner<double>;
+
+%feature(
+  "autodoc",
+  "Compute the vector inner product.\n"
+  "\n"
+  "If NumPy arrays are used for input they should have ``dtype=float32``.\n"
+  "\n"
+  ".. note::\n"
+  "\n"
+  "   No error is raised if the ndarrays have the same size but different\n"
+  "   shapes as they are both treated as flat vectors.\n"
+  "\n"
+  ".. note::\n"
+  "\n"
+  "   The return value is cast to double precision (float64) from single\n"
+  "   precision (float32) internally so the result may differ from inner's.\n"
+  "\n"
+  NPYGL_NPYDOC_PARAMETERS
+  "v1 : collections.Sequence\n"
+  "    Input sequence of numeric values to treat as a vector\n"
+  "v2 : collections.Sequence\n"
+  "    Input sequence of numeric values to treat as a vector\n"
+  "\n"
+  NPYGL_NPYDOC_RETURNS
+  "float"
+);
+%template(finner) npygl::testing::py_inner<float>;
+
+NPYGL_DISABLE_EXCEPTION_HANDLER
+
+// clear
+#if defined(NPYGL_SWIG_CC_20)
+NPYGL_CLEAR_STD_SPAN_TYPEMAPS(double)
+NPYGL_CLEAR_STD_SPAN_TYPEMAPS(float)
+#else
+NPYGL_CLEAR_FLAT_VIEW_TYPEMAPS(double)
+NPYGL_CLEAR_FLAT_VIEW_TYPEMAPS(float)
 #endif  // !defined(NPYGL_SWIG_CC_20)
