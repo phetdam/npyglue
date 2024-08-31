@@ -54,6 +54,8 @@ if(MSVC)
         /wd4625
         # C4626: assignment operator was implicitly defined as deleted
         /wd4626
+        # C4711: function selected for automatic inline expansion
+        /wd4711
         # C4820: padding added after struct member
         /wd4820
         # C5026: move ctor was implicitly defined as deleted
