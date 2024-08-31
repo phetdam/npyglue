@@ -42,33 +42,6 @@ set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
 
-# compile flags
-if(MSVC)
-    add_compile_options(
-        /Wall
-        # C4514: unreferenced inline function has been removed
-        /wd4514
-        # C4623: default ctor was implicitly defined as deleted
-        /wd4623
-        # C4625: copy ctor was implicitly defined as deleted
-        /wd4625
-        # C4626: assignment operator was implicitly defined as deleted
-        /wd4626
-        # C4711: function selected for automatic inline expansion
-        /wd4711
-        # C4820: padding added after struct member
-        /wd4820
-        # C5026: move ctor was implicitly defined as deleted
-        /wd5026
-        # C5027: move assignment operator was implicitly defined as deleted
-        /wd5027
-        # C5045: compiler will insert Spectre mitigation if using /QSpectre
-        /wd5045
-    )
-else()
-    add_compile_options(-Wall)
-endif()
-
 # check if we have C++20 available
 if(cxx_std_20 IN_LIST CMAKE_CXX_COMPILE_FEATURES)
     set(NPYGL_HAS_CC_20 ON)
@@ -115,6 +88,34 @@ if(SWIG_FOUND)
     set(CMAKE_SWIG_FLAGS -Wall)
 else()
     message(STATUS "SWIG version: None")
+endif()
+
+# compile flags. we do this after any FetchContent calls so that we don't
+# interfere with any compile flags that dependency targets require
+if(MSVC)
+    add_compile_options(
+        /Wall
+        # C4514: unreferenced inline function has been removed
+        /wd4514
+        # C4623: default ctor was implicitly defined as deleted
+        /wd4623
+        # C4625: copy ctor was implicitly defined as deleted
+        /wd4625
+        # C4626: assignment operator was implicitly defined as deleted
+        /wd4626
+        # C4711: function selected for automatic inline expansion
+        /wd4711
+        # C4820: padding added after struct member
+        /wd4820
+        # C5026: move ctor was implicitly defined as deleted
+        /wd5026
+        # C5027: move assignment operator was implicitly defined as deleted
+        /wd5027
+        # C5045: compiler will insert Spectre mitigation if using /QSpectre
+        /wd5045
+    )
+else()
+    add_compile_options(-Wall)
 endif()
 
 # set CMake module path and import target helpers
