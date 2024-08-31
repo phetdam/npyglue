@@ -111,7 +111,7 @@ inline constexpr const char* py_object_format = py_object_format_type<N>::value;
  * @note This function is intended for use with `METH_VARARGS` functions only.
  *
  * @tparam N Number of expected Python arguments
- * @tparam Is... Sequence of array indices within 0 to N - 1 inclusive
+ * @tparam Is... Sequence of unique array indices within 0 to N - 1 inclusive
  *
  * @param args Python arguments
  * @param objs Array of `PyObject*` to convert to
@@ -283,7 +283,8 @@ public:
    * than one object in the array, a tuple of Python objects is returned.
    *
    * This ctor overload that takes an index sequence is an advanced usage that
-   * allows building a tuple from select members of the `PyObject*[N]` array.
+   * allows building a tuple from select members of the `PyObject*[N]` array,
+   * even repeating a couple members from the array.
    *
    * On error, the created object is empty and a Python exception is set.
    *
@@ -301,16 +302,15 @@ public:
     PyObject* (&objs)[N],
     std::index_sequence<Is...> NPYGL_UNUSED(seq)) noexcept
   {
-    // number of indices must be less than or equal to array size
+    // number of indices must be nonzero
     static_assert(sizeof...(Is), "at least one index must be provided");
-    static_assert(sizeof...(Is) <= N, "index count cannot exceed array size");
     // ensure none of the indices are outside of the array
     // note: parentheses around Is < N are unnecessary but are just for clarity
     static_assert(
       std::conjunction_v<std::bool_constant<(Is < N)>...>,
       "indices must only index within the provided array"
     );
-    // build value. note we use sizeof...(Is) since is may not be exactly N
+    // build value. note we use sizeof...(Is) since it may not be exactly N
     ref_ = Py_BuildValue(py_object_format<sizeof...(Is)>, objs[Is]...);
   }
 
