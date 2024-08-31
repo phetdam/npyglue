@@ -216,6 +216,13 @@ class TestInner(unittest.TestCase):
         in2 = np.array([[2.33, 1.3233], [4.5624, 5.222]], dtype=np.float32)
         assert_allclose(pm.finner(in1, in2), np.dot(in1.flatten(), in2.flatten()))
 
+    def test_inner_size_check(self):
+        """Test inner's internal input size validation."""
+        in1 = np.array([4., 3.44, 2.333, 1.21211])
+        in2 = [3., 42, 1.111, 2.33, 1.22222]
+        with self.assertRaises(RuntimeError):
+            pm.inner(in1, in2)
+
 
 def main(args: Optional[Iterable[str]] = None) -> int:
     """Main function.
