@@ -54,6 +54,108 @@ namespace npygl {
 #define NPYGL_PY_VERSION(major, minor, micro) \
   NPYGL_PY_VERSION_EX(major, minor, micro, PY_RELEASE_LEVEL_FINAL, 0)
 
+namespace detail {
+
+/**
+ * Traits type for providing a compile-time `PyObject*[N]` format string.
+ *
+ * We need to provide an empty base since a partial specialization is used.
+ *
+ * @tparam T type
+ */
+template <typename T>
+struct py_object_format_type {};
+
+/**
+ * Partial specialization for getting an index sequence's parameter pack.
+ *
+ * This uses the `O` format character to build the format string.
+ *
+ * We expand the parameter pack to construct a null-terminated character array
+ * that can be used as a `PyArg_Parse*` or `Py_BuildValue` format string.
+ *
+ * @tparam Is... Indices from the `std::index_sequence<Is...>`
+ */
+template <std::size_t... Is>
+struct py_object_format_type<std::index_sequence<Is...>> {
+  // Is - Is is used to involve the index parameter pack
+  static constexpr const char value[] = {('O' + (Is - Is))..., '\0'};
+};
+
+}  // namespace detail
+
+/**
+ * Traits type for providing a compile-time `PyObject*[N]` format string.
+ *
+ * @tparam N Number of `PyObject*` to format with `O`
+ */
+template <std::size_t N>
+struct py_object_format_type
+  : detail::py_object_format_type<std::make_index_sequence<N>> {
+  static_assert(N, "N must be nonzero for a valid format string");
+};
+
+/**
+ * Compile-time `PyObject*[N]` format string.
+ *
+ * @tparam N Number of `PyObject*` to format with `O`
+ */
+template <std::size_t N>
+inline constexpr const char* py_object_format = py_object_format_type<N>::value;
+
+/**
+ * Parse Python arguments into an array of `PyObject` pointers.
+ *
+ * This uses the generic `"O"` conversion specifier with `PyArg_ParseTuple`.
+ *
+ * @note This function is intended for use with `METH_VARARGS` functions only.
+ *
+ * @tparam N Number of expected Python arguments
+ * @tparam Is... Sequence of array indices within 0 to N - 1 inclusive
+ *
+ * @param args Python arguments
+ * @param objs Array of `PyObject*` to convert to
+ * @param seq Index sequence indicating which elements of `objs` are populated
+ * @returns `true` on success, `false` on error
+ */
+template <std::size_t N, std::size_t... Is>
+bool parse_args(
+  PyObject* args,
+  PyObject* (&objs)[N],
+  std::index_sequence<Is...> NPYGL_UNUSED(seq)) noexcept
+{
+  // number of indices must be less than or equal to array size
+  static_assert(sizeof...(Is), "at least one index must be provided");
+  static_assert(sizeof...(Is) <= N, "index count cannot exceed array size");
+  // ensure none of the indices are outside of the array
+  // note: parentheses around Is < N are unnecessary but are just for clarity
+  static_assert(
+    std::conjunction_v<std::bool_constant<(Is < N)>...>,
+    "indices must only index within the provided array"
+  );
+  // parse args. we need to use sizeof...(Is) since it may not equal N
+  return !!PyArg_ParseTuple(args, py_object_format<sizeof...(Is)>, &objs[Is]...);
+}
+
+/**
+ * Parse Python arguments into an array of `PyObject` pointers.
+ *
+ * This uses the generic `"O"` conversion specifier with `PyArg_ParseTuple`.
+ *
+ * @note This function is intended for use with `METH_VARARGS` functions only.
+ *
+ * @tparam N Number of expected Python arguments
+ *
+ * @param args Python arguments
+ * @param objs Array of `PyObject*` to convert to
+ * @returns `true` on success, `false` on error
+ */
+template <std::size_t N>
+inline bool parse_args(PyObject* args, PyObject* (&objs)[N]) noexcept
+{
+  return parse_args(args, objs, std::make_index_sequence<N>{});
+}
+
 /**
  * Python object ownership class.
  *
@@ -208,10 +310,8 @@ public:
       std::conjunction_v<std::bool_constant<(Is < N)>...>,
       "indices must only index within the provided array"
     );
-    // format string. Is - Is is so we can involve the parameter pack here
-    constexpr const char parse_format[] = {('O' + (Is - Is))..., '\0'};
-    // build value
-    ref_ = Py_BuildValue(parse_format, objs[Is]...);
+    // build value. note we use sizeof...(Is) since is may not be exactly N
+    ref_ = Py_BuildValue(py_object_format<sizeof...(Is)>, objs[Is]...);
   }
 
   /**
@@ -875,61 +975,6 @@ inline auto& operator<<(std::ostream& out, const py_object& obj)
  * Macro for starting the returns section of the NumPy docstring.
  */
 #define NPYGL_NPYDOC_RETURNS "Returns\n-------\n"
-
-/**
- * Parse Python arguments into an array of `PyObject` pointers.
- *
- * This uses the generic `"O"` conversion specifier with `PyArg_ParseTuple`.
- *
- * @note This function is intended for use with `METH_VARARGS` functions only.
- *
- * @tparam N Number of expected Python arguments
- * @tparam Is... Sequence of array indices within 0 to N - 1 inclusive
- *
- * @param args Python arguments
- * @param objs Array of `PyObject*` to convert to
- * @param seq Index sequence indicating which elements of `objs` are populated
- * @returns `true` on success, `false` on error
- */
-template <std::size_t N, std::size_t... Is>
-bool parse_args(
-  PyObject* args,
-  PyObject* (&objs)[N],
-  std::index_sequence<Is...> NPYGL_UNUSED(seq)) noexcept
-{
-  // number of indices must be less than or equal to array size
-  static_assert(sizeof...(Is), "at least one index must be provided");
-  static_assert(sizeof...(Is) <= N, "index count cannot exceed array size");
-  // ensure none of the indices are outside of the array
-  // note: parentheses around Is < N are unnecessary but are just for clarity
-  static_assert(
-    std::conjunction_v<std::bool_constant<(Is < N)>...>,
-    "indices must only index within the provided array"
-  );
-  // format string. Is - Is is so we can involve the parameter pack here
-  constexpr const char parse_format[] = {('O' + (Is - Is))..., '\0'};
-  // parse args
-  return !!PyArg_ParseTuple(args, parse_format, &objs[Is]...);
-}
-
-/**
- * Parse Python arguments into an array of `PyObject` pointers.
- *
- * This uses the generic `"O"` conversion specifier with `PyArg_ParseTuple`.
- *
- * @note This function is intended for use with `METH_VARARGS` functions only.
- *
- * @tparam N Number of expected Python arguments
- *
- * @param args Python arguments
- * @param objs Array of `PyObject*` to convert to
- * @returns `true` on success, `false` on error
- */
-template <std::size_t N>
-inline bool parse_args(PyObject* args, PyObject* (&objs)[N]) noexcept
-{
-  return parse_args(args, objs, std::make_index_sequence<N>{});
-}
 
 }  // namespace npygl
 
