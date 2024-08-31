@@ -183,6 +183,40 @@ class TestNorm2(unittest.TestCase):
         )
 
 
+class TestInner(unittest.TestCase):
+    """Test suite for inner tests."""
+
+    def test_inner_list(self):
+        """Test inner on nested lists."""
+        in1 = [[1.], [4], [1.222]]
+        in2 = [[[4.333, 5.33, 1]]]
+        assert_allclose(pm.inner(in1, in2), np.dot(np.ravel(in1), np.ravel(in2)))
+
+    def test_finner_list(self):
+        """Test finner on a nested and flat list."""
+        in1 = [[[4.]], [[3]], [[1.]], [[4.333]]]
+        in2 = [4., 3.222, 2.344, 11]
+        assert_allclose(
+            pm.finner(in1, in2),
+            np.dot(
+                np.array(in1, dtype=np.float32).flatten(),
+                np.array(in2, dtype=np.float32).flatten()
+            )
+        )
+
+    def test_inner_array(self):
+        """Test inner on NumPy arrays."""
+        in1 = np.array([3, 4., 2.222, 1.22])
+        in2 = np.array([[[1]], [[4]], [[2.333]], [[1.11111]]])
+        assert_allclose(pm.inner(in1, in2), np.dot(in1.flatten(), in2.flatten()))
+
+    def test_finner_array(self):
+        """Test finner on NumPy arrays."""
+        in1 = np.array([[2., 4.5555], [1.111111, 4.32831]], dtype=np.float32)
+        in2 = np.array([[2.33, 1.3233], [4.5624, 5.222]], dtype=np.float32)
+        assert_allclose(pm.finner(in1, in2), np.dot(in1.flatten(), in2.flatten()))
+
+
 def main(args: Optional[Iterable[str]] = None) -> int:
     """Main function.
 
