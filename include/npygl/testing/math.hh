@@ -9,8 +9,10 @@
 #define NPYGL_TESTING_MATH_HH_
 
 #include <algorithm>
+#include <cassert>
 #include <cmath>
 #include <numeric>
+#include <type_traits>
 
 #include "npygl/features.h"
 #include "npygl/npy_helpers.hh"
@@ -192,26 +194,6 @@ T norm1(std::span<T> view) noexcept
     [](const T& sum, const T& a) { return sum + std::abs(a); }
   );
 }
-
-/**
- * Return the 2-norm of the given view.
- *
- * @tparam T type
- *
- * @param view Input span
- */
-template <typename T>
-T norm2(std::span<T> view) noexcept
-{
-  // sum of squared values
-  auto total = std::accumulate(
-    view.begin(),
-    view.end(),
-    T{},
-    [](const T& sum, const T& a) { return sum + a * a; }
-  );
-  return std::sqrt(total);
-}
 #endif  // !defined(NPYGL_SWIG_CC_20) && !NPYGL_HAS_CC_20
 
 #ifndef NPYGL_SWIG_CC_20
@@ -236,7 +218,31 @@ T norm1(ndarray_flat_view<T> view) noexcept
   );
 #endif  // !NPYGL_HAS_CC_20
 }
+#endif  // NPYGL_SWIG_CC_20
 
+#if defined(NPYGL_SWIG_CC_20) || NPYGL_HAS_CC_20
+/**
+ * Return the 2-norm of the given view.
+ *
+ * @tparam T type
+ *
+ * @param view Input span
+ */
+template <typename T>
+T norm2(std::span<T> view) noexcept
+{
+  // sum of squared values
+  auto total = std::accumulate(
+    view.begin(),
+    view.end(),
+    T{},
+    [](const T& sum, const T& a) { return sum + a * a; }
+  );
+  return std::sqrt(total);
+}
+#endif  // !defined(NPYGL_SWIG_CC_20) && !NPYGL_HAS_CC_20
+
+#ifndef NPYGL_SWIG_CC_20
 /**
  * Return the 2-norm of the given view.
  *
@@ -258,6 +264,59 @@ T norm2(ndarray_flat_view<T> view) noexcept
       [](const T& sum, const T& a) { return sum + a * a; }
     )
   );
+#endif  // !NPYGL_HAS_CC_20
+}
+#endif  // NPYGL_SWIG_CC_20
+
+#if defined(NPYGL_SWIG_CC_20) || NPYGL_HAS_CC_20
+/**
+ * Compute the vector inner product.
+ *
+ * The return type is the common type amongst the two inputs' element types. If
+ * there is no common type then there will be a template substitution failure.
+ *
+ * @note We use an `assert()` instead of throwing an exception to keep the
+ *  function `noexcept` and to show how to work around this using `%inline`.
+ *
+ * @tparam T type
+ * @tparam U type
+ *
+ * @param in1 First input span
+ * @param in2 Second input span
+ */
+template <typename T, typename U, typename V = std::common_type_t<T, U>>
+inline V inner(std::span<T> in1, std::span<U> in2) noexcept
+{
+  assert(in1.size() == in2.size());
+  return std::inner_product(in1.begin(), in1.end(), in2.begin(), V{});
+}
+#endif  // !defined(NPYGL_SWIG_CC_20) && !NPYGL_HAS_CC_20
+
+#ifndef NPYGL_SWIG_CC_20
+/**
+ * Compute the vector inner product.
+ *
+ * The return type is the common type amongst the two inputs' element types. If
+ * there is no common type then there will be a template substitution failure.
+ *
+ * @note We use an `assert()` instead of throwing an exception to keep the
+ *  function `noexcept` and to show how to work around this using `%inline`.
+ *
+ * @tparam T type
+ * @tparam U type
+ *
+ * @param in1 First NumPy array view
+ * @param in2 Second NumPy array view
+ */
+template <typename T, typename U, typename V = std::common_type_t<T, U>>
+inline V inner(ndarray_flat_view<T> in1, ndarray_flat_view<U> in2) noexcept
+{
+#if NPYGL_HAS_CC_20
+  using std::span;
+  return inner(span{in1.begin(), in2.end()}, span{in2.begin(), in2.end()});
+#else
+  assert(in1.size() == in2.size());
+  return std::inner_product(in1.begin(), in1.end(), in2.begin(), V{});
 #endif  // !NPYGL_HAS_CC_20
 }
 #endif  // NPYGL_SWIG_CC_20
