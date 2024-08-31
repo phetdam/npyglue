@@ -32,7 +32,7 @@
 #define CC_STRING "C++"
 #endif  // !NPYGL_HAS_CC_20 && !NPYGL_HAS_CC_17
 
-// static linkage to follow Python extension module conventions
+// internal linkage to follow Python extension module conventions
 namespace {
 
 /**

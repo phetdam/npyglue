@@ -14,6 +14,7 @@
 #endif  // PY_SSIZE_T_CLEAN
 #include <Python.h>
 
+#include <cstdint>
 #include <cstdio>
 #include <cstdlib>
 #include <ostream>
@@ -21,6 +22,7 @@
 #include <string>
 #include <string_view>
 #include <type_traits>
+#include <utility>
 
 #include "npygl/features.h"
 #include "npygl/warnings.h"
@@ -170,6 +172,63 @@ public:
    */
   py_object(Py_complex value) noexcept
     : py_object{PyComplex_FromCComplex(value)}
+  {}
+
+  /**
+   * Ctor.
+   *
+   * Creates a Python object from an array of `PyObject*`. If there is more
+   * than one object in the array, a tuple of Python objects is returned.
+   *
+   * This ctor overload that takes an index sequence is an advanced usage that
+   * allows building a tuple from select members of the `PyObject*[N]` array.
+   *
+   * On error, the created object is empty and a Python exception is set.
+   *
+   * @note May want to allow some kind of run-time toggle to enforce whether or
+   *  or not a tuple should always be created (even if array is size 1).
+   *
+   * @tparam N Number of objects
+   * @tparam Is... Sequence of array indices within 0 to N - 1 inclusive
+   *
+   * @param objs Array of Python objects
+   * @param seq Index sequence indicating which array objects are used
+   */
+  template <std::size_t N, std::size_t... Is>
+  py_object(
+    PyObject* (&objs)[N],
+    std::index_sequence<Is...> NPYGL_UNUSED(seq)) noexcept
+  {
+    // number of indices must be less than or equal to array size
+    static_assert(sizeof...(Is), "at least one index must be provided");
+    static_assert(sizeof...(Is) <= N, "index count cannot exceed array size");
+    // ensure none of the indices are outside of the array
+    // note: parentheses around Is < N are unnecessary but are just for clarity
+    static_assert(
+      std::conjunction_v<std::bool_constant<(Is < N)>...>,
+      "indices must only index within the provided array"
+    );
+    // format string. Is - Is is so we can involve the parameter pack here
+    constexpr const char parse_format[] = {('O' + (Is - Is))..., '\0'};
+    // build value
+    ref_ = Py_BuildValue(parse_format, objs[Is]...);
+  }
+
+  /**
+   * Ctor.
+   *
+   * Creates a Python object from an array of `PyObject*`. If there is more
+   * than one object in the array, a tuple of Python objects is returned.
+   *
+   * On error, the created object is empty and a Python exception is set.
+   *
+   * @tparam N Number of objects
+   *
+   * @param objs Array of Python objects
+   */
+  template <std::size_t N>
+  py_object(PyObject* (&objs)[N]) noexcept
+    : py_object{objs, std::make_index_sequence<N>{}}
   {}
 
   /**
@@ -810,7 +869,7 @@ inline auto& operator<<(std::ostream& out, const py_object& obj)
  * @note This function is intended for use with `METH_VARARGS` functions only.
  *
  * @tparam N Number of expected Python arguments
- * @tparam Is... Sequence of array indices from 0 to N - 1 inclusive
+ * @tparam Is... Sequence of array indices within 0 to N - 1 inclusive
  *
  * @param args Python arguments
  * @param objs Array of `PyObject*` to convert to
