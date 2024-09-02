@@ -765,7 +765,6 @@ inline auto py_call(PyObject* callable, PyObject* args) noexcept
   return py_object{PyObject_CallObject(callable, args)};
 }
 
-#if PY_VERSION_HEX >= NPYGL_PY_VERSION(3, 9, 0)
 /**
  * Call the Python object with no arguments.
  *
@@ -775,9 +774,17 @@ inline auto py_call(PyObject* callable, PyObject* args) noexcept
  */
 inline auto py_call(PyObject* callable) noexcept
 {
-  return py_object{PyObject_CallNoArgs(callable)};
+  return py_object{
+#if PY_VERSION_HEX >= NPYGL_PY_VERSION(3, 9, 0)
+    PyObject_CallNoArgs(callable)
+#else
+    PyObject_CallObject(callable, nullptr);
+#endif  // !PY_VERSION_HEX < NPYGL_PY_VERSION(3, 9, 0)
+  };
 }
 
+// TODO: use Py_BuildValue("(O)", arg) with PyObject_CallObject for < 3.9.0
+#if PY_VERSION_HEX >= NPYGL_PY_VERSION(3, 9, 0)
 /**
  * Call the Python object with only a single argument.
  *
