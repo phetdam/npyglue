@@ -369,6 +369,44 @@ public:
 };
 
 /**
+ * Lightweight matrix view of a NumPy array.
+ *
+ * Data buffer must be known to be aligned and writeable if need be before use
+ * and in the proper ordering (e.g. row vs. column major).
+ *
+ * @tparam T Data type
+ * @tparam R Element ordering
+ */
+template <typename T, element_order R = element_order::c>
+class ndarray_matrix_view : public matrix_view<T, R> {
+public:
+  using value_type = T;
+
+  /**
+   * Default ctor.
+   *
+   * Constructs a view with no data.
+   */
+  ndarray_matrix_view() noexcept = default;
+
+  /**
+   * Ctor.
+   *
+   * @note Array must already be of correct type and layout.
+   *
+   * @param arr NumPy array
+   */
+  ndarray_matrix_view(PyArrayObject* arr) noexcept
+    : matrix_view<T, R>{
+        static_cast<T*>(PyArray_DATA(arr)),
+        // avoid C2397 narrowing error with MSVC
+        static_cast<std::size_t>(PyArray_DIM(arr, 0)),
+        static_cast<std::size_t>(PyArray_DIM(arr, 1))
+      }
+  {}
+};
+
+/**
  * Return the NumPy include directory as a static string.
  *
  * This calls `numpy.get_include` underneath so Python must be running.
