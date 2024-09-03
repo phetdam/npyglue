@@ -490,8 +490,9 @@ NPYGL_MSVC_WARNING_POP()
     auto data = PyCapsule_GetPointer(capsule, nullptr);
     if (!data)
       return;
-    // manually destroy the object
+    // manually destroy the object + free buffer
     ((T*) data)->~T();
+    std::free(data);
   }
 
   /**
@@ -533,6 +534,7 @@ NPYGL_MSVC_WARNING_POP()
     // note: need to manually call ~T() due to placement new usage
     if (!capsule) {
       new_obj->~T();
+      std::free(buf);
       return {};
     }
     return capsule;

@@ -9,6 +9,8 @@
 #include <Python.h>
 
 #include <cstdint>
+#include <map>
+#include <utility>
 
 #include "npygl/common.h"
 // TODO: currently this module only tests the non-NumPy Python C++ helpers
@@ -46,6 +48,24 @@ PyObject* parse_args(PyObject* NPYGL_UNUSED(self), PyObject* args) noexcept
   return npygl::py_object{rs}.release();
 }
 
+/**
+ * Test function for creating opaque capsule objects.
+ *
+ * Currently returns a fixed `std::map<std::string, double>`.
+ *
+ * @todo Make this a function try-block to catch all C++ exceptions.
+ */
+auto capsule_map(PyObject* NPYGL_UNUSED(self), PyObject* NPYGL_UNUSED(args)) noexcept
+{
+  std::map<std::string, double> map{
+    {"a", 3.444},
+    {"b", 1.33141},
+    {"c", 3.14159265358979},
+    {"d", 45.1111}
+  };
+  return npygl::py_object::create(std::move(map)).release();
+}
+
 // function docstrings
 PyDoc_STRVAR(
   parse_args_1_doc,
@@ -77,11 +97,24 @@ PyDoc_STRVAR(
   NPYGL_NPYDOC_RETURNS
   "tuple[str]"
 );
+PyDoc_STRVAR(
+  capsule_map_doc,
+  "capsule_map()\n"
+  NPYGL_CLINIC_MARKER
+  "Return an opaque capsule object owning a std::map<std::string, double>.\n"
+  "\n"
+  "The contained map cannot be manipulated at all from Python and will be\n"
+  "deleted when the last strong Python object reference is gone.\n"
+  "\n"
+  NPYGL_NPYDOC_RETURNS
+  "PyCapsule"
+);
 
 // module method table
 PyMethodDef mod_methods[] = {
   {"parse_args_1", parse_args<1>, METH_VARARGS, parse_args_1_doc},
   {"parse_args_3", parse_args<3>, METH_VARARGS, parse_args_3_doc},
+  {"capsule_map", capsule_map, METH_NOARGS, capsule_map_doc},
   {}  // zero-initialized sentinel member
 };
 
