@@ -12,6 +12,16 @@ if(Python3_Development_FOUND)
     add_test(NAME py_helpers_test COMMAND py_helpers_test)
 endif()
 
+# py_capsule_test: Python capsule test
+if(Python3_Development_FOUND)
+    npygl_add_py3_executable(
+        TARGET py_capsule_test
+        SOURCES py_capsule_test.cc
+        USE_RELEASE_CRT ${PY_MSVC_ALWAYS_RELEASE}
+    )
+    add_test(NAME py_capsule_test COMMAND py_capsule_test)
+endif()
+
 # npy_helpers_test: NumPy Python helpers tests
 if(Python3_Development_FOUND AND Python3_NumPy_FOUND)
     # C++17

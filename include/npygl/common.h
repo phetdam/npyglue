@@ -55,4 +55,17 @@
  */
 #define NPYGL_IDENTITY(...) __VA_ARGS__
 
+/**
+ * Macro for a string literal giving the function signature.
+ *
+ * Falls back to `__func__` if not compiling with GCC/Clang/MSVC.
+ */
+#if defined(_MSC_VER)
+#define NPYGL_PRETTY_FUNCTION_NAME __FUNCSIG__
+#elif defined(__GNUC__)
+#define NPYGL_PRETTY_FUNCTION_NAME __PRETTY_FUNCTION__
+#else
+#define NPYGL_PRETTY_FUNCTION_NAME __func__
+#endif  // !defined(_MSC_VER) && !defined(__GNUC__)
+
 #endif  // NPYGL_COMMON_H_

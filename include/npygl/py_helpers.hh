@@ -24,6 +24,7 @@
 #include <type_traits>
 #include <utility>
 
+#include "npygl/common.h"
 #include "npygl/features.h"
 #include "npygl/warnings.h"
 
@@ -460,12 +461,81 @@ public:
   static auto create(void* data, PyCapsule_Destructor dtor = nullptr) noexcept
   {
     // silence C5039
-    // TODO: maybe create a noexcept equivalent to PyCapsulte_Destructor in
+    // TODO: maybe create a noexcept equivalent to PyCapsule_Destructor in
     // order to force user-defined dtors to be noexcept
 NPYGL_MSVC_WARNING_PUSH()
 NPYGL_MSVC_WARNING_DISABLE(5039)
     return py_object{PyCapsule_New(data, nullptr, dtor)};
 NPYGL_MSVC_WARNING_POP()
+  }
+
+  /**
+   * Function template for a Python capsule destructor for a C++ object.
+   *
+   * This is the default destructor used via the `create()` template.
+   *
+   * On error a Python exception is set.
+   *
+   * @note Currently the function only works for nameless Python capsules for
+   *  simplicity (with a mild performance gain).
+   *
+   * @note Cannot make this `noexcept` since `PyCapsule_Destructor` is not
+   *  `noexcept` under C++17 semantics. We might cast this later.
+   */
+  template <typename T>
+  static void capsule_dtor(PyObject* capsule) noexcept
+  {
+    // get capsule data pointer
+    // TODO: maybe we should use PyCapsule_GetName to be more generic later
+    auto data = PyCapsule_GetPointer(capsule, nullptr);
+    if (!data)
+      return;
+    // manually destroy the object
+    ((T*) data)->~T();
+  }
+
+  /**
+   * Create an unnamed Python capsule object from a C++ object.
+   *
+   * This uses placement new to copy or move the C++ object into a buffer. If
+   * no destructor is provided, the default destructor is used.
+   *
+   * On error, the created object is empty and a Python exception is set.
+   *
+   * @note The use of `std::enable_if_t` here restricts overload selection to
+   *  rvalues only. Without it, at least with GCC, template deduction results
+   *  in a reference type and attempting to decay results in template recusion
+   *  that easily exceeds the default recursion depth.
+   *
+   * @todo May want to refine `noexcept` specification to depend on T ctors.
+   *
+   * @tparam T type
+   *
+   * @param obj Rvalue reference to C++ object
+   * @param dtor Capsule destructor
+   */
+  template <typename T, typename = std::enable_if_t<!std::is_reference_v<T>>>
+  static py_object create(
+    T&& obj, PyCapsule_Destructor dtor = capsule_dtor<T>) noexcept
+  {
+    // placement buffer
+    auto buf = std::malloc(sizeof(T));
+    if (!buf) {
+      // note: could throw an exception in very rare conditions
+      std::stringstream ss;
+      ss << NPYGL_PRETTY_FUNCTION_NAME << ": cannot allocate buffer";
+      PyErr_SetString(PyExc_RuntimeError, ss.str().c_str());
+      return {};
+    }
+    // place object via copy/move into buffer + create capsule
+    auto new_obj = new(buf) T{std::forward<T>(obj)};
+    auto capsule = create(new_obj, dtor);
+    // note: need to manually call ~T() due to placement new usage
+    if (!capsule) {
+      new_obj->~T();
+      return {};
+    }
+    return capsule;
   }
 
   /**
