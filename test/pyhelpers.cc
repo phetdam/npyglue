@@ -39,17 +39,11 @@ PyObject* parse_args(PyObject* NPYGL_UNUSED(self), PyObject* args) noexcept
   // get string representations for each of the type objects. this is the same
   // as calling repr(type(o)) for each of the Python objects
   npygl::py_object rs[N];
-  for (decltype(N) i = 0; i < N; i++) {
-    rs[i] = npygl::py_repr(Py_TYPE(objs[i]));
-    if (!rs[i])
-      return nullptr;
-  }
-  // create references to the type objects to prepare for Py_BuildValue call
-  PyObject* refs[N];
   for (decltype(N) i = 0; i < N; i++)
-    refs[i] = rs[i].ref();
+    if (!(rs[i] = npygl::py_repr(Py_TYPE(objs[i]))))
+      return nullptr;
   // create tuple from the repr() results and return
-  return npygl::py_object{refs}.release();
+  return npygl::py_object{rs}.release();
 }
 
 // function docstrings

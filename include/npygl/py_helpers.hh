@@ -280,11 +280,88 @@ public:
    * Ctor.
    *
    * Creates a Python object from an array of `PyObject*`. If there is more
-   * than one object in the array, a tuple of Python objects is returned.
+   * than one object in the array, a tuple of Python objects is created.
    *
    * This ctor overload that takes an index sequence is an advanced usage that
    * allows building a tuple from select members of the `PyObject*[N]` array,
    * even repeating a couple members from the array.
+   *
+   * On error, the created object is empty and a Python exception is set.
+   *
+   * @tparam N Number of objects
+   * @tparam Is... Sequence of array indices within 0 to N - 1 inclusive
+   *
+   * @param objs Array of Python objects
+   * @param seq Index sequence indicating which array objects are used
+   */
+  template <std::size_t N, std::size_t... Is>
+  py_object(PyObject* (&objs)[N], std::index_sequence<Is...> seq) noexcept
+    : py_object{build(objs, seq)}
+  {}
+
+  /**
+   * Ctor.
+   *
+   * This is a convenience overload for working with a `py_object[N]`. It
+   * provides the same semantics as the overload taking a `PyObject*[N]`.
+   *
+   * On error, the created object is empty and a Python exception is set.
+   *
+   * @tparam N Number of objects
+   * @tparam Is... Sequence of array indices within 0 to N - 1 inclusive
+   *
+   * @param objs Array of objects
+   * @param seq Index sequence indicating which array objects are used
+   */
+  template <std::size_t N, std::size_t... Is>
+  py_object(py_object (&objs)[N], std::index_sequence<Is...> seq) noexcept
+    : py_object{build(objs, seq)}
+  {}
+
+  /**
+   * Ctor.
+   *
+   * Creates a Python object from an array of `PyObject*`. If there is more
+   * than one object in the array, a tuple of Python objects is created.
+   *
+   * On error, the created object is empty and a Python exception is set.
+   *
+   * @tparam N Number of objects
+   *
+   * @param objs Array of Python objects
+   */
+  template <std::size_t N>
+  py_object(PyObject* (&objs)[N]) noexcept : py_object{build(objs)} {}
+
+  /**
+   * Ctor.
+   *
+   * This is a convenience overload for working with a `py_object[N]`. It
+   * provides the same semantics as the overload taking a `PyObject*[N]`.
+   *
+   * On error, the created object is empty and a Python exception is set.
+   *
+   * @tparam N Number of objects
+   *
+   * @param objs Array of objects
+   */
+  template <std::size_t N>
+  py_object(py_object (&objs)[N]) noexcept : py_object{build(objs)} {}
+
+  /**
+   * Dtor.
+   */
+  ~py_object()
+  {
+    Py_XDECREF(ref_);
+  }
+
+  /**
+   * Create a `py_object` from an array of `PyObject*`.
+   *
+   * A tuple of Python objects is returned if array size is greater than 1.
+   * This function is for advanced usage, allowing building a tuple from select
+   * members of a `PyObject*[N]` array, even repeating members.
    *
    * On error, the created object is empty and a Python exception is set.
    *
@@ -298,7 +375,7 @@ public:
    * @param seq Index sequence indicating which array objects are used
    */
   template <std::size_t N, std::size_t... Is>
-  py_object(
+  static auto build(
     PyObject* (&objs)[N],
     std::index_sequence<Is...> NPYGL_UNUSED(seq)) noexcept
   {
@@ -311,14 +388,35 @@ public:
       "indices must only index within the provided array"
     );
     // build value. note we use sizeof...(Is) since it may not be exactly N
-    ref_ = Py_BuildValue(py_object_format<sizeof...(Is)>, objs[Is]...);
+    return py_object{Py_BuildValue(py_object_format<sizeof...(Is)>, objs[Is]...)};
   }
 
   /**
-   * Ctor.
+   * Create a `py_object` from an array of `py_object`.
    *
-   * Creates a Python object from an array of `PyObject*`. If there is more
-   * than one object in the array, a tuple of Python objects is returned.
+   * This is a convenience overload for working with a `py_object[N]`. It
+   * provides the same semantics as the overload taking a `PyObject*[N]`.
+   *
+   * On error, the created object is empty and a Python exception is set.
+   *
+   * @tparam N Number of objects
+   * @tparam Is... Sequence of array indices within 0 to N - 1 inclusive
+   *
+   * @param objs Array of objects
+   * @param seq Index sequence indicating which array objects are used
+   */
+  template <std::size_t N, std::size_t... Is>
+  static auto build(
+    py_object (&objs)[N], std::index_sequence<Is...> seq) noexcept
+  {
+    PyObject* refs[] = {objs[Is].ref()...};
+    return build(refs, seq);
+  }
+
+  /**
+   * Create a `py_object` from an array of `PyObject*`.
+   *
+   * A tuple of Python objects is returned if array size is greater than 1.
    *
    * On error, the created object is empty and a Python exception is set.
    *
@@ -327,16 +425,26 @@ public:
    * @param objs Array of Python objects
    */
   template <std::size_t N>
-  py_object(PyObject* (&objs)[N]) noexcept
-    : py_object{objs, std::make_index_sequence<N>{}}
-  {}
+  static auto build(PyObject* (&objs)[N]) noexcept
+  {
+    return build(objs, std::make_index_sequence<N>{});
+  }
 
   /**
-   * Dtor.
+   * Create a `py_object` from an array of `py_object`.
+   *
+   * This is a convenience overload for working with a `py_object[N]`.
+   *
+   * On error, the created object is empty and a Python exception is set.
+   *
+   * @tparam N Number of objects
+   *
+   * @param objs Array of objects
    */
-  ~py_object()
+  template <std::size_t N>
+  static auto build(py_object (&objs)[N]) noexcept
   {
-    Py_XDECREF(ref_);
+    return build(objs, std::make_index_sequence<N>{});
   }
 
   /**
