@@ -13,7 +13,7 @@
 #include "npygl/common.h"
 #include "npygl/features.h"
 #include "npygl/npy_helpers.hh"  // includes <numpy/ndarrayobject.h>
-#include "npygl/py_helpers.hh"
+#include "npygl/python.hh"
 #include "npygl/testing/math.hh"
 
 // module name macro. for C++20 we build under a different name

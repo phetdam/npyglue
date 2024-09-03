@@ -55,8 +55,7 @@
 
 #include "npygl/common.h"
 #include "npygl/features.h"
-// TODO: change to npygl/py_object.hh
-#include "npygl/py_helpers.hh"
+#include "npygl/python.hh"
 #include "npygl/range_views.hh"
 
 // C++20
