@@ -296,7 +296,7 @@ public:
    */
   template <std::size_t N, std::size_t... Is>
   py_object(PyObject* (&objs)[N], std::index_sequence<Is...> seq) noexcept
-    : py_object{build(objs, seq)}
+    : py_object{create(objs, seq)}
   {}
 
   /**
@@ -315,7 +315,7 @@ public:
    */
   template <std::size_t N, std::size_t... Is>
   py_object(py_object (&objs)[N], std::index_sequence<Is...> seq) noexcept
-    : py_object{build(objs, seq)}
+    : py_object{create(objs, seq)}
   {}
 
   /**
@@ -331,7 +331,7 @@ public:
    * @param objs Array of Python objects
    */
   template <std::size_t N>
-  py_object(PyObject* (&objs)[N]) noexcept : py_object{build(objs)} {}
+  py_object(PyObject* (&objs)[N]) noexcept : py_object{create(objs)} {}
 
   /**
    * Ctor.
@@ -346,7 +346,7 @@ public:
    * @param objs Array of objects
    */
   template <std::size_t N>
-  py_object(py_object (&objs)[N]) noexcept : py_object{build(objs)} {}
+  py_object(py_object (&objs)[N]) noexcept : py_object{create(objs)} {}
 
   /**
    * Dtor.
@@ -357,7 +357,7 @@ public:
   }
 
   /**
-   * Create a `py_object` from an array of `PyObject*`.
+   * Create a Python object from an array of `PyObject*`.
    *
    * A tuple of Python objects is returned if array size is greater than 1.
    * This function is for advanced usage, allowing building a tuple from select
@@ -375,7 +375,7 @@ public:
    * @param seq Index sequence indicating which array objects are used
    */
   template <std::size_t N, std::size_t... Is>
-  static auto build(
+  static auto create(
     PyObject* (&objs)[N],
     std::index_sequence<Is...> NPYGL_UNUSED(seq)) noexcept
   {
@@ -392,7 +392,7 @@ public:
   }
 
   /**
-   * Create a `py_object` from an array of `py_object`.
+   * Create a Python object from an array of `py_object`.
    *
    * This is a convenience overload for working with a `py_object[N]`. It
    * provides the same semantics as the overload taking a `PyObject*[N]`.
@@ -406,15 +406,15 @@ public:
    * @param seq Index sequence indicating which array objects are used
    */
   template <std::size_t N, std::size_t... Is>
-  static auto build(
+  static auto create(
     py_object (&objs)[N], std::index_sequence<Is...> seq) noexcept
   {
     PyObject* refs[] = {objs[Is].ref()...};
-    return build(refs, seq);
+    return create(refs, seq);
   }
 
   /**
-   * Create a `py_object` from an array of `PyObject*`.
+   * Create a Python object from an array of `PyObject*`.
    *
    * A tuple of Python objects is returned if array size is greater than 1.
    *
@@ -425,13 +425,13 @@ public:
    * @param objs Array of Python objects
    */
   template <std::size_t N>
-  static auto build(PyObject* (&objs)[N]) noexcept
+  static auto create(PyObject* (&objs)[N]) noexcept
   {
-    return build(objs, std::make_index_sequence<N>{});
+    return create(objs, std::make_index_sequence<N>{});
   }
 
   /**
-   * Create a `py_object` from an array of `py_object`.
+   * Create a Python object from an array of `py_object`.
    *
    * This is a convenience overload for working with a `py_object[N]`.
    *
@@ -442,9 +442,30 @@ public:
    * @param objs Array of objects
    */
   template <std::size_t N>
-  static auto build(py_object (&objs)[N]) noexcept
+  static auto create(py_object (&objs)[N]) noexcept
   {
-    return build(objs, std::make_index_sequence<N>{});
+    return create(objs, std::make_index_sequence<N>{});
+  }
+
+  /**
+   * Create an unnamed Python capsule object.
+   *
+   * See the Python 3 documentation on capsules for more details.
+   *
+   * On error, the created object is empty and a Python exception is set.
+   *
+   * @param data Pointer to arbitrary data
+   * @param dtor Capsule destructor (must be `noexcept`)
+   */
+  static auto create(void* data, PyCapsule_Destructor dtor = nullptr) noexcept
+  {
+    // silence C5039
+    // TODO: maybe create a noexcept equivalent to PyCapsulte_Destructor in
+    // order to force user-defined dtors to be noexcept
+NPYGL_MSVC_WARNING_PUSH()
+NPYGL_MSVC_WARNING_DISABLE(5039)
+    return py_object{PyCapsule_New(data, nullptr, dtor)};
+NPYGL_MSVC_WARNING_POP()
   }
 
   /**
