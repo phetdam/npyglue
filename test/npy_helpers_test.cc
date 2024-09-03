@@ -100,25 +100,5 @@ int main()
   asine(stl_view);
   std::cout << "span inverse sine transform:\n" << ar << std::endl;
 #endif  // NPYGL_HAS_CC_20
-  // create a random 4x4 matrix + print
-  shape = npygl::py_object{Py_BuildValue("ii", 4, 4)};
-  npygl::py_error_exit();
-  auto mat = npygl::py_call_one(np_random_random, shape);
-  npygl::py_error_exit();
-  std::cout << mat << std::endl;
-  // check that this is actually a 2D ndarray
-  auto mat_ar = mat.as<PyArrayObject>();
-  std::cout << "Is matrix? " << (PyArray_NDIM(mat_ar) == 2) << std::endl;
-  // multiply all elements by 2 and then halve all elements using matrix view
-  // note: this assumes C data ordering and double data type (the default)
-  npygl::ndarray_matrix_view<double> mat_view{mat_ar};
-  for (decltype(mat_view.rows()) i = 0; i < mat_view.rows(); i++)
-    for (decltype(mat_view.cols()) j = 0; j < mat_view.cols(); j++)
-      mat_view(i, j) *= 2;
-  std::cout << "doubled elements:\n" << mat_ar << std::endl;
-  for (decltype(mat_view.rows()) i = 0; i < mat_view.rows(); i++)
-    for (decltype(mat_view.cols()) j = 0; j < mat_view.cols(); j++)
-      mat_view(i, j) /= 2;
-  std::cout << "halved elements:\n" << mat_ar << std::endl;
   return EXIT_SUCCESS;
 }

@@ -35,6 +35,17 @@ if(Python3_Development_FOUND AND Python3_NumPy_FOUND)
     endif()
 endif()
 
+# npy_views_test: testing views with NumPy
+if(Python3_Development_FOUND AND Python3_NumPy_FOUND)
+    npygl_add_py3_executable(
+        TARGET npy_views_test
+        SOURCES npy_views_test.cc
+        LIBRARIES Python3::NumPy
+        USE_RELEASE_CRT ${PY_MSVC_ALWAYS_RELEASE}
+    )
+    add_test(NAME npy_views_test COMMAND npy_views_test)
+endif()
+
 # pyhelpers: Python helpers test module
 if(Python3_Development_FOUND)
     npygl_add_py3_extension(
