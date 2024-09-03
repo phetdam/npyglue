@@ -70,7 +70,7 @@ int main()
   auto np_random_random = npygl::py_getattr(np_random, "random");
   npygl::py_error_exit();
   // create shape tuple
-  auto shape = npygl::py_object{Py_BuildValue("(iii)", 3, 4, 2)};
+  npygl::py_object shape{Py_BuildValue("(iii)", 3, 4, 2)};
   npygl::py_error_exit();
   // call np.random.random with the shape tuple
   auto res = npygl::py_call_one(np_random_random, shape);
@@ -86,19 +86,5 @@ int main()
   std::cout << "Has one of " <<
     npygl::npy_typename_list<int, double, float>() << ": " <<
     has_type<int, double, float>(ar) << std::endl;
-  // apply sine + inverse sine functions to NumPy array via view and print
-  npygl::ndarray_flat_view<double> view{ar};
-  sine(view);
-  std::cout << "sine transform:\n" << ar << std::endl;
-  asine(view);
-  std::cout << "inverse sine transform:\n" << ar << std::endl;
-#if NPYGL_HAS_CC_20
-  // apply sine + inverse function to NumPy array via span and print
-  auto stl_view = npygl::make_span<double>(ar);
-  sine(stl_view);
-  std::cout << "span sine transform:\n" << ar << std::endl;
-  asine(stl_view);
-  std::cout << "span inverse sine transform:\n" << ar << std::endl;
-#endif  // NPYGL_HAS_CC_20
   return EXIT_SUCCESS;
 }
