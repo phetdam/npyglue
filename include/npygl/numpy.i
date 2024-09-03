@@ -1,5 +1,5 @@
 /**
- * @file ndarray.i
+ * @file numpy.i
  * @author Derek Huang
  * @brief SWIG interface file for npyglue NumPy array helpers
  * @copyright MIT License
@@ -7,12 +7,12 @@
 
 // ensure SWIG is running in C++ mode
 #ifndef __cplusplus
-#error "ndarray.i: SWIG C++ processing must be enabled with -c++"
+#error "numpy.i: SWIG C++ processing must be enabled with -c++"
 #endif  // __cplusplus
 
 // ensure SWIG is running to generate Python wrappers
 #ifndef SWIGPYTHON
-#error "ndarray.i: can only be used with Python as target language"
+#error "numpy.i: can only be used with Python as target language"
 #endif  // SWIGPYTHON
 
 %{
