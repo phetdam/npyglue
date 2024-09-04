@@ -56,9 +56,12 @@
 #define NPYGL_IDENTITY(...) __VA_ARGS__
 
 /**
- * Macro for a string literal giving the function signature.
+ * Macro for a string variable giving the function signature.
  *
  * Falls back to `__func__` if not compiling with GCC/Clang/MSVC.
+ *
+ * @note As per documentation this is *not* a string literal but a variable. In
+ *  particular, string literal concatenation cannot be done.
  */
 #if defined(_MSC_VER)
 #define NPYGL_PRETTY_FUNCTION_NAME __FUNCSIG__
