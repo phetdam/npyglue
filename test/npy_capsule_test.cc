@@ -31,6 +31,7 @@ int main()
   auto ar_init = Py_BuildValue("ddddd", 3.4, 1.222, 6.745, 5.2, 5.66, 7.333);
   npygl::py_error_exit();
   auto ar = npygl::make_ndarray<double>(ar_init);
+  npygl::py_error_exit();
   // print the repr() for each array
   std::cout <<
     "NumPy arrays\n" <<
