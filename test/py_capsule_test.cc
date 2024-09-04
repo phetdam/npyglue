@@ -131,21 +131,21 @@ int main()
     npygl::py_error_exit();
     // package got moved from
     std::cout << "\nC++ package (moved):\n" << package << std::endl;
-    // get pointer from capsule
-    auto data = (package_type*) PyCapsule_GetPointer(capsule, nullptr);
+    // get capsule view
+    npygl::cc_capsule_view view{capsule};
     npygl::py_error_exit();
-    // print package from capsule
-    std::cout << "\ncapsule data:\n" << *data << std::endl;
+    // we already know the type so directly print package from capsule
+    std::cout << "\ncapsule data:\n" << *view.as<package_type>() << std::endl;
   }
   // pass the data_type_printer itself to a capsule
   {
     auto capsule = npygl::py_object::create(data_type_printer{});
     npygl::py_error_exit();
-    // get printer
-    auto data = (data_type_printer*) PyCapsule_GetPointer(capsule, nullptr);
+    // get capsule view
+    npygl::cc_capsule_view view{capsule};
     npygl::py_error_exit();
     // call the printer's methods on some data
-    const auto& printer = *data;
+    const auto& printer = *view.as<data_type_printer>();
     std::cout << "\ndata_type_printer printing from capsule:\n";
     printer(4.34353);
     std::cout << '\n';

@@ -22,6 +22,7 @@
 #include <string>
 #include <string_view>
 #include <type_traits>
+#include <typeinfo>
 #include <utility>
 
 #include "npygl/common.h"
@@ -29,6 +30,10 @@
 #include "npygl/warnings.h"
 
 namespace npygl {
+
+///////////////////////////////////////////////////////////////////////////////
+// Python version macros                                                     //
+///////////////////////////////////////////////////////////////////////////////
 
 /**
  * Create a Python hex version number from the given components.
@@ -54,6 +59,10 @@ namespace npygl {
  */
 #define NPYGL_PY_VERSION(major, minor, micro) \
   NPYGL_PY_VERSION_EX(major, minor, micro, PY_RELEASE_LEVEL_FINAL, 0)
+
+///////////////////////////////////////////////////////////////////////////////
+// Python argument parsing                                                   //
+///////////////////////////////////////////////////////////////////////////////
 
 namespace detail {
 
@@ -156,6 +165,151 @@ inline bool parse_args(PyObject* args, PyObject* (&objs)[N]) noexcept
 {
   return parse_args(args, objs, std::make_index_sequence<N>{});
 }
+
+///////////////////////////////////////////////////////////////////////////////
+// Python capsules for C++ objects                                           //
+///////////////////////////////////////////////////////////////////////////////
+
+/**
+ * Capsule name used for capsules that are nonzero `cc_capsule_view` objects.
+ */
+inline constexpr const char* cc_capsule_name = "npygl C++ capsule";
+
+/**
+ * Lightweight view object for a `PyCapsule` holding a C++ object.
+ *
+ * The `PyCapsule` itself owns the buffer that `obj` is pointing to.
+ */
+class cc_capsule_view {
+public:
+  /**
+   * Default ctor.
+   *
+   * Constructs an invalid capsule view.
+   */
+  cc_capsule_view() noexcept = default;
+
+  /**
+   * Ctor.
+   *
+   * Create a capsule view from a Python object.
+   *
+   * If the object is not a `PyCapsule` whose name matches `cc_capsule_name`,
+   * e.g. it does not follow the `cc_capsule_view` protocol, the view will be
+   * invalid and a Python exception is set. Otherwise, the capsule view is valid.
+   *
+   * @param obj Python object
+   */
+  cc_capsule_view(PyObject* obj) noexcept
+  {
+    // check if capsule and if following the protocol (matches name). we also
+    // set a Python exception so an invalid view corresponds to a Python error
+    if (!PyCapsule_IsValid(obj, cc_capsule_name)) {
+      // note: could throw an exception in very rare conditions
+      std::stringstream ss;
+      ss << NPYGL_PRETTY_FUNCTION_NAME <<
+        ": attempted to create a capsule view from an incompatible object";
+      PyErr_SetString(PyExc_TypeError, ss.str().c_str());
+      return;
+    }
+    // capsule is valid, so populate
+    obj_ = PyCapsule_GetPointer(obj, cc_capsule_name);
+    if (!obj_)
+      return;
+    // context is not nullptr if following protocol
+    info_ = (decltype(info_)) PyCapsule_GetContext(obj);
+    if (!info_) {
+      obj_ = nullptr;  // indicate error
+      return;
+    }
+  }
+
+  /**
+   * Return the untyped pointer to the C++ object.
+   *
+   * If the capsule view is invalid this is `nullptr`.
+   */
+  auto obj() const noexcept { return obj_; }
+
+  /**
+   * Return a pointer to the `std::type_info` object.
+   *
+   * If the capsule view is invalid this is `nullptr`.
+   */
+  auto info() const noexcept { return info_; }
+
+  /**
+   * Return the typed pointer to the C++ object.
+   *
+   * @note You *must* know what the C++ type is before dereferencing.
+   *
+   * @tparam T type
+   */
+  template <typename T>
+  auto as() const noexcept
+  {
+    return reinterpret_cast<T*>(obj_);
+  }
+
+  /**
+   * Implicitly convert to bool to indicate validity.
+   *
+   * @note Due to ctor protection we can skip checking `info_`. If `obj_` is
+   *  `nullptr` than `info_` will also be `nullptr`.
+   */
+  operator bool() const noexcept
+  {
+    // silence MSVC C4800 warning
+    return !!obj_;
+  }
+
+  /**
+   * Check that the capsule view has a particular C++ type.
+   *
+   * If the view is invalid this also returns `false`.
+   *
+   * @tparam T type
+   */
+  template <typename T>
+  bool is() const noexcept
+  {
+    if (!info_)
+      return false;
+    // note: C++ standard allows for info_ != &typeid(T)
+    return *info_ == typeid(T);
+  }
+
+private:
+  void* obj_{};
+  const std::type_info* info_{};
+};
+
+/**
+ * Function template for a Python capsule destructor for a C++ object.
+ *
+ * This is the default destructor used via the `create(T&&...)` template.
+ *
+ * On error a Python exception is set.
+ *
+ * @note Cannot make this `noexcept` since `PyCapsule_Destructor` is not
+ *  `noexcept` under C++17 semantics. We might cast this later.
+ */
+template <typename T>
+void cc_capsule_dtor(PyObject* capsule) noexcept
+{
+  // get capsule data pointer
+  // TODO: maybe we should use PyCapsule_GetName to be more generic later
+  auto data = PyCapsule_GetPointer(capsule, cc_capsule_name);
+  if (!data)
+    return;
+  // manually destroy the object + free buffer
+  ((T*) data)->~T();
+  std::free(data);
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// Owning/creating Python objects/capsules                                   //
+///////////////////////////////////////////////////////////////////////////////
 
 /**
  * Python object ownership class.
@@ -467,7 +621,7 @@ public:
     // order to force user-defined dtors to be noexcept
 NPYGL_MSVC_WARNING_PUSH()
 NPYGL_MSVC_WARNING_DISABLE(5039)
-    return py_object{PyCapsule_New(data, nullptr, dtor)};
+    return py_object{PyCapsule_New(data, name, dtor)};
 NPYGL_MSVC_WARNING_POP()
   }
 
@@ -484,32 +638,6 @@ NPYGL_MSVC_WARNING_POP()
   static auto create(void* data, PyCapsule_Destructor dtor = nullptr) noexcept
   {
     return create(data, nullptr, dtor);
-  }
-
-  /**
-   * Function template for a Python capsule destructor for a C++ object.
-   *
-   * This is the default destructor used via the `create()` template.
-   *
-   * On error a Python exception is set.
-   *
-   * @note Currently the function only works for nameless Python capsules for
-   *  simplicity (with a mild performance gain).
-   *
-   * @note Cannot make this `noexcept` since `PyCapsule_Destructor` is not
-   *  `noexcept` under C++17 semantics. We might cast this later.
-   */
-  template <typename T>
-  static void capsule_dtor(PyObject* capsule) noexcept
-  {
-    // get capsule data pointer
-    // TODO: maybe we should use PyCapsule_GetName to be more generic later
-    auto data = PyCapsule_GetPointer(capsule, nullptr);
-    if (!data)
-      return;
-    // manually destroy the object + free buffer
-    ((T*) data)->~T();
-    std::free(data);
   }
 
   /**
@@ -534,7 +662,7 @@ NPYGL_MSVC_WARNING_POP()
    */
   template <typename T, typename = std::enable_if_t<!std::is_reference_v<T>>>
   static py_object create(
-    T&& obj, PyCapsule_Destructor dtor = capsule_dtor<T>) noexcept
+    T&& obj, PyCapsule_Destructor dtor = cc_capsule_dtor<T>) noexcept
   {
     // placement buffer
     auto buf = std::malloc(sizeof(T));
@@ -547,11 +675,22 @@ NPYGL_MSVC_WARNING_POP()
     }
     // place object via copy/move into buffer + create capsule
     auto new_obj = new(buf) T{std::forward<T>(obj)};
-    auto capsule = create(new_obj, dtor);
-    // note: need to manually call ~T() due to placement new usage
-    if (!capsule) {
+    auto capsule = create(new_obj, cc_capsule_name, dtor);
+    // lambda for calling ~T() and cleaning up the placement buffer on error
+    auto cleanup = [new_obj, buf]
+    {
       new_obj->~T();
       std::free(buf);
+    };
+    // note: need to manually call ~T() due to placement new usage
+    if (!capsule) {
+      cleanup();
+      return {};
+    }
+    // set the capsule context to the type_info pointer
+    // note: type_info storage duration is static so no need to free
+    if (PyCapsule_SetContext(capsule, (void*) &typeid(T))) {
+      cleanup();
       return {};
     }
     return capsule;
@@ -655,6 +794,10 @@ NPYGL_MSVC_WARNING_POP()
 private:
   PyObject* ref_;
 };
+
+///////////////////////////////////////////////////////////////////////////////
+// Python interpreter initialization                                         //
+///////////////////////////////////////////////////////////////////////////////
 
 /**
  * Python main interpreter instance.
@@ -761,6 +904,10 @@ inline const auto& py_init() noexcept
   return python;
 }
 
+///////////////////////////////////////////////////////////////////////////////
+// Python module import                                                      //
+///////////////////////////////////////////////////////////////////////////////
+
 /**
  * Import the given Python module.
  *
@@ -784,6 +931,10 @@ inline auto py_import(std::string_view name) noexcept
 {
   return py_import(name.data());
 }
+
+///////////////////////////////////////////////////////////////////////////////
+// Python error querying/raising                                             //
+///////////////////////////////////////////////////////////////////////////////
 
 /**
  * Set the Python error indicator for the current thread.
@@ -921,6 +1072,10 @@ inline void py_error_exit(bool expr, PyObject* exc, Ts&&... args)
   py_error_exit(exc, ss.str().c_str());
 }
 
+///////////////////////////////////////////////////////////////////////////////
+// Python object helpers                                                     //
+///////////////////////////////////////////////////////////////////////////////
+
 /**
  * Retrieve the attribute with the given name from the Python object.
  *
@@ -1017,6 +1172,10 @@ inline auto py_call_one(PyObject* callable, PyObject* arg) noexcept
 }
 #endif  // PY_VERSION_HEX < NPYGL_PY_VERSION(3, 9, 0)
 
+///////////////////////////////////////////////////////////////////////////////
+// Python Unicode object helpers                                             //
+///////////////////////////////////////////////////////////////////////////////
+
 /**
  * Return a UTF-8 encoded string from a Python Unicode (string) object.
  *
@@ -1057,6 +1216,10 @@ inline std::string_view py_utf8_view(PyObject* obj) noexcept
   // note: can't use ternary expression; no deducable common type
   return {data, static_cast<std::size_t>(size)};
 }
+
+///////////////////////////////////////////////////////////////////////////////
+// Python object printing                                                    //
+///////////////////////////////////////////////////////////////////////////////
 
 /**
  * Print the Python object to the given file.
@@ -1181,6 +1344,10 @@ inline auto& operator<<(std::ostream& out, const py_object& obj)
 {
   return out << obj.ref();
 }
+
+///////////////////////////////////////////////////////////////////////////////
+// Python dicstring helpers
+///////////////////////////////////////////////////////////////////////////////
 
 /**
  * Macro indicating the end marker of a docstring Argument Clinic signature.

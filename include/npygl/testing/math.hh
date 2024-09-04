@@ -15,7 +15,7 @@
 #include <type_traits>
 
 #include "npygl/features.h"
-#include "npygl/npy_helpers.hh"
+#include "npygl/ndarray.hh"
 
 #if NPYGL_HAS_CC_20
 #include <span>

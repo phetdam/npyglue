@@ -9,12 +9,13 @@
 #include <Python.h>
 
 #include <cstdint>
+#include <ostream>
 #include <map>
 #include <utility>
 
 #include "npygl/common.h"
 // TODO: currently this module only tests the non-NumPy Python C++ helpers
-// #include "npygl/npy_helpers.hh"  // includes <numpy/ndarrayobject.h>
+// #include "npygl/ndarray.hh"  // includes <numpy/ndarrayobject.h>
 #include "npygl/python.hh"
 
 // module name
@@ -49,21 +50,73 @@ PyObject* parse_args(PyObject* NPYGL_UNUSED(self), PyObject* args) noexcept
 }
 
 /**
+ * C++ type of the map owned by the capsule returned by `capsule_map`.
+ */
+using capsule_map_type = std::map<std::string, double>;
+
+/**
+ * `operator<<` overload for the `capsule_map_type`.
+ */
+auto& operator<<(std::ostream& out, const capsule_map_type& map)
+{
+  // compact format if empty
+  if (map.empty())
+    return out << "{}";
+  // iterate
+  out << "{\n";
+  for (auto it = map.begin(); it != map.end(); it++) {
+    if (std::distance(map.begin(), it))
+      out << ",\n";
+    out << "    {" << it->first << ", " << it->second << "}";
+  }
+  // need final newline
+  return out << "\n}";
+}
+
+/**
  * Test function for creating opaque capsule objects.
  *
  * Currently returns a fixed `std::map<std::string, double>`.
  *
  * @todo Make this a function try-block to catch all C++ exceptions.
  */
-auto capsule_map(PyObject* NPYGL_UNUSED(self), PyObject* NPYGL_UNUSED(args)) noexcept
+auto capsule_map(
+  PyObject* NPYGL_UNUSED(self), PyObject* NPYGL_UNUSED(args)) noexcept
 {
-  std::map<std::string, double> map{
+  capsule_map_type map{
     {"a", 3.444},
     {"b", 1.33141},
     {"c", 3.14159265358979},
     {"d", 45.1111}
   };
   return npygl::py_object::create(std::move(map)).release();
+}
+
+/**
+ * Test function that takes a C++ object capsule and returns it as a string.
+ *
+ * Currently this only works with the capsule returned by `capsule_map`.
+ */
+PyObject* cc_capsule_str(PyObject* NPYGL_UNUSED(self), PyObject* obj) noexcept
+{
+  // get capsule view
+  npygl::cc_capsule_view view{obj};
+  if (!view)
+    return nullptr;
+  // check type
+  // note: in the future, we can iterate through types
+  if (!view.is<capsule_map_type>()) {
+    // note: could throw but only in extreme conditions
+    std::stringstream ss;
+    ss << NPYGL_PRETTY_FUNCTION_NAME <<
+      ": capsule view type is not the expected " << view.info()->name();
+    PyErr_SetString(PyExc_TypeError, ss.str().c_str());
+    return nullptr;
+  }
+  // format as string
+  std::stringstream ss;
+  ss << *view.as<capsule_map_type>();
+  return PyUnicode_FromString(ss.str().c_str());
 }
 
 // function docstrings
@@ -109,12 +162,27 @@ PyDoc_STRVAR(
   NPYGL_NPYDOC_RETURNS
   "PyCapsule"
 );
+PyDoc_STRVAR(
+  cc_capsule_str_doc,
+  "cc_capsule_str(o)\n"
+  NPYGL_CLINIC_MARKER
+  "Return the string representation of the C++ object owned by the capsule.\n"
+  "\n"
+  NPYGL_NPYDOC_PARAMETERS
+  "o : PyCapsule\n"
+  "    Python capsule object following the ``cc_capsule_view`` protocol\n"
+  "\n"
+  NPYGL_NPYDOC_RETURNS
+  "str\n"
+  "    String representation of the owned C++ object"
+);
 
 // module method table
 PyMethodDef mod_methods[] = {
   {"parse_args_1", parse_args<1>, METH_VARARGS, parse_args_1_doc},
   {"parse_args_3", parse_args<3>, METH_VARARGS, parse_args_3_doc},
   {"capsule_map", capsule_map, METH_NOARGS, capsule_map_doc},
+  {"cc_capsule_str", cc_capsule_str, METH_O, cc_capsule_str_doc},
   {}  // zero-initialized sentinel member
 };
 
