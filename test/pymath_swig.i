@@ -41,7 +41,7 @@
 %module(docstring=MODULE_DOCSTRING) pymath_swig
 #endif  // !defined(NPYGL_SWIG_CC_20)
 
-%include "npygl/numpy.i"
+%include "npygl/ndarray.i"
 %include "npygl/testing/math.hh"
 
 %{
