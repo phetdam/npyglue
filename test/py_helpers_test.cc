@@ -10,7 +10,7 @@
 
 #include <iostream>
 
-#include "npygl/py_helpers.hh"
+#include "npygl/python.hh"
 
 namespace {
 

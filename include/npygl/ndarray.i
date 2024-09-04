@@ -20,7 +20,7 @@
 #include <stdexcept>
 
 #include <npygl/npy_helpers.hh>  // includes <numpy/ndarrayobject.h>
-#include <npygl/py_helpers.hh>
+#include <npygl/python.hh>
 %}
 
 // forward declaration of the ndarray_flat_view template in the npygl namespace
