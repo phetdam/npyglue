@@ -45,6 +45,17 @@ if(Python3_Development_FOUND AND Python3_NumPy_FOUND)
     endif()
 endif()
 
+# npy_capsule_test: NumPy test using capsules to back arrays
+if(Python3_Development_FOUND AND Python3_NumPy_FOUND)
+    npygl_add_py3_executable(
+        TARGET npy_capsule_test
+        SOURCES npy_capsule_test.cc
+        LIBRARIES Python3::NumPy
+        USE_RELEASE_CRT ${PY_MSVC_ALWAYS_RELEASE}
+    )
+    add_test(NAME npy_capsule_test COMMAND npy_capsule_test)
+endif()
+
 # npy_views_test: testing views with NumPy
 if(Python3_Development_FOUND AND Python3_NumPy_FOUND)
     npygl_add_py3_executable(

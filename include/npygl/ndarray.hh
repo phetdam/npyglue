@@ -18,6 +18,7 @@
 #include <string>
 #include <type_traits>
 #include <utility>
+#include <vector>
 
 // NumPy C API visibility controls. the NumPy C API function pointer table is
 // static by default so PY_ARRAY_UNIQUE_SYMBOL results in it being declared as
@@ -326,6 +327,43 @@ template <typename T>
 inline auto make_ndarray(PyObject* obj) noexcept
 {
   return make_ndarray<T>(obj, NPY_ARRAY_DEFAULT | NPY_ARRAY_ENSURECOPY);
+}
+
+/**
+ * Create a 1D NumPy array backed by a C++ vector with C memory layout.
+ *
+ * The backing Python object is a `PyCapsule` following the `cc_capsule_view`
+ * protocol that manages the moved C++ vector.
+ *
+ * On error the `py_object` is empty and a Python exception is set.
+ *
+ * @tparam T Element type
+ * @tparam A Allocator type
+ */
+template <typename T, typename A>
+py_object make_ndarray(std::vector<T, A>&& vec) noexcept
+{
+  using V = std::vector<T, A>;
+  // create capsule from vector
+  auto capsule = py_object::create(std::move(vec));
+  if (!capsule)
+    return {};
+  // get capsule view (should not error)
+  cc_capsule_view view{capsule};
+  if (!view)
+    return {};
+  // create new 1D NumPy array from the vector's data buffer
+  auto cap_vec = view.as<V>();
+  // note: cast to suppress C4365 from MSVC. no array needed since 1D
+  auto dim = static_cast<npy_intp>(cap_vec->size());
+  py_object ar{PyArray_SimpleNewFromData(1, &dim, npy_typenum<T>, cap_vec->data())};
+  if (!ar)
+    return {};
+  // set base object so NumPy array owns the capsule
+  if (PyArray_SetBaseObject(ar.as<PyArrayObject>(), capsule.release()) < 0)
+    return {};
+  // success
+  return ar;
 }
 
 /**
