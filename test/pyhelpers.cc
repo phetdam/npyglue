@@ -9,8 +9,8 @@
 #include <Python.h>
 
 #include <cstdint>
-#include <ostream>
 #include <map>
+#include <ostream>
 #include <utility>
 
 #include "npygl/common.h"

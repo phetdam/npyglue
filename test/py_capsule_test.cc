@@ -10,8 +10,8 @@
 
 #include <iostream>
 #include <iterator>
-#include <ostream>
 #include <map>
+#include <ostream>
 #include <string>
 #include <utility>
 #include <variant>
