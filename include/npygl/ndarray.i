@@ -19,15 +19,15 @@
 #include <exception>
 #include <stdexcept>
 
-#include <npygl/npy_helpers.hh>  // includes <numpy/ndarrayobject.h>
+#include <npygl/ndarray.hh>  // includes <numpy/ndarrayobject.h>
 #include <npygl/python.hh>
 %}
 
 // forward declaration of the ndarray_flat_view template in the npygl namespace
 // so that SWIG can properly match typemaps against unqualified use of the type
 // name inside a namespace in processed C++ code without us needing to %include
-// the actual header. npy_helpers.hh is too complicated for SWIG and would
-// require that #ifndef SWIG ... #endif blocks be sprinkled throughout.
+// the actual header. ndarray.hh is too complicated for SWIG and would require
+// that #ifndef SWIG ... #endif blocks be sprinkled throughout.
 namespace npygl {
 
 template <typename T>

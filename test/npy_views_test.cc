@@ -13,7 +13,7 @@
 #include <iostream>
 
 #include "npygl/features.h"
-#include "npygl/npy_helpers.hh"
+#include "npygl/ndarray.hh"
 #include "npygl/python.hh"
 #include "npygl/range_views.hh"
 #include "npygl/testing/math.hh"

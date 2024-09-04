@@ -12,7 +12,7 @@
 
 #include "npygl/common.h"
 #include "npygl/features.h"
-#include "npygl/npy_helpers.hh"  // includes <numpy/ndarrayobject.h>
+#include "npygl/ndarray.hh"  // includes <numpy/ndarrayobject.h>
 #include "npygl/python.hh"
 #include "npygl/testing/math.hh"
 

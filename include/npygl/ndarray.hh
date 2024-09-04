@@ -1,12 +1,12 @@
 /**
- * @file npy_helpers.hh
+ * @file ndarray.hh
  * @author Derek Huang
  * @brief C++ header for NumPy C API helpers
  * @copyright MIT License
  */
 
-#ifndef NPYGL_NPY_HELPERS_HH_
-#define NPYGL_NPY_HELPERS_HH_
+#ifndef NPYGL_NDARRAY_HH_
+#define NPYGL_NDARRAY_HH_
 
 #ifndef PY_SSIZE_T_CLEAN
 #define PY_SSIZE_T_CLEAN
@@ -28,10 +28,10 @@
 // composed of multiple translation units, define the following as follows:
 //
 // NPYGL_NUMPY_API_EXPORT
-//  Defined before including `npy_helpers.hh` for only one translation unit
+//  Defined before including `ndarray.hh` for only one translation unit
 //
 // NPYGL_NUMPY_API_IMPORT
-//  Defined before including `npy_helpers.hh` for all other translation units
+//  Defined before including `ndarray.hh` for all other translation units
 //
 // if sharing NumPy C API, need to define new extern name
 #if defined(NPYGL_NUMPY_API_EXPORT) || defined(NPYGL_NUMPY_API_IMPORT)
@@ -43,7 +43,7 @@
 #endif  // NPYGL_NUMPY_API_IMPORT
 // cannot have both defined
 #if defined(NPYGL_NUMPY_API_EXPORT) && defined(NPYGL_NUMPY_API_IMPORT)
-#error "npy_helpers.hh: define only one of NPYGL_NUMPY_API_(EXPORT|IMPORT)"
+#error "ndarray.hh: define only one of NPYGL_NUMPY_API_(EXPORT|IMPORT)"
 #endif  // !defined(NPYGL_NUMPY_API_EXPORT) || defined(NPYGL_NUMPY_API_IMPORT)
 
 // ensure clean against NumPy C API deprecations
@@ -474,4 +474,4 @@ inline std::span<T> make_span(PyArrayObject* arr) noexcept
 
 }  // namespace npygl
 
-#endif  // NPYGL_NPY_HELPERS_HH_
+#endif  // NPYGL_NDARRAY_HH_
