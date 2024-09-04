@@ -13,8 +13,8 @@ Python interpreter.
 
 Also provides a facility enabling ownership of arbitrary C++ objects with
 `Python capsules`_ by move construction via `placement new`_. Object type can
-be queried dynamically at runtime (which requires compilation with RTTI) to
-enable proper casting and dereferencing of the stored ``void*``.
+be queried dynamically at runtime (which requires compilation with RTTI) so
+the stored ``void*`` can be cast and dereferenced safely inside functions.
 
 .. __: https://docs.python.org/3/extending/extending.html
 .. _SWIG: https://www.swig.org/
