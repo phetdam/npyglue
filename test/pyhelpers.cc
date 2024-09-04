@@ -97,7 +97,7 @@ auto capsule_map(
  *
  * Currently this only works with the capsule returned by `capsule_map`.
  */
-PyObject* cc_capsule_str(PyObject* NPYGL_UNUSED(self), PyObject* obj) noexcept
+PyObject* capsule_str(PyObject* NPYGL_UNUSED(self), PyObject* obj) noexcept
 {
   // get capsule view
   npygl::cc_capsule_view view{obj};
@@ -117,6 +117,19 @@ PyObject* cc_capsule_str(PyObject* NPYGL_UNUSED(self), PyObject* obj) noexcept
   std::stringstream ss;
   ss << *view.as<capsule_map_type>();
   return PyUnicode_FromString(ss.str().c_str());
+}
+
+/**
+ * Function that returns a string giving the type of the capsule's C++ object.
+ */
+PyObject* capsule_type(PyObject* NPYGL_UNUSED(self), PyObject* obj) noexcept
+{
+  // get capsule view
+  npygl::cc_capsule_view view{obj};
+  if (!view)
+    return nullptr;
+  // return type as string
+  return PyUnicode_FromString(view.info()->name());
 }
 
 // function docstrings
@@ -163,8 +176,8 @@ PyDoc_STRVAR(
   "PyCapsule"
 );
 PyDoc_STRVAR(
-  cc_capsule_str_doc,
-  "cc_capsule_str(o)\n"
+  capsule_str_doc,
+  "capsule_str(o)\n"
   NPYGL_CLINIC_MARKER
   "Return the string representation of the C++ object owned by the capsule.\n"
   "\n"
@@ -176,13 +189,33 @@ PyDoc_STRVAR(
   "str\n"
   "    String representation of the owned C++ object"
 );
+PyDoc_STRVAR(
+  capsule_type_doc,
+  "capsule_type(o)\n"
+  NPYGL_CLINIC_MARKER
+  "Return the type name of the C++ object owned by the capsule.\n"
+  "\n"
+  ".. note::\n"
+  "\n"
+  "   Currently the returned type name is not demangled from the Itanium ABI\n"
+  "   specification for what the mangled C++ type name should be.\n"
+  "\n"
+  NPYGL_NPYDOC_PARAMETERS
+  "o : PyCapsule\n"
+  "    Python capsule object following the ``cc_capsule_view`` protocol\n"
+  "\n"
+  NPYGL_NPYDOC_RETURNS
+  "str\n"
+  "    String giving the type name of the owned C++ object"
+);
 
 // module method table
 PyMethodDef mod_methods[] = {
   {"parse_args_1", parse_args<1>, METH_VARARGS, parse_args_1_doc},
   {"parse_args_3", parse_args<3>, METH_VARARGS, parse_args_3_doc},
   {"capsule_map", capsule_map, METH_NOARGS, capsule_map_doc},
-  {"cc_capsule_str", cc_capsule_str, METH_O, cc_capsule_str_doc},
+  {"capsule_str", capsule_str, METH_O, capsule_str_doc},
+  {"capsule_type", capsule_type, METH_O, capsule_type_doc},
   {}  // zero-initialized sentinel member
 };
 
