@@ -196,7 +196,7 @@ public:
    *
    * If the object is not a `PyCapsule` whose name matches `cc_capsule_name`,
    * e.g. it does not follow the `cc_capsule_view` protocol, the view will be
-   * invalid and a Python exception is set. Otherwise, the capsule view is valid.
+   * invalid and a Python exception is set. Otherwise, the view is valid.
    *
    * @param obj Python object
    */
