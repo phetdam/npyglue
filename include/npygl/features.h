@@ -55,4 +55,12 @@
 
 // TODO: add C standards support
 
+// compiling with RTTI or not
+// TODO: C++ capsule functionality requires RTTI; should we enforce?
+#if defined(_CPPRTTI) || defined(__GXX_RTTI)  // MSVC, GCC-like
+#define NPYGL_HAS_RTTI 1
+#else
+#define NPYGL_HAS_RTTI 0
+#endif  // !defined(_CPPRTTI) && !defined(__GXX_RTTI)
+
 #endif  // NPYGL_FEATURES_H_
