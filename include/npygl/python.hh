@@ -449,6 +449,29 @@ public:
   }
 
   /**
+   * Create a named Python capsule object.
+   *
+   * See the Python 3 documentation on capsules for more details.
+   *
+   * On error, the created object is empty and a Python exception is set.
+   *
+   * @param data Pointer to arbitrary data
+   * @param name Capsule object name with lifetime >= that of the capsule
+   * @param dtor Capsule destructor (must be `noexcept`)
+   */
+  static auto create(
+    void* data, const char* name, PyCapsule_Destructor dtor = nullptr) noexcept
+  {
+    // silence C5039
+    // TODO: maybe create a noexcept equivalent to PyCapsule_Destructor in
+    // order to force user-defined dtors to be noexcept
+NPYGL_MSVC_WARNING_PUSH()
+NPYGL_MSVC_WARNING_DISABLE(5039)
+    return py_object{PyCapsule_New(data, nullptr, dtor)};
+NPYGL_MSVC_WARNING_POP()
+  }
+
+  /**
    * Create an unnamed Python capsule object.
    *
    * See the Python 3 documentation on capsules for more details.
@@ -460,13 +483,7 @@ public:
    */
   static auto create(void* data, PyCapsule_Destructor dtor = nullptr) noexcept
   {
-    // silence C5039
-    // TODO: maybe create a noexcept equivalent to PyCapsule_Destructor in
-    // order to force user-defined dtors to be noexcept
-NPYGL_MSVC_WARNING_PUSH()
-NPYGL_MSVC_WARNING_DISABLE(5039)
-    return py_object{PyCapsule_New(data, nullptr, dtor)};
-NPYGL_MSVC_WARNING_POP()
+    return create(data, nullptr, dtor);
   }
 
   /**
