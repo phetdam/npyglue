@@ -15,7 +15,7 @@
 #include "npygl/common.h"
 // TODO: currently this module only tests the non-NumPy Python C++ helpers
 // #include "npygl/npy_helpers.hh"  // includes <numpy/ndarrayobject.h>
-#include "npygl/python.hh"
+#include "npygl/py_helpers.hh"
 
 // module name
 #define MODULE_NAME pyhelpers

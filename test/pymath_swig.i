@@ -51,7 +51,7 @@
 
 #include "npygl/features.h"
 #include "npygl/npy_helpers.hh"  // includes <numpy/ndarrayobject.h>
-#include "npygl/python.hh"
+#include "npygl/py_helpers.hh"
 #include "npygl/testing/math.hh"
 
 #if NPYGL_HAS_CC_20

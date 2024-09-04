@@ -1,12 +1,12 @@
 /**
- * @file python.hh
+ * @file py_helpers.hh
  * @author Derek Huang
  * @brief C++ header for Python C API helpers
  * @copyright MIT License
  */
 
-#ifndef NPYGL_PYTHON_HH_
-#define NPYGL_PYTHON_HH_
+#ifndef NPYGL_PY_HELPERS_HH_
+#define NPYGL_PY_HELPERS_HH_
 
 // as mentioned in Python C API docs, this goes before standard headers
 #ifndef PY_SSIZE_T_CLEAN
@@ -1186,4 +1186,4 @@ inline auto& operator<<(std::ostream& out, const py_object& obj)
 
 }  // namespace npygl
 
-#endif  // NPYGL_PYTHON_HH_
+#endif  // NPYGL_PY_HELPERS_HH_
