@@ -90,6 +90,14 @@ else()
     message(STATUS "SWIG version: None")
 endif()
 
+# find Eigen 3 (need config mode typically)
+find_package(Eigen3 3.4.0 CONFIG)
+if(Eigen3_FOUND)
+    message(STATUS "Eigen3 version: ${Eigen3_VERSION}")
+else()
+    message(STATUS "Eigen3 version: None")
+endif()
+
 # compile flags. we do this after any FetchContent calls so that we don't
 # interfere with any compile flags that dependency targets require
 if(MSVC)

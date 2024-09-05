@@ -63,4 +63,20 @@
 #define NPYGL_HAS_RTTI 0
 #endif  // !defined(_CPPRTTI) && !defined(__GXX_RTTI)
 
+// check if __has_include is available
+#if defined(__has_include)
+#define NPYGL_HAS_INCLUDE_CHECK 1
+#else
+#define NPYGL_HAS_INCLUDE_CHECK 0
+#endif  // !defined(__has_include)
+
+// check if we have Eigen 3 available by looking for its signature file
+#if NPYGL_HAS_INCLUDE_CHECK
+#if __has_include(<signature_of_eigen3_matrix_library>)
+#define NPYGL_HAS_EIGEN3 1
+#else
+#define NPYGL_HAS_EIGEN3 0
+#endif  // !__has_include(<signature_of_eigen3_matrix_library>)
+#endif  // NPYGL_HAS_INCLUDE_CHECK
+
 #endif  // NPYGL_FEATURES_H_
