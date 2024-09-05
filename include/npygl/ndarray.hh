@@ -338,7 +338,8 @@ inline auto make_ndarray(PyObject* obj) noexcept
  * Create a 1D NumPy array backed by a C++ vector with C memory layout.
  *
  * The backing Python object is a `PyCapsule` following the `cc_capsule_view`
- * protocol that manages the moved C++ vector.
+ * protocol that manages the moved C++ vector. Upon creation of the NumPy array
+ * its array flags will be equivalent to `NPY_ARRAY_DEFAULT`.
  *
  * On error the `py_object` is empty and a Python exception is set.
  *
@@ -377,7 +378,9 @@ py_object make_ndarray(std::vector<T, A>&& vec) noexcept
  * Create a 2D NumPy array backed by an Eigen 3 matrix object.
  *
  * The backing Python object is a `PyCapsule` following the `cc_capsule_view`
- * protocol that manages a moved `Eigen::Matrix` class.
+ * protocol that manages a moved `Eigen::Matrix` class. Upon creation of the
+ * NumPy array its flags will have `NPY_ARRAY_BEHAVED` and then one of
+ * `NPY_ARRAY_C_CONTIGUOUS` or `NPY_ARRAY_F_CONTIGUOUS`.
  *
  * On error the `py_object` is empty and a Python exception is set.
  *
