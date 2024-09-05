@@ -37,6 +37,7 @@ int main()
       {6.7774f, 4.87f, 9.875f, 3.22f}
     }
   );
+  npygl::py_error_exit();
   // create a NumPy array backed by an Eigen row-major matrix
   auto ec_ar = npygl::make_ndarray(
     Eigen::Matrix<
