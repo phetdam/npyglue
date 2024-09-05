@@ -53,6 +53,10 @@ if(Python3_Development_FOUND AND Python3_NumPy_FOUND)
         LIBRARIES Python3::NumPy
         USE_RELEASE_CRT ${PY_MSVC_ALWAYS_RELEASE}
     )
+    # enable Eigen features if available
+    if(Eigen3_FOUND)
+        target_link_libraries(npy_capsule_test PRIVATE Eigen3::Eigen)
+    endif()
     add_test(NAME npy_capsule_test COMMAND npy_capsule_test)
 endif()
 

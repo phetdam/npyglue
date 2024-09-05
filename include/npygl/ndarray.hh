@@ -64,6 +64,11 @@
 #include <span>
 #endif  // !NPYGL_HAS_CC_20
 
+// Eigen 3 if desired
+#if NPYGL_HAS_EIGEN3 && !defined(NPYGL_NO_EIGEN3)
+#include <Eigen/Core>
+#endif  // NPYGL_HAS_EIGEN3 && !defined(NPYGL_NO_EIGEN3)
+
 namespace npygl {
 
 /**
@@ -365,6 +370,71 @@ py_object make_ndarray(std::vector<T, A>&& vec) noexcept
   // success
   return ar;
 }
+
+// enable if we have Eigen 3 unless NPYGL_NO_EIGEN3 is defined
+#if NPYGL_HAS_EIGEN3 && !defined(NPYGL_NO_EIGEN3)
+/**
+ * Create a 2D NumPy array backed by an Eigen 3 matrix object.
+ *
+ * The backing Python object is a `PyCapsule` following the `cc_capsule_view`
+ * protocol that manages a moved `Eigen::Matrix` class.
+ *
+ * On error the `py_object` is empty and a Python exception is set.
+ *
+ * @tparam T Element type
+ * @tparam R Number of rows
+ * @tparam C Number of columns
+ * @tparam O Matrix options
+ * @tparam RMax Max number of rows
+ * @tparam CMax max number of columns
+ */
+template <typename T, int R, int C, int O, int RMax, int RMin>
+py_object make_ndarray(Eigen::Matrix<T, R, C, O, RMax, RMin>&& mat) noexcept
+{
+  using M = Eigen::Matrix<T, R, C, O, RMax, RMin>;
+  // create capsule
+  auto capsule = py_object::create(std::move(mat));
+  if (!capsule)
+    return {};
+  // capsule view (should not error)
+  cc_capsule_view view{capsule};
+  if (!view)
+    return {};
+  // pointer to managed matrix + create dims
+  auto cap_mat = view.as<M>();
+  npy_intp dims[2];
+  dims[0] = cap_mat->rows();
+  dims[1] = cap_mat->cols();
+  // data order. Eigen matrices are column major by default
+  constexpr auto order = []
+  {
+    if constexpr (O & Eigen::StorageOptions::RowMajor)
+      return NPY_ARRAY_C_CONTIGUOUS;
+    else
+      return NPY_ARRAY_F_CONTIGUOUS;
+  }();
+  // create new 2D NumPy array from the matrix data buffer
+  py_object ar{
+    PyArray_New(
+      &PyArray_Type,               // subtype
+      sizeof dims / sizeof *dims,  // nd
+      dims,                        // dims
+      npy_typenum<T>,              // type_num
+      nullptr,                     // strides
+      cap_mat->data(),             // data
+      0,                           // itemsize (ignored)
+      order | NPY_ARRAY_BEHAVED,   // flags (Eigen matrix buffers are aligned)
+      nullptr                      // obj (ignored)
+    )
+  };
+  if (!ar)
+    return {};
+  // set base object so NumPy array owns the capsule
+  if (PyArray_SetBaseObject(ar.as<PyArrayObject>(), capsule.release()) < 0)
+    return {};
+  return ar;
+}
+#endif  // NPYGL_HAS_EIGEN3 && !defined(NPYGL_NO_EIGEN3)
 
 /**
  * Lightweight flat view of a NumPy array.
