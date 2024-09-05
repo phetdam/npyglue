@@ -132,8 +132,10 @@ enum {
 
 /**
  * Test function for creating opaque capsule objects.
+ *
+ * @todo Consider making this a function try block.
  */
-PyObject* make_capsule(PyObject* NPYGL_UNUSED(self), PyObject* obj) noexcept
+PyObject* make_capsule(PyObject* NPYGL_UNUSED(self), PyObject* obj)
 {
   using npygl::py_object;
   // parse object type to create
@@ -189,9 +191,42 @@ PyObject* make_capsule(PyObject* NPYGL_UNUSED(self), PyObject* obj) noexcept
 }
 
 /**
- * Test function that takes a C++ object capsule and returns it as a string.
+ * Return a Python string representation for the capsule view's C++ object.
  *
- * Currently this only works with the capsule returned by `capsule_map`.
+ * On error the returned `py_object` is empty and a Python exception is set.
+ *
+ * @tparam Ts... Type to consider with an `operator<<` overload
+ *
+ * @param view C++ capsule view
+ */
+template <typename... Ts>
+auto capsule_view_format(const npygl::cc_capsule_view& view)
+{
+  npygl::py_object res;
+  (
+    ...
+    &&
+    [&res, &view]
+    {
+      // not correct type so keep going
+      if (!view.is<Ts>())
+        return true;
+      // format as string
+      std::stringstream ss;
+      ss << *view.as<Ts>();
+      res = npygl::py_object{PyUnicode_FromString(ss.str().c_str())};
+      return false;
+    }()
+  );
+  // if not populated, something is wrong. set Python exception if no Python
+  // exception is set (just the case that none of the types match)
+  if (!res && !PyErr_Occurred())
+    PyErr_SetString(PyExc_TypeError, "capsule view type is not supported");
+  return res;
+}
+
+/**
+ * Test function that takes a C++ object capsule and returns it as a string.
  */
 PyObject* capsule_str(PyObject* NPYGL_UNUSED(self), PyObject* obj) noexcept
 {
@@ -199,20 +234,15 @@ PyObject* capsule_str(PyObject* NPYGL_UNUSED(self), PyObject* obj) noexcept
   npygl::cc_capsule_view view{obj};
   if (!view)
     return nullptr;
-  // check type
-  // note: in the future, we can iterate through types
-  if (!view.is<capsule_map_type>()) {
-    // note: could throw but only in extreme conditions
-    std::stringstream ss;
-    ss << NPYGL_PRETTY_FUNCTION_NAME <<
-      ": capsule view type is not the expected " << view.info()->name();
-    PyErr_SetString(PyExc_TypeError, ss.str().c_str());
-    return nullptr;
-  }
-  // format as string
-  std::stringstream ss;
-  ss << *view.as<capsule_map_type>();
-  return PyUnicode_FromString(ss.str().c_str());
+  // check type and return string representation if possible
+  return capsule_view_format<
+    capsule_map_type,
+    std::vector<double>,
+#if NPYGL_HAS_EIGEN3
+    Eigen::MatrixXf,
+#endif  // NPYGL_HAS_EIGEN3
+    std::vector<capsule_map_type>
+  >(view).release();
 }
 
 /**
@@ -304,6 +334,9 @@ PyDoc_STRVAR(
   "capsule_str(o)\n"
   NPYGL_CLINIC_MARKER
   "Return the string representation of the C++ object owned by the capsule.\n"
+  "\n"
+  "This function only supports the C++ types corresponding to the capsules\n"
+  "created by the ``make_capsule`` module function.\n"
   "\n"
   NPYGL_NPYDOC_PARAMETERS
   "o : PyCapsule\n"
