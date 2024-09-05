@@ -78,6 +78,9 @@ if(Python3_Development_FOUND)
         SOURCES pyhelpers.cc
         USE_RELEASE_CRT ${PY_MSVC_ALWAYS_RELEASE}
     )
+    if(Eigen3_FOUND)
+        target_link_libraries(pyhelpers PRIVATE Eigen3::Eigen)
+    endif()
     # TODO: add test script
 endif()
 

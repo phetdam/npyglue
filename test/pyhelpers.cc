@@ -12,11 +12,17 @@
 #include <map>
 #include <ostream>
 #include <utility>
+#include <vector>
 
 #include "npygl/common.h"
+#include "npygl/features.h"
 // TODO: currently this module only tests the non-NumPy Python C++ helpers
 // #include "npygl/ndarray.hh"  // includes <numpy/ndarrayobject.h>
 #include "npygl/python.hh"
+
+#if NPYGL_HAS_EIGEN3
+#include <Eigen/Core>
+#endif  // NPYGL_HAS_EIGEN3
 
 // module name
 #define MODULE_NAME pyhelpers
@@ -90,6 +96,96 @@ auto capsule_map(
     {"d", 45.1111}
   };
   return npygl::py_object::create(std::move(map)).release();
+}
+
+/**
+ * `operator<<` overload for a vector.
+ *
+ * @tparam T Element type
+ * @tparam A Allocator type
+ */
+template <typename T, typename A>
+auto& operator<<(std::ostream& out, const std::vector<T, A>& vec)
+{
+  out << '[';
+  for (auto it = vec.begin(); it != vec.end(); it++) {
+    if (std::distance(vec.begin(), it))
+      out << ", ";
+    out << *it;
+  }
+  return out << ']';
+}
+
+/**
+ * Enum to control what kind of C++ object capsule is created by `make_capsule`.
+ *
+ * The naming convention uses `UPPER_CASE` to mirror Python naming convention.
+ */
+enum {
+  CAPSULE_STD_MAP = 1,
+  CAPSULE_STD_VECTOR = 2,
+#if NPYGL_HAS_EIGEN3
+  CAPSULE_EIGEN3_MATRIX = 3,
+#endif  // NPYGL_HAS_EIGEN3
+  CAPSULE_STD_MAP_VECTOR = 4
+};
+
+/**
+ * Test function for creating opaque capsule objects.
+ */
+PyObject* make_capsule(PyObject* NPYGL_UNUSED(self), PyObject* obj) noexcept
+{
+  using npygl::py_object;
+  // parse object type to create
+  auto type = PyLong_AsLong(obj);
+  if (PyErr_Occurred())
+    return nullptr;
+  // switch
+  switch (type) {
+    case CAPSULE_STD_MAP:
+    {
+      capsule_map_type map{
+        {"a", 3.444},
+        {"e", 2.71828},
+        {"pi", 3.14159265358979},
+        {"d", 45.1111}
+      };
+      return py_object::create(std::move(map)).release();
+    }
+    case CAPSULE_STD_VECTOR:
+    {
+      std::vector vec{4.3, 3.222, 4.12, 1.233, 1.66, 6.55, 77.333};
+      return py_object::create(std::move(vec)).release();
+    }
+#if NPYGL_HAS_EIGEN3
+    case CAPSULE_EIGEN3_MATRIX:
+    {
+      Eigen::MatrixXf mat{
+        {3.4f, 1.222f, 5.122f, 1.22f},
+        {6.44f, 3.21f, 5.345f, 9.66f},
+        {6.244f, 3.414f, 1.231f, 4.85f}
+      };
+      return py_object::create(std::move(mat)).release();
+    }
+#endif  // NPYGL_HAS_EIGEN3
+    case CAPSULE_STD_MAP_VECTOR:
+    {
+      std::vector<capsule_map_type> vec{
+        {{"a", 2.3}, {"b", 1.222}, {"c", 4.6334}, {"d", 7.541}},
+        {{"one", 1.}, {"two", 2.}, {"three", 3.}},
+        {{"A", 1.23}, {"B", 5.443}, {"C", 1.21}, {"D", 1.5523}, {"E", 231.22}}
+      };
+      return py_object::create(std::move(vec)).release();
+    }
+    default:
+      break;
+  }
+  // unknown enum value
+  PyErr_SetString(
+    PyExc_ValueError,
+    ("Unknown capsule creation value " + std::to_string(type)).c_str()
+  );
+  return nullptr;
 }
 
 /**
@@ -175,6 +271,34 @@ PyDoc_STRVAR(
   NPYGL_NPYDOC_RETURNS
   "PyCapsule"
 );
+// macro to support conditional docstring indication of whether or not an
+// Eigen3 matrix capsule object can be created
+#if NPYGL_HAS_EIGEN3
+#define MAKE_CAPSULE_EIGEN3_MATRIX_OPTION "    ``CAPSULE_EIGEN3_MATRIX``\n"
+#else
+#define MAKE_CAPSULE_EIGEN3_MATRIX_OPTION ""
+#endif  // !NPYGL_HAS_EIGEN3
+PyDoc_STRVAR(
+  make_capsule_doc,
+  "make_capsule(type)\n"
+  NPYGL_CLINIC_MARKER
+  "Return an opaque capsule object owning a C++ object.\n"
+  "\n"
+  "The C++ object created and owned is controlled by ``type``.\n"
+  "\n"
+  NPYGL_NPYDOC_PARAMETERS
+  "type : int\n"
+  "    Integral constant to indicate what capsule creation operation should\n"
+  "    executed. The accepted options are the following:\n"
+  "\n"
+  "    ``CAPSULE_STD_MAP``\n"
+  "    ``CAPSULE_STD_VECTOR``\n"
+  MAKE_CAPSULE_EIGEN3_MATRIX_OPTION
+  "    ``CAPSULE_STD_MAP_VECTOR``\n"
+  "\n"
+  NPYGL_NPYDOC_RETURNS
+  "PyCapsule"
+);
 PyDoc_STRVAR(
   capsule_str_doc,
   "capsule_str(o)\n"
@@ -214,6 +338,7 @@ PyMethodDef mod_methods[] = {
   {"parse_args_1", parse_args<1>, METH_VARARGS, parse_args_1_doc},
   {"parse_args_3", parse_args<3>, METH_VARARGS, parse_args_3_doc},
   {"capsule_map", capsule_map, METH_NOARGS, capsule_map_doc},
+  {"make_capsule", make_capsule, METH_O, make_capsule_doc},
   {"capsule_str", capsule_str, METH_O, capsule_str_doc},
   {"capsule_type", capsule_type, METH_O, capsule_type_doc},
   {}  // zero-initialized sentinel member
@@ -244,5 +369,17 @@ PyModuleDef mod_def = {
 PyMODINIT_FUNC
 NPYGL_CONCAT(PyInit_, MODULE_NAME)()
 {
-  return PyModule_Create(&mod_def);
+  // create module
+  npygl::py_object mod{PyModule_Create(&mod_def)};
+  if (!mod)
+    return nullptr;
+  // add capsule creation constants
+  if (PyModule_AddIntMacro(mod, CAPSULE_STD_MAP)) return nullptr;
+  if (PyModule_AddIntMacro(mod, CAPSULE_STD_VECTOR)) return nullptr;
+#if NPYGL_HAS_EIGEN3
+  if (PyModule_AddIntMacro(mod, CAPSULE_EIGEN3_MATRIX)) return nullptr;
+#endif  // NPYGL_HAS_EIGEN3
+  if (PyModule_AddIntMacro(mod, CAPSULE_STD_MAP_VECTOR)) return nullptr;
+  // done, create module
+  return mod.release();
 }
