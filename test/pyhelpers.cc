@@ -15,6 +15,7 @@
 #include <vector>
 
 #include "npygl/common.h"
+#include "npygl/demangle.hh"
 #include "npygl/features.h"
 // TODO: currently this module only tests the non-NumPy Python C++ helpers
 // #include "npygl/ndarray.hh"  // includes <numpy/ndarrayobject.h>
@@ -374,8 +375,8 @@ NPYGL_PY_FUNC_DECLARE(
   npygl::cc_capsule_view view{obj};
   if (!view)
     return nullptr;
-  // return type as string
-  return PyUnicode_FromString(view.info()->name());
+  // return type as string from the demangled name
+  return PyUnicode_FromString(npygl::demangle(view.info()).c_str());
 }
 
 NPYGL_PY_FUNC_DECLARE(
