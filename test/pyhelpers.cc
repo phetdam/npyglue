@@ -191,58 +191,86 @@ PyObject* make_capsule(PyObject* NPYGL_UNUSED(self), PyObject* obj)
 }
 
 /**
- * Return a Python string representation for the capsule view's C++ object.
+ * String representation formatter for a capsule view's C++ object.
  *
- * On error the returned `py_object` is empty and a Python exception is set.
- *
- * @tparam Ts... Type to consider with an `operator<<` overload
- *
- * @param view C++ capsule view
+ * @tparam Ts... Types with `operator<<` overloads to consider
  */
 template <typename... Ts>
-auto capsule_view_format(const npygl::cc_capsule_view& view)
-{
-  npygl::py_object res;
-  (
-    ...
-    &&
-    [&res, &view]
-    {
-      // not correct type so keep going
-      if (!view.is<Ts>())
-        return true;
-      // format as string
-      std::stringstream ss;
-      ss << *view.as<Ts>();
-      res = npygl::py_object{PyUnicode_FromString(ss.str().c_str())};
-      return false;
-    }()
-  );
-  // if not populated, something is wrong. set Python exception if no Python
-  // exception is set (just the case that none of the types match)
-  if (!res && !PyErr_Occurred())
-    PyErr_SetString(PyExc_TypeError, "capsule view type is not supported");
-  return res;
-}
+struct capsule_view_formatter {
+  static_assert(sizeof...(Ts), "at least one type required");
+
+  /**
+   * Return a Python string representation for the capsule view's C++ object.
+   *
+   * On error the returned `py_object` is empty and a Python exception is set.
+   *
+   * @param view C++ capsule view
+   */
+  auto operator()(const npygl::cc_capsule_view& view) const
+  {
+    npygl::py_object res;
+    (
+      ...
+      &&
+      [&res, &view]
+      {
+        // not correct type so keep going
+        if (!view.is<Ts>())
+          return true;
+        // format as string
+        std::stringstream ss;
+        ss << *view.as<Ts>();
+        res = npygl::py_object{PyUnicode_FromString(ss.str().c_str())};
+        return false;
+      }()
+    );
+    // if not populated, something is wrong. set Python exception if no Python
+    // exception is set (just the case that none of the types match)
+    if (!res && !PyErr_Occurred())
+      PyErr_SetString(PyExc_TypeError, "capsule view type is not supported");
+    return res;
+  }
+};
+
+/**
+ * Formatter partial specialization for a tuple of types.
+ *
+ * This is useful since one cannot using-declare a parameter pack.
+ *
+ * @tparam Ts... Types with `operator<<` overloads to consider
+ */
+template <typename... Ts>
+struct capsule_view_formatter<std::tuple<Ts...>>
+  : capsule_view_formatter<Ts...> {};
+
+/**
+ * Inline global to present a function-like usage for the formatter.
+ *
+ * @tparam Ts... Types with `operator<<` overloads to consider
+ */
+template <typename... Ts>
+inline constexpr capsule_view_formatter<Ts...> capsule_view_format;
 
 /**
  * Test function that takes a C++ object capsule and returns it as a string.
  */
 PyObject* capsule_str(PyObject* NPYGL_UNUSED(self), PyObject* obj) noexcept
 {
-  // get capsule view
-  npygl::cc_capsule_view view{obj};
-  if (!view)
-    return nullptr;
-  // check type and return string representation if possible
-  return capsule_view_format<
+  // supported types
+  using supported_types = std::tuple<
     capsule_map_type,
     std::vector<double>,
 #if NPYGL_HAS_EIGEN3
     Eigen::MatrixXf,
 #endif  // NPYGL_HAS_EIGEN3
     std::vector<capsule_map_type>
-  >(view).release();
+  >;
+  // get capsule view
+  npygl::cc_capsule_view view{obj};
+  if (!view)
+    return nullptr;
+  // check type and return string representation if possible
+  return capsule_view_format<supported_types>(view).release();
 }
 
 /**
