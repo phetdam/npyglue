@@ -37,6 +37,8 @@ namespace {
  * If there is only one object then no exterior tuple is included.
  *
  * @tparam N Number of Python arguments to accept
+ *
+ * @param args Python argument tuple
  */
 template <std::size_t N>
 PyObject* parse_args(PyObject* args) noexcept

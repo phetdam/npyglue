@@ -65,9 +65,11 @@ npygl::py_object parse_ndarray(PyObject* args) noexcept
  * Python wrapper template for `array_double`.
  *
  * @tparam T Output element type
+ *
+ * @param args Python argument tuple
  */
 template <typename T>
-PyObject* array_double(PyObject* NPYGL_UNUSED(self), PyObject* args) noexcept
+PyObject* array_double(PyObject* args) noexcept
 {
   using npygl::testing::array_double;
   // create output array
@@ -84,13 +86,49 @@ PyObject* array_double(PyObject* NPYGL_UNUSED(self), PyObject* args) noexcept
   return ar.release();
 }
 
+NPYGL_PY_FUNC_DECLARE(
+  array_double,
+  "(ar)",
+  "Double the incoming input array.\n"
+  "\n"
+  NPYGL_NPYDOC_PARAMETERS
+  "ar : collections.Sequence\n"
+  "    Input sequence of numeric values to double\n"
+  "\n"
+  NPYGL_NPYDOC_RETURNS
+  "numpy.ndarray",
+  self, args) noexcept
+{
+  return array_double<double>(args);
+}
+
+NPYGL_PY_FUNC_DECLARE(
+  farray_double,
+  "(ar)",
+  "Double the incoming input array.\n"
+  "\n"
+  "The returned NumPy array will have ``dtype=float32``.\n"
+  "\n"
+  NPYGL_NPYDOC_PARAMETERS
+  "ar : collections.Sequence\n"
+  "    Input sequence of numeric values to double\n"
+  "\n"
+  NPYGL_NPYDOC_RETURNS
+  "numpy.ndarray",
+  self, args) noexcept
+{
+  return array_double<float>(args);
+}
+
 /**
  * Python wrapper template for `unit_compress`.
  *
  * @tparam T Output element type
+ *
+ * @param args Python argument tuple
  */
 template <typename T>
-PyObject* unit_compress(PyObject* NPYGL_UNUSED(self), PyObject* args) noexcept
+PyObject* unit_compress(PyObject* args) noexcept
 {
   using npygl::testing::unit_compress;
   // create output array
@@ -106,13 +144,49 @@ PyObject* unit_compress(PyObject* NPYGL_UNUSED(self), PyObject* args) noexcept
   return ar.release();
 }
 
+NPYGL_PY_FUNC_DECLARE(
+  unit_compress,
+  "(ar)",
+  "Compress incoming values into the range [-1, 1].\n"
+  "\n"
+  NPYGL_NPYDOC_PARAMETERS
+  "ar : collections.Sequence\n"
+  "    Input sequence of numeric values to compress\n"
+  "\n"
+  NPYGL_NPYDOC_RETURNS
+  "numpy.ndarray",
+  self, args) noexcept
+{
+  return unit_compress<double>(args);
+}
+
+NPYGL_PY_FUNC_DECLARE(
+  funit_compress,
+  "(ar)",
+  "Compress incoming values into the range [-1, 1].\n"
+  "\n"
+  "The returned NumPy array will have ``dtype=float32``.\n"
+  "\n"
+  NPYGL_NPYDOC_PARAMETERS
+  "ar : collections.Sequence\n"
+  "    Input sequence of numeric values to compress\n"
+  "\n"
+  NPYGL_NPYDOC_RETURNS
+  "numpy.ndarray",
+  self, args) noexcept
+{
+  return unit_compress<float>(args);
+}
+
 /**
  * Python wrapper template for `sine`.
  *
  * @tparam T Output element type
+ *
+ * @param args Python argument tuple
  */
 template <typename T>
-PyObject* sine(PyObject* NPYGL_UNUSED(self), PyObject* args) noexcept
+PyObject* sine(PyObject* args) noexcept
 {
   using npygl::testing::sine;
   // create output array
@@ -128,15 +202,51 @@ PyObject* sine(PyObject* NPYGL_UNUSED(self), PyObject* args) noexcept
   return ar.release();
 }
 
+NPYGL_PY_FUNC_DECLARE(
+  sine,
+  "(ar)",
+  "Apply the sine function to the input array.\n"
+  "\n"
+  NPYGL_NPYDOC_PARAMETERS
+  "ar : collections.Sequence\n"
+  "    Input sequence of numeric values to apply sine to\n"
+  "\n"
+  NPYGL_NPYDOC_RETURNS
+  "numpy.ndarray",
+  self, args) noexcept
+{
+  return sine<double>(args);
+}
+
+NPYGL_PY_FUNC_DECLARE(
+  fsine,
+  "(ar)",
+  "Apply the sine function to the input array.\n"
+  "\n"
+  "The returned NumPy array will have ``dtype=float32``.\n"
+  "\n"
+  NPYGL_NPYDOC_PARAMETERS
+  "ar : collections.Sequence\n"
+  "    Input sequence of numeric values to apply sine to\n"
+  "\n"
+  NPYGL_NPYDOC_RETURNS
+  "numpy.ndarray",
+  self, args) noexcept
+{
+  return sine<float>(args);
+}
+
 /**
  * Python wrapper template for `norm1`.
  *
  * @note Only intended to work with floating point types.
  *
  * @tparam T Output element type
+ *
+ * @param arg Python object
  */
 template <typename T>
-PyObject* norm1(PyObject* NPYGL_UNUSED(self), PyObject* arg) noexcept
+PyObject* norm1(PyObject* arg) noexcept
 {
   using npygl::testing::norm1;
   // input array (if possible, no copy is made)
@@ -153,15 +263,51 @@ PyObject* norm1(PyObject* NPYGL_UNUSED(self), PyObject* arg) noexcept
   return PyFloat_FromDouble(res);
 }
 
+NPYGL_PY_FUNC_DECLARE(
+  norm1,
+  "(ar)",
+  "Compute the 1-norm of the flattened input array.\n"
+  "\n"
+  NPYGL_NPYDOC_PARAMETERS
+  "ar : collections.Sequence\n"
+  "    Input sequence of numeric values to take 1-norm of\n"
+  "\n"
+  NPYGL_NPYDOC_RETURNS
+  "numpy.ndarray",
+  self, arg) noexcept
+{
+  return norm1<double>(arg);
+}
+
+NPYGL_PY_FUNC_DECLARE(
+  fnorm1,
+  "(ar)",
+  "Compute the 1-norm of the flattened input array.\n"
+  "\n"
+  "The returned NumPy array will have ``dtype=float32``.\n"
+  "\n"
+  NPYGL_NPYDOC_PARAMETERS
+  "ar : collections.Sequence\n"
+  "    Input sequence of numeric values to take 1-norm of\n"
+  "\n"
+  NPYGL_NPYDOC_RETURNS
+  "numpy.ndarray",
+  self, arg) noexcept
+{
+  return norm1<float>(arg);
+}
+
 /**
  * Python wrapper template for `norm2`.
  *
  * @note Only intended to work with floating point types.
  *
  * @tparam T Output element type
+ *
+ * @param arg Python argument
  */
 template <typename T>
-PyObject* norm2(PyObject* NPYGL_UNUSED(self), PyObject* arg) noexcept
+PyObject* norm2(PyObject* arg) noexcept
 {
   using npygl::testing::norm2;
   // input array (if possible, no copy is made)
@@ -178,15 +324,55 @@ PyObject* norm2(PyObject* NPYGL_UNUSED(self), PyObject* arg) noexcept
   return PyFloat_FromDouble(res);
 }
 
+NPYGL_PY_FUNC_DECLARE(
+  norm2,
+  "(ar)",
+  "Compute the 2-norm of the flattened input array.\n"
+  "\n"
+  "For matrices this would correspond to the Frobenius norm.\n"
+  "\n"
+  NPYGL_NPYDOC_PARAMETERS
+  "ar : collections.Sequence\n"
+  "    Input sequence of numeric values to take 2-norm of\n"
+  "\n"
+  NPYGL_NPYDOC_RETURNS
+  "numpy.ndarray",
+  self, arg) noexcept
+{
+  return norm2<double>(arg);
+}
+
+NPYGL_PY_FUNC_DECLARE(
+  fnorm2,
+  "(ar)",
+  "Compute the 2-norm of the flattened input array.\n"
+  "\n"
+  "For matrices this would correspond to the Frobenius norm.\n"
+  "\n"
+  "The returned NumPy array will have ``dtype=float32``.\n"
+  "\n"
+  NPYGL_NPYDOC_PARAMETERS
+  "ar : collections.Sequence\n"
+  "    Input sequence of numeric values to take 2-norm of\n"
+  "\n"
+  NPYGL_NPYDOC_RETURNS
+  "numpy.ndarray",
+  self, arg) noexcept
+{
+  return norm2<float>(arg);
+}
+
 /**
  * Python wrapper template for `inner`.
  *
  * @note Only intended to work with floating point types.
  *
  * @tparam T Output element type
+ *
+ * @param args Python argument tuple
  */
 template <typename T>
-PyObject* inner(PyObject* NPYGL_UNUSED(self), PyObject* args) noexcept
+PyObject* inner(PyObject* args) noexcept
 {
   using npygl::testing::inner;
   // parse input objects
@@ -216,155 +402,9 @@ PyObject* inner(PyObject* NPYGL_UNUSED(self), PyObject* args) noexcept
   return PyFloat_FromDouble(inner(v1, v2));
 }
 
-// wrapper method docstrings
-PyDoc_STRVAR(
-  array_double_doc,
-  "array_double(ar)\n"
-  NPYGL_CLINIC_MARKER
-  "Double the incoming input array.\n"
-  "\n"
-  NPYGL_NPYDOC_PARAMETERS
-  "ar : collections.Sequence\n"
-  "    Input sequence of numeric values to double\n"
-  "\n"
-  NPYGL_NPYDOC_RETURNS
-  "numpy.ndarray"
-);
-PyDoc_STRVAR(
-  farray_double_doc,
-  "farray_double(ar)\n"
-  NPYGL_CLINIC_MARKER
-  "Double the incoming input array.\n"
-  "\n"
-  "The returned NumPy array will have ``dtype=float32``.\n"
-  "\n"
-  NPYGL_NPYDOC_PARAMETERS
-  "ar : collections.Sequence\n"
-  "    Input sequence of numeric values to double\n"
-  "\n"
-  NPYGL_NPYDOC_RETURNS
-  "numpy.ndarray"
-);
-PyDoc_STRVAR(
-  unit_compress_doc,
-  "unit_compress(ar)\n"
-  NPYGL_CLINIC_MARKER
-  "Compress incoming values into the range [-1, 1].\n"
-  "\n"
-  NPYGL_NPYDOC_PARAMETERS
-  "ar : collections.Sequence\n"
-  "    Input sequence of numeric values to compress\n"
-  "\n"
-  NPYGL_NPYDOC_RETURNS
-  "numpy.ndarray"
-);
-PyDoc_STRVAR(
-  funit_compress_doc,
-  "funit_compress(ar)\n"
-  NPYGL_CLINIC_MARKER
-  "Compress incoming values into the range [-1, 1].\n"
-  "\n"
-  "The returned NumPy array will have ``dtype=float32``.\n"
-  "\n"
-  NPYGL_NPYDOC_PARAMETERS
-  "ar : collections.Sequence\n"
-  "    Input sequence of numeric values to compress\n"
-  "\n"
-  NPYGL_NPYDOC_RETURNS
-  "numpy.ndarray"
-);
-PyDoc_STRVAR(
-  sine_doc,
-  "sine(ar)\n"
-  NPYGL_CLINIC_MARKER
-  "Apply the sine function to the input array.\n"
-  "\n"
-  NPYGL_NPYDOC_PARAMETERS
-  "ar : collections.Sequence\n"
-  "    Input sequence of numeric values to apply sine to\n"
-  "\n"
-  NPYGL_NPYDOC_RETURNS
-  "numpy.ndarray"
-);
-PyDoc_STRVAR(
-  fsine_doc,
-  "fsine(ar)\n"
-  NPYGL_CLINIC_MARKER
-  "Apply the sine function to the input array.\n"
-  "\n"
-  "The returned NumPy array will have ``dtype=float32``.\n"
-  "\n"
-  NPYGL_NPYDOC_PARAMETERS
-  "ar : collections.Sequence\n"
-  "    Input sequence of numeric values to apply sine to\n"
-  "\n"
-  NPYGL_NPYDOC_RETURNS
-  "numpy.ndarray"
-);
-PyDoc_STRVAR(
-  norm1_doc,
-  "norm1(ar)\n"
-  NPYGL_CLINIC_MARKER
-  "Compute the 1-norm of the flattened input array.\n"
-  "\n"
-  NPYGL_NPYDOC_PARAMETERS
-  "ar : collections.Sequence\n"
-  "    Input sequence of numeric values to take 1-norm of\n"
-  "\n"
-  NPYGL_NPYDOC_RETURNS
-  "numpy.ndarray"
-);
-PyDoc_STRVAR(
-  fnorm1_doc,
-  "fnorm1(ar)\n"
-  NPYGL_CLINIC_MARKER
-  "Compute the 1-norm of the flattened input array.\n"
-  "\n"
-  "The returned NumPy array will have ``dtype=float32``.\n"
-  "\n"
-  NPYGL_NPYDOC_PARAMETERS
-  "ar : collections.Sequence\n"
-  "    Input sequence of numeric values to take 1-norm of\n"
-  "\n"
-  NPYGL_NPYDOC_RETURNS
-  "numpy.ndarray"
-);
-PyDoc_STRVAR(
-  norm2_doc,
-  "norm2(ar)\n"
-  NPYGL_CLINIC_MARKER
-  "Compute the 2-norm of the flattened input array.\n"
-  "\n"
-  "For matrices this would correspond to the Frobenius norm.\n"
-  "\n"
-  NPYGL_NPYDOC_PARAMETERS
-  "ar : collections.Sequence\n"
-  "    Input sequence of numeric values to take 2-norm of\n"
-  "\n"
-  NPYGL_NPYDOC_RETURNS
-  "numpy.ndarray"
-);
-PyDoc_STRVAR(
-  fnorm2_doc,
-  "fnorm2(ar)\n"
-  NPYGL_CLINIC_MARKER
-  "Compute the 2-norm of the flattened input array.\n"
-  "\n"
-  "For matrices this would correspond to the Frobenius norm.\n"
-  "\n"
-  "The returned NumPy array will have ``dtype=float32``.\n"
-  "\n"
-  NPYGL_NPYDOC_PARAMETERS
-  "ar : collections.Sequence\n"
-  "    Input sequence of numeric values to take 2-norm of\n"
-  "\n"
-  NPYGL_NPYDOC_RETURNS
-  "numpy.ndarray"
-);
-PyDoc_STRVAR(
-  inner_doc,
-  "inner(v1, v2)\n"
-  NPYGL_CLINIC_MARKER
+NPYGL_PY_FUNC_DECLARE(
+  inner,
+  "(v1, v2)",
   "Compute the vector inner product.\n"
   "\n"
   ".. note::\n"
@@ -379,12 +419,15 @@ PyDoc_STRVAR(
   "    Input sequence of numeric values to treat as a vector\n"
   "\n"
   NPYGL_NPYDOC_RETURNS
-  "float"
-);
-PyDoc_STRVAR(
-  finner_doc,
-  "finner(v1, v2)\n"
-  NPYGL_CLINIC_MARKER
+  "float",
+  self, args) noexcept
+{
+  return inner<double>(args);
+}
+
+NPYGL_PY_FUNC_DECLARE(
+  finner,
+  "(v1, v2)",
   "Compute the vector inner product.\n"
   "\n"
   "If NumPy arrays are used for input they should have ``dtype=float32``.\n"
@@ -406,24 +449,27 @@ PyDoc_STRVAR(
   "    Input sequence of numeric values to treat as a vector\n"
   "\n"
   NPYGL_NPYDOC_RETURNS
-  "float"
-);
+  "float",
+  self, args) noexcept
+{
+  return inner<float>(args);
+}
 
 // module method table
 PyMethodDef mod_methods[] = {
   // TODO: consider using METH_O for single-argument array functions
-  {"array_double", array_double<double>, METH_VARARGS, array_double_doc},
-  {"farray_double", array_double<float>, METH_VARARGS, farray_double_doc},
-  {"unit_compress", unit_compress<double>, METH_VARARGS, unit_compress_doc},
-  {"funit_compress", unit_compress<float>, METH_VARARGS, funit_compress_doc},
-  {"sine", sine<double>, METH_VARARGS, sine_doc},
-  {"fsine", sine<float>, METH_VARARGS, fsine_doc},
-  {"norm1", norm1<double>, METH_O, norm1_doc},
-  {"fnorm1", norm1<float>, METH_O, fnorm1_doc},
-  {"norm2", norm2<double>, METH_O, norm2_doc},
-  {"fnorm2", norm2<float>, METH_O, fnorm2_doc},
-  {"inner", inner<double>, METH_VARARGS, inner_doc},
-  {"finner", inner<float>, METH_VARARGS, finner_doc},
+  NPYGL_PY_FUNC_METHOD_DEF(array_double, METH_VARARGS),
+  NPYGL_PY_FUNC_METHOD_DEF(farray_double, METH_VARARGS),
+  NPYGL_PY_FUNC_METHOD_DEF(unit_compress, METH_VARARGS),
+  NPYGL_PY_FUNC_METHOD_DEF(funit_compress, METH_VARARGS),
+  NPYGL_PY_FUNC_METHOD_DEF(sine, METH_VARARGS),
+  NPYGL_PY_FUNC_METHOD_DEF(fsine, METH_VARARGS),
+  NPYGL_PY_FUNC_METHOD_DEF(norm1, METH_O),
+  NPYGL_PY_FUNC_METHOD_DEF(fnorm1, METH_O),
+  NPYGL_PY_FUNC_METHOD_DEF(norm2, METH_O),
+  NPYGL_PY_FUNC_METHOD_DEF(fnorm2, METH_O),
+  NPYGL_PY_FUNC_METHOD_DEF(inner, METH_VARARGS),
+  NPYGL_PY_FUNC_METHOD_DEF(finner, METH_VARARGS),
   {}  // zero-initialized sentinel member
 };
 
