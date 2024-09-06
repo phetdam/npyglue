@@ -60,7 +60,9 @@ inline auto demangle(
 }
 
 /**
- * Return the demangled type name as a string.
+ * Get the type name of the `std::type_info` into a heap-allocated buffer.
+ *
+ * @note This is only useful if you really want a `noexcept` guarantee.
  *
  * @param name Unique pointer with the null-terminated demangled name buffer
  * @param info Type info object
@@ -76,12 +78,16 @@ inline auto demangle(
 /**
  * Demangle the mangled type name.
  *
+ * The return value points to a null-terminated string that resides in
+ * thread-local storage and therefore should not be deallocated.
+ *
  * @param mangled_name The mangled type name
  */
-inline std::string demangle(const char* mangled_name)
+inline const char* demangle(const char* mangled_name)
 {
+  // note: thread local storage is very convenient here
 #if NPYGL_HAS_CXX_ABI_H
-  unique_malloc_ptr<char[]> buf;
+  thread_local unique_malloc_ptr<char[]> buf;
   // switch on status
   switch (demangle(buf, mangled_name)) {
     case 0:
@@ -98,16 +104,21 @@ inline std::string demangle(const char* mangled_name)
   return buf.get();
 #else
   // using MSVC as an example all we need is to copy the name
-  return mangled_name;
+  thread_local std::string name;
+  name = mangled_name;
+  return name.c_str();
 #endif  // !NPYGL_HAS_CXX_ABI_H
 }
 
 /**
- * Return the demangled type name as a string.
+ * Return the demangled type name as a null-terminated string.
+ *
+ * The return value points to a null-terminated string that resides in
+ * thread-local storage and therefore should not be deallocated.
  *
  * @param info Type info object
  */
-inline auto demangle(const std::type_info* info)
+inline auto type_name(const std::type_info* info)
 {
   return demangle(info->name());
 }
@@ -117,7 +128,7 @@ inline auto demangle(const std::type_info* info)
  *
  * @param info Type info object
  */
-inline auto demangle(const std::type_info& info)
+inline auto type_name(const std::type_info& info)
 {
   return demangle(info.name());
 }

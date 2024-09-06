@@ -375,8 +375,8 @@ NPYGL_PY_FUNC_DECLARE(
   npygl::cc_capsule_view view{obj};
   if (!view)
     return nullptr;
-  // return type as string from the demangled name
-  return PyUnicode_FromString(npygl::demangle(view.info()).c_str());
+  // return string from the demangled type name
+  return PyUnicode_FromString(npygl::type_name(view.info()));
 }
 
 NPYGL_PY_FUNC_DECLARE(
