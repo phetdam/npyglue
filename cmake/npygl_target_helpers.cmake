@@ -172,10 +172,16 @@ function(npygl_add_swig_py3_module)
     # dependencies file for the target
     set(DEPS_FILE ${OUTFILE_DIR}/${HOST_INTERFACE}.d)
     # C/C++ wrapper output file name + path following swig_add_library format
+    # FIXME: we add the SWIG version in case conflicting versions of SWIG are
+    # being used. this also serves as a hack to ensure that both WSL Ubuntu and
+    # Windows builds "remember" to re-run SWIG when the inputs change. what
+    # happens now is that since the files are overwritten, although the C++
+    # extension modules are recompiled, SWIG is not run again to generate the
+    # Python wrapper layer again, which means the build ends up stale.
     if(HOST_SWIG_CC)
-        set(OUTFILE_NAME ${HOST_TARGET}PYTHON_wrap.cxx)
+        set(OUTFILE_NAME ${HOST_TARGET}PYTHON_wrap${SWIG_VERSION}.cxx)
     else()
-        set(OUTFILE_NAME ${HOST_TARGET}PYTHON_wrap.c)
+        set(OUTFILE_NAME ${HOST_TARGET}PYTHON_wrap${SWIG_VERSION}.c)
     endif()
     set(OUTFILE_PATH ${OUTFILE_DIR}/${OUTFILE_NAME})
     # base SWIG compile options
