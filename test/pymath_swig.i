@@ -192,7 +192,7 @@ NPYGL_APPLY_FLAT_VIEW_IN_TYPEMAP(float, view)
   "    Input sequence of numeric values to take 1-norm of\n"
   "\n"
   NPYGL_NPYDOC_RETURNS
-  "numpy.ndarray"
+  "float"
 );
 %template(norm1) npygl::testing::norm1<double>;
 
@@ -207,7 +207,7 @@ NPYGL_APPLY_FLAT_VIEW_IN_TYPEMAP(float, view)
   "    Input sequence of numeric values to take 1-norm of\n"
   "\n"
   NPYGL_NPYDOC_RETURNS
-  "numpy.ndarray"
+  "float"
 );
 %template(fnorm1) npygl::testing::norm1<float>;
 
@@ -222,7 +222,7 @@ NPYGL_APPLY_FLAT_VIEW_IN_TYPEMAP(float, view)
   "    Input sequence of numeric values to take 2-norm of\n"
   "\n"
   NPYGL_NPYDOC_RETURNS
-  "numpy.ndarray"
+  "float"
 );
 %template(norm2) npygl::testing::norm2<double>;
 
@@ -239,7 +239,7 @@ NPYGL_APPLY_FLAT_VIEW_IN_TYPEMAP(float, view)
   "    Input sequence of numeric values to take 2-norm of\n"
   "\n"
   NPYGL_NPYDOC_RETURNS
-  "numpy.ndarray"
+  "float"
 );
 %template(fnorm2) npygl::testing::norm2<float>;
 
@@ -409,7 +409,40 @@ NPYGL_APPLY_NDARRAY_OUT_TYPEMAP((std::vector<float, std::allocator<float>>));
 // note: as mentioned previously, SWIG does understand namespaces
 namespace npygl::testing {
 
+%feature(
+  "autodoc",
+  "Return a 1D NumPy array of randomly generated values.\n"
+  "\n"
+  "The memory backing the returned array is held by a std::vector<double>.\n"
+  "\n"
+  NPYGL_NPYDOC_PARAMETERS
+  "n : int\n"
+  "    Number of elements to generate\n"
+  "type : rng_type, default=PRNG_MERSENNE\n"
+  "    PRNG generator to use (currently ignored)\n"
+  "\n"
+  NPYGL_NPYDOC_RETURNS
+  "numpy.ndarray\n"
+  "    Array shape ``(n,)`` of values"
+);
 %template(urand_vector) urand_vector<double, std::allocator<double>>;
+
+%feature(
+  "autodoc",
+  "Return a 1D NumPy array of randomly generated values.\n"
+  "\n"
+  "The memory backing the returned array is held by a std::vector<float>.\n"
+  "\n"
+  NPYGL_NPYDOC_PARAMETERS
+  "n : int\n"
+  "    Number of elements to generate\n"
+  "type : rng_type, default=PRNG_MERSENNE\n"
+  "    PRNG generator to use (currently ignored)\n"
+  "\n"
+  NPYGL_NPYDOC_RETURNS
+  "numpy.ndarray\n"
+  "    Array shape ``(n,)`` of values"
+);
 %template(furand_vector) urand_vector<float, std::allocator<float>>;
 
 }  // namespace npygl::testing
