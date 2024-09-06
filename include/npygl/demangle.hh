@@ -124,7 +124,10 @@ inline auto type_name(const std::type_info* info)
 }
 
 /**
- * Return the demangled type name as a string.
+ * Return the demangled type name as a null-terminated string.
+ *
+ * The return value points to a null-terminated string that resides in
+ * thread-local storage and therefore should not be deallocated.
  *
  * @param info Type info object
  */
