@@ -6,11 +6,7 @@ variant is loaded, e.g. hand vs. SWIG wrapped, default C++ vs. C++20 standard.
 .. codeauthor:: Derek Huang <djh458@stern.nyu.edu>
 """
 
-from argparse import (
-    ArgumentDefaultsHelpFormatter,
-    ArgumentParser,
-    RawDescriptionHelpFormatter
-)
+from argparse import ArgumentParser
 import importlib
 import os
 import sys
@@ -20,24 +16,14 @@ import unittest
 import numpy as np
 from numpy.testing import assert_allclose
 
-# add current working directory to import path
+# add current working directory + root directory to import path
 sys.path.insert(0, os.getcwd())
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+
+from npygl_utils import HelpFormatter
 
 # module handle. this is set by main() after looking at CLI options
 pm = None
-
-
-class HelpFormatter(ArgumentDefaultsHelpFormatter, RawDescriptionHelpFormatter):
-    """Custom ArgumentParser formatter class."""
-
-    # technically an implementation detail
-    def __init__(self, prog, indent_increment=2, max_help_position=24, width=80):
-        super().__init__(
-            prog,
-            indent_increment=indent_increment,
-            max_help_position=max_help_position,
-            width=width
-        )
 
 
 class TestArrayDouble(unittest.TestCase):
