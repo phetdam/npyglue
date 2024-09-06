@@ -254,10 +254,16 @@ function(npygl_add_swig_py3_module)
     if(MSVC)
         target_compile_options(
             ${HOST_TARGET} PRIVATE
+            # C4127: conditional expression is constant (SWIG doesn't use constexpr)
+            /wd4127
             # C4365: signed/unsigned mismatch during type conversion
             /wd4365
             # C4668: macro not defined, replacing with 0 (__GNUC__ not defined)
             /wd4668
+            # C4701: potentially uninitialized local variable (spurious)
+            /wd4701
+            # C4706: assignment within conditional expression (spurious)
+            /wd4706
         )
     endif()
     # use release VC++ C runtime if specified

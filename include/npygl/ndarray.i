@@ -18,6 +18,7 @@
 %{
 #include <exception>
 #include <stdexcept>
+#include <utility>
 
 #include <npygl/ndarray.hh>  // includes <numpy/ndarrayobject.h>
 #include <npygl/python.hh>
@@ -156,6 +157,32 @@ class ndarray_flat_view;
 %define NPYGL_CLEAR_FLAT_VIEW_TYPEMAPS(type)
 %clear npygl::ndarray_flat_view<type>;
 %enddef  // NPYGL_CLEAR_FLAT_VIEW_TYPEMAPS(type)
+
+/**
+ * Typemap macro for converting returned C++ objects into new NumPy arrays.
+ *
+ * @note If the `type` is a template instantiation you will need to wrap the
+ *  type in parentheses, e.g. with `(std::vector<T, std::allocator<T>>)`.
+ *
+ * @param type C/C++ object compatible with `npygl::make_ndarray`
+ */
+%define NPYGL_APPLY_NDARRAY_OUT_TYPEMAP(type)
+%typemap(out) type {
+  $result = npygl::make_ndarray(std::move($1)).release();
+}
+%enddef  // NPYGL_APPLYNDARRAY_OUT_TYPEMAP(type, allocator)
+
+/**
+ * Typemap clearing macro for a C++ object being returned as a NumPy array.
+ *
+ * @note If the `type` is a template instantiation you will need to wrap the
+ *  type in parentheses, e.g. with `(std::vector<T, std::allocator<T>>)`.
+ *
+ * @param type C/C++ object compatible with `npygl::make_ndarray`
+ */
+%define NPYGL_CLEAR_NDARRAY_OUT_TYPEMAP(type)
+%typemap(out) type;
+%enddef  // NPYGL_CLEAR_NDARRAY_OUT_TYPEMAP(type, allocator)
 
 /**
  * Typemap macro for converting Python input into a new read-only NumPy array.

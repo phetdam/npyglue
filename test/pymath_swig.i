@@ -341,6 +341,82 @@ inline T py_inner(ndarray_flat_view<T> v1, ndarray_flat_view<T> v2)
 );
 %template(finner) npygl::testing::py_inner<float>;
 
+// demonstration of wrapping a std::vector<T, A> into a NumPy array
+// TODO: will extend to feature Eigen::MatrixX[df] as well and when ready may
+// insert the matured methods into npygl/testing/math.hh
+%{
+#include <memory>
+#include <random>
+#include <vector>
+%}
+
+// uppercase enum members to follow Python convention
+%rename("%(upper)s", %$isenumitem) "";
+// TODO: not sure how to remove enum class name. we just rename for now
+%rename(PRNG) rng_type;
+
+%inline %{
+namespace npygl {
+namespace testing {
+
+/**
+ * Enumeration for selecting a PRNG to use.
+ *
+ * @note Currently unused. For virtual dispatch, we must create a CRTP base for
+ *  the different PRNG types that inherits from an abstract class modeling the
+ *  C++11 *UniformRandomBitGenerator* named requirement.
+ */
+enum class rng_type {
+  mersenne,     // Mersenne Twister
+  mersenne64,   // 64-bit Mersenne Twister
+  ranlux48      // 48-bit RANLUX
+};
+
+/**
+ * Function template that returns a random vector.
+ *
+ * @note SWIG's support for `auto` is still rather limited so we still spell
+ *  out the return type in its full glory.
+ *
+ * @tparam T Floating type
+ * @tparam A Allocator type
+ *
+ * @param n Vector size
+ * @param type PRNG type
+ */
+template <typename T, typename A = std::allocator<double>>
+std::vector<T, A> urand_vector(std::size_t n, rng_type type = rng_type::mersenne)
+{
+  (void) type;  // TODO: currently used but we will use it later
+  // [0, 1] distribution object + seeded PRNG
+  std::uniform_real_distribution<T> dist;
+  std::mt19937 prng{std::random_device{}()};
+  // allocate vector to return
+  std::vector<T, A> vec(n);
+  for (auto& v : vec)
+    v = dist(prng);
+  return vec;
+}
+
+}  // namespace testing
+}  // namespace npygl
+%}
+
+// must specify all template arguments as SWIG doesn't understand defaults
+NPYGL_APPLY_NDARRAY_OUT_TYPEMAP((std::vector<double, std::allocator<double>>));
+NPYGL_APPLY_NDARRAY_OUT_TYPEMAP((std::vector<float, std::allocator<float>>));
+
+// note: as mentioned previously, SWIG does understand namespaces
+namespace npygl::testing {
+
+%template(urand_vector) urand_vector<double, std::allocator<double>>;
+%template(furand_vector) urand_vector<float, std::allocator<float>>;
+
+}  // namespace npygl::testing
+
+NPYGL_CLEAR_NDARRAY_OUT_TYPEMAP((std::vector<double, std::allocator<double>>));
+NPYGL_CLEAR_NDARRAY_OUT_TYPEMAP((std::vector<float, std::allocator<float>>));
+
 NPYGL_DISABLE_EXCEPTION_HANDLER
 
 // clear
