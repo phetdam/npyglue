@@ -39,7 +39,7 @@ namespace {
  * @tparam N Number of Python arguments to accept
  */
 template <std::size_t N>
-PyObject* parse_args(PyObject* NPYGL_UNUSED(self), PyObject* args) noexcept
+PyObject* parse_args(PyObject* /*self*/, PyObject* args) noexcept
 {
   // parse the given number of Python objects
   PyObject* objs[N];
@@ -86,8 +86,7 @@ auto& operator<<(std::ostream& out, const capsule_map_type& map)
  *
  * @todo Make this a function try-block to catch all C++ exceptions.
  */
-auto capsule_map(
-  PyObject* NPYGL_UNUSED(self), PyObject* NPYGL_UNUSED(args)) noexcept
+auto capsule_map(PyObject* /*self*/, PyObject* /*args*/) noexcept
 {
   capsule_map_type map{
     {"a", 3.444},
@@ -135,7 +134,7 @@ enum {
  *
  * @todo Consider making this a function try block.
  */
-PyObject* make_capsule(PyObject* NPYGL_UNUSED(self), PyObject* obj)
+PyObject* make_capsule(PyObject* /*self*/, PyObject* obj)
 {
   using npygl::py_object;
   // parse object type to create
@@ -254,7 +253,7 @@ inline constexpr capsule_view_formatter<Ts...> capsule_view_format;
 /**
  * Test function that takes a C++ object capsule and returns it as a string.
  */
-PyObject* capsule_str(PyObject* NPYGL_UNUSED(self), PyObject* obj) noexcept
+PyObject* capsule_str(PyObject* /*self*/, PyObject* obj) noexcept
 {
   // supported types
   using supported_types = std::tuple<
@@ -276,7 +275,7 @@ PyObject* capsule_str(PyObject* NPYGL_UNUSED(self), PyObject* obj) noexcept
 /**
  * Function that returns a string giving the type of the capsule's C++ object.
  */
-PyObject* capsule_type(PyObject* NPYGL_UNUSED(self), PyObject* obj) noexcept
+PyObject* capsule_type(PyObject* /*self*/, PyObject* obj) noexcept
 {
   // get capsule view
   npygl::cc_capsule_view view{obj};
@@ -284,6 +283,24 @@ PyObject* capsule_type(PyObject* NPYGL_UNUSED(self), PyObject* obj) noexcept
     return nullptr;
   // return type as string
   return PyUnicode_FromString(view.info()->name());
+}
+
+/**
+ * Helper function that returns the Eigen3 version string.
+ *
+ * If not compiled with Eigen3 headers `None` is returned.
+ */
+PyObject* eigen3_version(PyObject* /*self*/, PyObject* /*args*/) noexcept
+{
+#if NPYGL_HAS_EIGEN3
+  return PyUnicode_FromString(
+    NPYGL_STRINGIFY(EIGEN_WORLD_VERSION) "."
+    NPYGL_STRINGIFY(EIGEN_MAJOR_VERSION) "."
+    NPYGL_STRINGIFY(EIGEN_MINOR_VERSION)
+  );
+#else
+  Py_RETURN_NONE;
+#endif  // !NPYGL_HAS_EIGEN3
 }
 
 // function docstrings
@@ -393,6 +410,17 @@ PyDoc_STRVAR(
   "str\n"
   "    String giving the type name of the owned C++ object"
 );
+PyDoc_STRVAR(
+  eigen3_version_doc,
+  "eigen3_version()\n"
+  NPYGL_CLINIC_MARKER
+  "Return the Eigen3 version string.\n"
+  "\n"
+  "If compiled without Eigen3 then ``None`` is returned instead.\n"
+  "\n"
+  NPYGL_NPYDOC_RETURNS
+  "Optional[str]"
+);
 
 // module method table
 PyMethodDef mod_methods[] = {
@@ -402,6 +430,7 @@ PyMethodDef mod_methods[] = {
   {"make_capsule", make_capsule, METH_O, make_capsule_doc},
   {"capsule_str", capsule_str, METH_O, capsule_str_doc},
   {"capsule_type", capsule_type, METH_O, capsule_type_doc},
+  {"eigen3_version", eigen3_version, METH_NOARGS, eigen3_version_doc},
   {}  // zero-initialized sentinel member
 };
 
