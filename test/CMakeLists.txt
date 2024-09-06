@@ -81,7 +81,13 @@ if(Python3_Development_FOUND)
     if(Eigen3_FOUND)
         target_link_libraries(pyhelpers PRIVATE Eigen3::Eigen)
     endif()
-    # TODO: add test script
+    # test script
+    add_test(
+        NAME pyhelpers_test
+        COMMAND python ${CMAKE_CURRENT_SOURCE_DIR}/pyhelpers_test.py
+        WORKING_DIRECTORY
+            ${CMAKE_BINARY_DIR}$<${NPYGL_MULTI_CONFIG_GENERATOR}:/$<CONFIG>>
+    )
 endif()
 
 # pymath: Python math functions module
