@@ -1346,7 +1346,7 @@ inline auto& operator<<(std::ostream& out, const py_object& obj)
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// Python dicstring helpers
+// Python docstring helpers                                                  //
 ///////////////////////////////////////////////////////////////////////////////
 
 /**
@@ -1367,6 +1367,86 @@ inline auto& operator<<(std::ostream& out, const py_object& obj)
  * Macro for starting the returns section of the NumPy docstring.
  */
 #define NPYGL_NPYDOC_RETURNS "Returns\n-------\n"
+
+///////////////////////////////////////////////////////////////////////////////
+// Python function registration helpers                                      //
+///////////////////////////////////////////////////////////////////////////////
+
+/**
+ * Macro for declaring a `PyCFunction`.
+ *
+ * The format of `argstr` is a tuple of comma-separated identifiers.
+ *
+ * @param name Function name
+ * @param argstr String literal of the format `"(...)"` representing arguments
+ * @param doc String literal docstring
+ * @param self Identifier for the first `PyObject*` argument (usually unused)
+ * @param args Identifier for the second `PyObject*` argument (actual args)
+ */
+#define NPYGL_PY_FUNC_DECLARE(name, argstr, doc, self, args) \
+  PyDoc_STRVAR( \
+    NPYGL_CONCAT(name, _doc), \
+    NPYGL_STRINGIFY(name) argstr "\n" NPYGL_CLINIC_MARKER doc); \
+  PyObject* name([[maybe_unused]] PyObject* self, [[maybe_unused]] PyObject* args)
+
+/**
+ * Create a `PyMethodDef` struct for a `PyCFunction`.
+ *
+ * @tparam Flags `PyMethodDef` flags to populate its `ml_flags` member
+ *
+ * @param name Function name
+ * @param func Function pointer
+ * @param doc Function docstring
+ */
+template <int Flags>
+constexpr PyMethodDef make_method_def(
+  const char* name, PyCFunction func, const char* doc) noexcept
+{
+  // must not have any other flags besides the allowed ones
+  static_assert(
+    !(
+      Flags &
+      ~METH_VARARGS &
+      ~METH_O &
+      ~METH_NOARGS &
+      ~METH_CLASS &
+      ~METH_STATIC &
+      ~METH_COEXIST
+    ),
+    "Flags contains a flag that is not METH_VARARGS, METH_O, METH_NOARGS, \
+METH_CLASS, METH_STATIC, METH_COEXIST"
+  );
+  // must have one of the required calling convention flags
+  static_assert(
+    (Flags & METH_VARARGS) || (Flags & METH_O) || (Flags & METH_NOARGS),
+    "Flags contain none of METH_VARARGS, METH_O, METH_NOARGS"
+  );
+  // each calling convention flag is mutually exclusive
+  static_assert(
+    !(Flags & METH_VARARGS) || (!(Flags & METH_O) && !(Flags & METH_NOARGS)),
+    "METH_VARARGS specified with other flags"
+  );
+  static_assert(
+    !(Flags & METH_O) || (!(Flags & METH_VARARGS) && !(Flags & METH_NOARGS)),
+    "METH_O specified with other flags"
+  );
+  static_assert(
+    !(Flags & METH_NOARGS) || (!(Flags & METH_VARARGS) && !(Flags & METH_O)),
+    "METH_NOARGS specified with other flags"
+  );
+  // build
+  return {name, func, Flags, doc};
+}
+
+/**
+ * Create a `PyMethodDef` from a function declared with `NPYGL_PY_FUNC_DECLARE`.
+ *
+ * @param name Function name
+ * @param flags `PyMethodDef` flags valid for a `PyCFunction`
+ */
+#define NPYGL_PY_FUNC_METHOD_DEF(name, flags) \
+  npygl::make_method_def<flags>( \
+    NPYGL_STRINGIFY(name), name, NPYGL_CONCAT(name, _doc))
 
 }  // namespace npygl
 

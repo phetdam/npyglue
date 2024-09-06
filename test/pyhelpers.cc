@@ -39,7 +39,7 @@ namespace {
  * @tparam N Number of Python arguments to accept
  */
 template <std::size_t N>
-PyObject* parse_args(PyObject* /*self*/, PyObject* args) noexcept
+PyObject* parse_args(PyObject* args) noexcept
 {
   // parse the given number of Python objects
   PyObject* objs[N];
@@ -53,6 +53,42 @@ PyObject* parse_args(PyObject* /*self*/, PyObject* args) noexcept
       return nullptr;
   // create tuple from the repr() results and return
   return npygl::py_object{rs}.release();
+}
+
+NPYGL_PY_FUNC_DECLARE(
+  parse_args_1,
+  "(o)",
+  "Return the ``repr(type(o))`` of the input ``o``.\n"
+  "\n"
+  NPYGL_NPYDOC_PARAMETERS
+  "o : object\n"
+  "    Input object\n"
+  "\n"
+  NPYGL_NPYDOC_RETURNS
+  "str",
+  self, args) noexcept
+{
+  return parse_args<1>(args);
+}
+
+NPYGL_PY_FUNC_DECLARE(
+  parse_args_3,
+  "(o1, o2, o3)",
+  "Return the ``repr(type(o))`` for each input ``o``.\n"
+  "\n"
+  NPYGL_NPYDOC_PARAMETERS
+  "o1 : object\n"
+  "    First input object\n"
+  "o2 : object\n"
+  "    Second input object\n"
+  "o3 : object\n"
+  "    Third input object\n"
+  "\n"
+  NPYGL_NPYDOC_RETURNS
+  "tuple[str]",
+  self, args) noexcept
+{
+  return parse_args<3>(args);
 }
 
 /**
@@ -79,14 +115,18 @@ auto& operator<<(std::ostream& out, const capsule_map_type& map)
   return out << "\n}";
 }
 
-/**
- * Test function for creating opaque capsule objects.
- *
- * Currently returns a fixed `std::map<std::string, double>`.
- *
- * @todo Make this a function try-block to catch all C++ exceptions.
- */
-auto capsule_map(PyObject* /*self*/, PyObject* /*args*/) noexcept
+// TODO: make this function a try-block to catch all C++ exceptions
+NPYGL_PY_FUNC_DECLARE(
+  capsule_map,
+  "()",
+  "Return an opaque capsule object owning a std::map<std::string, double>.\n"
+  "\n"
+  "The contained map cannot be manipulated at all from Python and will be\n"
+  "deleted when the last strong Python object reference is gone.\n"
+  "\n"
+  NPYGL_NPYDOC_RETURNS
+  "PyCapsule",
+  self, args) noexcept
 {
   capsule_map_type map{
     {"a", 3.444},
@@ -129,12 +169,34 @@ enum {
   CAPSULE_STD_MAP_VECTOR = 4
 };
 
-/**
- * Test function for creating opaque capsule objects.
- *
- * @todo Consider making this a function try block.
- */
-PyObject* make_capsule(PyObject* /*self*/, PyObject* obj)
+// macro to support conditional docstring indication of whether or not an
+// Eigen3 matrix capsule object can be created
+#if NPYGL_HAS_EIGEN3
+#define MAKE_CAPSULE_EIGEN3_MATRIX_OPTION "    ``CAPSULE_EIGEN3_MATRIX``\n"
+#else
+#define MAKE_CAPSULE_EIGEN3_MATRIX_OPTION ""
+#endif  // !NPYGL_HAS_EIGEN3
+// TODO: consider making this a function try block
+NPYGL_PY_FUNC_DECLARE(
+  make_capsule,
+  "(type)",
+  "Return an opaque capsule object owning a C++ object.\n"
+  "\n"
+  "The C++ object created and owned is controlled by ``type``.\n"
+  "\n"
+  NPYGL_NPYDOC_PARAMETERS
+  "type : int\n"
+  "    Integral constant to indicate what capsule creation operation should\n"
+  "    executed. The accepted options are the following:\n"
+  "\n"
+  "    ``CAPSULE_STD_MAP``\n"
+  "    ``CAPSULE_STD_VECTOR``\n"
+  MAKE_CAPSULE_EIGEN3_MATRIX_OPTION
+  "    ``CAPSULE_STD_MAP_VECTOR``\n"
+  "\n"
+  NPYGL_NPYDOC_RETURNS
+  "PyCapsule",
+  self, obj)
 {
   using npygl::py_object;
   // parse object type to create
@@ -253,7 +315,22 @@ inline constexpr capsule_view_formatter<Ts...> capsule_view_format;
 /**
  * Test function that takes a C++ object capsule and returns it as a string.
  */
-PyObject* capsule_str(PyObject* /*self*/, PyObject* obj) noexcept
+NPYGL_PY_FUNC_DECLARE(
+  capsule_str,
+  "(o)",
+  "Return the string representation of the C++ object owned by the capsule.\n"
+  "\n"
+  "This function only supports the C++ types corresponding to the capsules\n"
+  "created by the ``make_capsule`` module function.\n"
+  "\n"
+  NPYGL_NPYDOC_PARAMETERS
+  "o : PyCapsule\n"
+  "    Python capsule object following the ``cc_capsule_view`` protocol\n"
+  "\n"
+  NPYGL_NPYDOC_RETURNS
+  "str\n"
+  "    String representation of the owned C++ object",
+  self, obj) noexcept
 {
   // supported types
   using supported_types = std::tuple<
@@ -272,129 +349,9 @@ PyObject* capsule_str(PyObject* /*self*/, PyObject* obj) noexcept
   return capsule_view_format<supported_types>(view).release();
 }
 
-/**
- * Function that returns a string giving the type of the capsule's C++ object.
- */
-PyObject* capsule_type(PyObject* /*self*/, PyObject* obj) noexcept
-{
-  // get capsule view
-  npygl::cc_capsule_view view{obj};
-  if (!view)
-    return nullptr;
-  // return type as string
-  return PyUnicode_FromString(view.info()->name());
-}
-
-/**
- * Helper function that returns the Eigen3 version string.
- *
- * If not compiled with Eigen3 headers `None` is returned.
- */
-PyObject* eigen3_version(PyObject* /*self*/, PyObject* /*args*/) noexcept
-{
-#if NPYGL_HAS_EIGEN3
-  return PyUnicode_FromString(
-    NPYGL_STRINGIFY(EIGEN_WORLD_VERSION) "."
-    NPYGL_STRINGIFY(EIGEN_MAJOR_VERSION) "."
-    NPYGL_STRINGIFY(EIGEN_MINOR_VERSION)
-  );
-#else
-  Py_RETURN_NONE;
-#endif  // !NPYGL_HAS_EIGEN3
-}
-
-// function docstrings
-PyDoc_STRVAR(
-  parse_args_1_doc,
-  "parse_args_1(o)\n"
-  NPYGL_CLINIC_MARKER
-  "Return the ``repr(type(o))`` of the input ``o``.\n"
-  "\n"
-  NPYGL_NPYDOC_PARAMETERS
-  "o : object\n"
-  "    Input object\n"
-  "\n"
-  NPYGL_NPYDOC_RETURNS
-  "str"
-);
-PyDoc_STRVAR(
-  parse_args_3_doc,
-  "parse_args_3(o1, o2, o3)\n"
-  NPYGL_CLINIC_MARKER
-  "Return the ``repr(type(o))`` for each input ``o``.\n"
-  "\n"
-  NPYGL_NPYDOC_PARAMETERS
-  "o1 : object\n"
-  "    First input object\n"
-  "o2 : object\n"
-  "    Second input object\n"
-  "o3 : object\n"
-  "    Third input object\n"
-  "\n"
-  NPYGL_NPYDOC_RETURNS
-  "tuple[str]"
-);
-PyDoc_STRVAR(
-  capsule_map_doc,
-  "capsule_map()\n"
-  NPYGL_CLINIC_MARKER
-  "Return an opaque capsule object owning a std::map<std::string, double>.\n"
-  "\n"
-  "The contained map cannot be manipulated at all from Python and will be\n"
-  "deleted when the last strong Python object reference is gone.\n"
-  "\n"
-  NPYGL_NPYDOC_RETURNS
-  "PyCapsule"
-);
-// macro to support conditional docstring indication of whether or not an
-// Eigen3 matrix capsule object can be created
-#if NPYGL_HAS_EIGEN3
-#define MAKE_CAPSULE_EIGEN3_MATRIX_OPTION "    ``CAPSULE_EIGEN3_MATRIX``\n"
-#else
-#define MAKE_CAPSULE_EIGEN3_MATRIX_OPTION ""
-#endif  // !NPYGL_HAS_EIGEN3
-PyDoc_STRVAR(
-  make_capsule_doc,
-  "make_capsule(type)\n"
-  NPYGL_CLINIC_MARKER
-  "Return an opaque capsule object owning a C++ object.\n"
-  "\n"
-  "The C++ object created and owned is controlled by ``type``.\n"
-  "\n"
-  NPYGL_NPYDOC_PARAMETERS
-  "type : int\n"
-  "    Integral constant to indicate what capsule creation operation should\n"
-  "    executed. The accepted options are the following:\n"
-  "\n"
-  "    ``CAPSULE_STD_MAP``\n"
-  "    ``CAPSULE_STD_VECTOR``\n"
-  MAKE_CAPSULE_EIGEN3_MATRIX_OPTION
-  "    ``CAPSULE_STD_MAP_VECTOR``\n"
-  "\n"
-  NPYGL_NPYDOC_RETURNS
-  "PyCapsule"
-);
-PyDoc_STRVAR(
-  capsule_str_doc,
-  "capsule_str(o)\n"
-  NPYGL_CLINIC_MARKER
-  "Return the string representation of the C++ object owned by the capsule.\n"
-  "\n"
-  "This function only supports the C++ types corresponding to the capsules\n"
-  "created by the ``make_capsule`` module function.\n"
-  "\n"
-  NPYGL_NPYDOC_PARAMETERS
-  "o : PyCapsule\n"
-  "    Python capsule object following the ``cc_capsule_view`` protocol\n"
-  "\n"
-  NPYGL_NPYDOC_RETURNS
-  "str\n"
-  "    String representation of the owned C++ object"
-);
-PyDoc_STRVAR(
-  capsule_type_doc,
-  "capsule_type(o)\n"
-  NPYGL_CLINIC_MARKER
+NPYGL_PY_FUNC_DECLARE(
+  capsule_type,
+  "(o)",
   "Return the type name of the C++ object owned by the capsule.\n"
   "\n"
   ".. note::\n"
@@ -408,29 +365,48 @@ PyDoc_STRVAR(
   "\n"
   NPYGL_NPYDOC_RETURNS
   "str\n"
-  "    String giving the type name of the owned C++ object"
-);
-PyDoc_STRVAR(
-  eigen3_version_doc,
-  "eigen3_version()\n"
-  NPYGL_CLINIC_MARKER
+  "    String giving the type name of the owned C++ object",
+  self, obj) noexcept
+{
+  // get capsule view
+  npygl::cc_capsule_view view{obj};
+  if (!view)
+    return nullptr;
+  // return type as string
+  return PyUnicode_FromString(view.info()->name());
+}
+
+NPYGL_PY_FUNC_DECLARE(
+  eigen3_version,
+  "()",
   "Return the Eigen3 version string.\n"
   "\n"
-  "If compiled without Eigen3 then ``None`` is returned instead.\n"
+  "If module was compiled without Eigen3 then ``None`` is returned instead.\n"
   "\n"
   NPYGL_NPYDOC_RETURNS
-  "Optional[str]"
-);
+  "Optional[str]",
+  self, args) noexcept
+{
+#if NPYGL_HAS_EIGEN3
+  return PyUnicode_FromString(
+    NPYGL_STRINGIFY(EIGEN_WORLD_VERSION) "."
+    NPYGL_STRINGIFY(EIGEN_MAJOR_VERSION) "."
+    NPYGL_STRINGIFY(EIGEN_MINOR_VERSION)
+  );
+#else
+  Py_RETURN_NONE;
+#endif  // !NPYGL_HAS_EIGEN3
+}
 
 // module method table
 PyMethodDef mod_methods[] = {
-  {"parse_args_1", parse_args<1>, METH_VARARGS, parse_args_1_doc},
-  {"parse_args_3", parse_args<3>, METH_VARARGS, parse_args_3_doc},
-  {"capsule_map", capsule_map, METH_NOARGS, capsule_map_doc},
-  {"make_capsule", make_capsule, METH_O, make_capsule_doc},
-  {"capsule_str", capsule_str, METH_O, capsule_str_doc},
-  {"capsule_type", capsule_type, METH_O, capsule_type_doc},
-  {"eigen3_version", eigen3_version, METH_NOARGS, eigen3_version_doc},
+  NPYGL_PY_FUNC_METHOD_DEF(parse_args_1, METH_VARARGS),
+  NPYGL_PY_FUNC_METHOD_DEF(parse_args_3, METH_VARARGS),
+  NPYGL_PY_FUNC_METHOD_DEF(capsule_map, METH_NOARGS),
+  NPYGL_PY_FUNC_METHOD_DEF(make_capsule, METH_O),
+  NPYGL_PY_FUNC_METHOD_DEF(capsule_str, METH_O),
+  NPYGL_PY_FUNC_METHOD_DEF(capsule_type, METH_O),
+  NPYGL_PY_FUNC_METHOD_DEF(eigen3_version, METH_NOARGS),
   {}  // zero-initialized sentinel member
 };
 
