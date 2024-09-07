@@ -51,7 +51,10 @@ class TestEigen3Version(unittest.TestCase):
     def test(self):
         """Basic functional test."""
         if _with_eigen:
-            self.assertEqual(str, type(ph.eigen3_version()))
+            ver = ph.eigen3_version()
+            self.assertEqual(str, type(ver))
+            # should have world version 3
+            self.assertEqual("3", ver.split(".")[0])
         else:
             self.assertIsNone(ph.eigen3_version())
 
