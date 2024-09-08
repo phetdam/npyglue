@@ -13,6 +13,7 @@
 #endif  // PY_SSIZE_T_CLEAN
 #include <Python.h>
 
+#include <complex>
 #include <cstdint>
 #include <filesystem>
 #include <string>
@@ -102,6 +103,8 @@ NPYGL_NPY_TRAITS_SPEC(NPY_INT, int);
 NPYGL_NPY_TRAITS_SPEC(NPY_UINT, unsigned int);
 NPYGL_NPY_TRAITS_SPEC(NPY_LONG, long);
 NPYGL_NPY_TRAITS_SPEC(NPY_ULONG, unsigned long);
+NPYGL_NPY_TRAITS_SPEC(NPY_CFLOAT, std::complex<float>);
+NPYGL_NPY_TRAITS_SPEC(NPY_CDOUBLE, std::complex<double>);
 
 /**
  * Helper to get the NumPy type number from a C/C++ type.
