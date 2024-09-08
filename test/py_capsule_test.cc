@@ -17,7 +17,16 @@
 #include <variant>
 #include <vector>
 
+#include "npygl/demangle.hh"
+#include "npygl/features.h"
 #include "npygl/python.hh"
+
+#if NPYGL_HAS_EIGEN3
+#include <Eigen/Core>
+#endif  // NPYGL_HAS_EIGEN3
+#if NPYGL_HAS_ARMADILLO
+#include <armadillo>
+#endif  // NPYGL_HAS_ARMADILLO
 
 namespace {
 
@@ -156,5 +165,42 @@ int main()
     printer(std::vector{4.33, 1.23, 1.51424, 1.111});
     std::cout << std::endl;
   }
+#if NPYGL_HAS_EIGEN3
+  // create a row-major Eigen matrix and pass it into a capsule
+  {
+    auto capsule = npygl::py_object::create(
+      Eigen::MatrixXf{
+        {4.f, 3.222f, 3.41f, 2.3f},
+        {5.44f, 2.33f, 2.33f, 5.563f},
+        {6.55f, 7.234f, 23.1f, 7.66f}
+      }
+    );
+    npygl::py_error_exit();
+    npygl::cc_capsule_view view{capsule};
+    npygl::py_error_exit();
+    // print the type name + the matrix contents itself
+    const auto& mat = *view.as<Eigen::MatrixXf>();
+    std::cout << "-- " << npygl::type_name(view.info()) << std::endl;
+    std::cout << mat << std::endl;
+  }
+#endif  // NPYGL_HAS_EIGEN3
+#if NPYGL_HAS_ARMADILLO
+  // create an Armadillo complex matrix and pass it into a capsule
+  {
+    auto capsule = npygl::py_object::create(
+      arma::cx_mat{
+        {{4.3, 3.422}, {1.3, 2.322}, {5.44, 3.431}},
+        {{6.33, 3.413}, {12.12, 5.434}, {5.44, 3.222}}
+      }
+    );
+    npygl::py_error_exit();
+    npygl::cc_capsule_view view{capsule};
+    npygl::py_error_exit();
+    // print the type name + the matrix contents
+    const auto& mat = *view.as<arma::cx_mat>();
+    std::cout << "-- " << npygl::type_name(view.info()) << std::endl;
+    std::cout << mat << std::endl;
+  }
+#endif  // NPYGL_HAS_ARMADILLO
   return EXIT_SUCCESS;
 }

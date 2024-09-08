@@ -19,6 +19,10 @@ if(Python3_Development_FOUND)
         SOURCES py_capsule_test.cc
         USE_RELEASE_CRT ${PY_MSVC_ALWAYS_RELEASE}
     )
+    # enable Eigen3 tests if available
+    if(Eigen3_FOUND)
+        target_link_libraries(py_capsule_test PRIVATE Eigen3::Eigen)
+    endif()
     add_test(NAME py_capsule_test COMMAND py_capsule_test)
 endif()
 
