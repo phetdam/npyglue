@@ -98,6 +98,15 @@ else()
     message(STATUS "Eigen3 version: None")
 endif()
 
+# find Armadillo
+find_package(Armadillo 10.8.2)
+# note: module is kind of old and does not define Armadillo_VERSION
+if(Armadillo_FOUND)
+    message(STATUS "Armadillo version: ${ARMADILLO_VERSION_STRING}")
+else()
+    message(STATUS "Armadillo version: None")
+endif()
+
 # compile flags. we do this after any FetchContent calls so that we don't
 # interfere with any compile flags that dependency targets require
 if(MSVC)
