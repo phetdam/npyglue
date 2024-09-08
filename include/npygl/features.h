@@ -92,4 +92,15 @@
 #define NPYGL_HAS_ITANIUM_ABI 0
 #endif  // NPYGL_CC_ABI_ITANIUM
 
+// check if we have Armadillo available
+#if NPYGL_HAS_INCLUDE_CHECK
+#if __has_include(<armadillo>)
+#define NPYGL_HAS_ARMADILLO 1
+#endif  // __has_include(<armadillo>)
+#endif  // NPYGL_HAS_INCLUDE_CHECK
+
+#ifndef NPYGL_HAS_ARMADILLO
+#define NPYGL_HAS_ARMADILLO 0
+#endif  // NPYGL_HAS_ARMADILLO
+
 #endif  // NPYGL_FEATURES_H_
