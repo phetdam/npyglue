@@ -16,14 +16,14 @@
 
 #include "npygl/features.h"
 
-#if NPYGL_HAS_CXX_ABI_H
+#if NPYGL_HAS_ITANIUM_ABI
 #include <cxxabi.h>
-#endif  // NPYGL_HAS_CXX_ABI_H
+#endif  // NPYGL_HAS_ITANIUM_ABI
 
 namespace npygl {
 
 // TODO: consider putting memory helpers in their own header
-#if NPYGL_HAS_CXX_ABI_H
+#if NPYGL_HAS_ITANIUM_ABI
 /**
  * Custom deleter for unique pointers allocating memory with `malloc`.
  *
@@ -73,7 +73,7 @@ inline auto demangle(
 {
   return demangle(name, info.name());
 }
-#endif  // NPYGL_HAS_CXX_ABI_H
+#endif  // NPYGL_HAS_ITANIUM_ABI
 
 /**
  * Demangle the mangled type name.
@@ -86,7 +86,7 @@ inline auto demangle(
 inline const char* demangle(const char* mangled_name)
 {
   // note: thread local storage is very convenient here
-#if NPYGL_HAS_CXX_ABI_H
+#if NPYGL_HAS_ITANIUM_ABI
   thread_local unique_malloc_ptr<char[]> buf;
   // switch on status
   switch (demangle(buf, mangled_name)) {
@@ -107,7 +107,7 @@ inline const char* demangle(const char* mangled_name)
   thread_local std::string name;
   name = mangled_name;
   return name.c_str();
-#endif  // !NPYGL_HAS_CXX_ABI_H
+#endif  // !NPYGL_HAS_ITANIUM_ABI
 }
 
 /**

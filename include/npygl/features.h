@@ -84,12 +84,12 @@
 // check if compiler follows the Itanium C++ ABI
 #if NPYGL_HAS_INCLUDE_CHECK
 #if __has_include(<cxxabi.h>)
-#define NPYGL_HAS_CXX_ABI_H 1
+#define NPYGL_HAS_ITANIUM_ABI 1
 #endif  // __has_include(<cxxabi.h>)
 #endif  // NPYGL_HAS_INCLUDE_CHECK
 
-#ifndef NPYGL_HAS_CXX_ABI_H
-#define NPYGL_HAS_CXX_ABI_H 0
-#endif  // NPYGL_HAS_CXX_ABI_H
+#ifndef NPYGL_HAS_ITANIUM_ABI
+#define NPYGL_HAS_ITANIUM_ABI 0
+#endif  // NPYGL_CC_ABI_ITANIUM
 
 #endif  // NPYGL_FEATURES_H_
