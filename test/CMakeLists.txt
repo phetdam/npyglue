@@ -50,6 +50,11 @@ if(Python3_Development_FOUND AND Python3_NumPy_FOUND)
             USE_RELEASE_CRT ${PY_MSVC_ALWAYS_RELEASE}
         )
         npygl_require_cc_std(TARGET npy_helpers_test_cc20 CC_STD 20)
+        # reduce compile time since we don't need Eigen3/Armadillo
+        target_compile_definitions(
+            npy_helpers_test_cc20 PRIVATE
+            NPYGL_NO_ARMADILLO NPYGL_NO_EIGEN3
+        )
         add_test(NAME npy_helpers_test_cc20 COMMAND npy_helpers_test_cc20)
     endif()
 endif()
