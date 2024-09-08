@@ -70,6 +70,11 @@
 #include <Eigen/Core>
 #endif  // NPYGL_HAS_EIGEN3 && !defined(NPYGL_NO_EIGEN3)
 
+// Armadillo if desired
+#if NPYGL_HAS_ARMADILLO && !defined(NPYGL_NO_ARMADILLO)
+#include <armadillo>
+#endif  // NPYGL_HAS_ARMADILLO && !defined(NPYGL_NO_ARMADILLO)
+
 namespace npygl {
 
 /**
@@ -348,6 +353,8 @@ inline auto make_ndarray(PyObject* obj) noexcept
  *
  * @tparam T Element type
  * @tparam A Allocator type
+ *
+ * @param vec Vector to consume
  */
 template <typename T, typename A>
 py_object make_ndarray(std::vector<T, A>&& vec) noexcept
@@ -381,8 +388,8 @@ py_object make_ndarray(std::vector<T, A>&& vec) noexcept
  * Create a 2D NumPy array backed by an Eigen 3 matrix object.
  *
  * The backing Python object is a `PyCapsule` following the `cc_capsule_view`
- * protocol that manages a moved `Eigen::Matrix` class. Upon creation of the
- * NumPy array its flags will have `NPY_ARRAY_BEHAVED` and then one of
+ * protocol that manages a moved `Eigen::Matrix<...>` object. Upon creation of
+ * the NumPy array its flags will have `NPY_ARRAY_BEHAVED` and then one of
  * `NPY_ARRAY_C_CONTIGUOUS` or `NPY_ARRAY_F_CONTIGUOUS`.
  *
  * On error the `py_object` is empty and a Python exception is set.
@@ -393,6 +400,8 @@ py_object make_ndarray(std::vector<T, A>&& vec) noexcept
  * @tparam O Matrix options
  * @tparam RMax Max number of rows
  * @tparam CMax max number of columns
+ *
+ * @param mat Matrix to consume
  */
 template <typename T, int R, int C, int O, int RMax, int RMin>
 py_object make_ndarray(Eigen::Matrix<T, R, C, O, RMax, RMin>&& mat) noexcept
@@ -441,6 +450,64 @@ py_object make_ndarray(Eigen::Matrix<T, R, C, O, RMax, RMin>&& mat) noexcept
   return ar;
 }
 #endif  // NPYGL_HAS_EIGEN3 && !defined(NPYGL_NO_EIGEN3)
+
+// enable if we have Armadillo unless NPYGL_NO_ARMADILLO is defined
+#if NPYGL_HAS_ARMADILLO && !defined(NPYGL_NO_ARMADILLO)
+/**
+ * Create a 2D NumPy array backed by an Armadillo matrix object.
+ *
+ * The backing Python object is a `PyCapsule` following the `cc_capsule_view`
+ * protocol that manages a moved `arma::Mat<T>` object. Upon creation of the
+ * NumPy array its flags will have `NPY_ARRAY_FARRAY`.
+ *
+ * On error the `py_object` is empty and a Python exception is set.
+ *
+ * @note If moving from an `arma::Row<T>` or an `arma::Col<T>` the resulting
+ *  NumPy array is still 2D but one dimension will be 1.
+ *
+ * @tparam T Element type
+ *
+ * @param mat Matrix to consume
+ */
+template <typename T>
+py_object make_ndarray(arma::Mat<T>&& mat) noexcept
+{
+  using M = arma::Mat<T>;
+  // create capsule
+  auto capsule = py_object::create(std::move(mat));
+  if (!capsule)
+    return {};
+  // capsule view (should not error)
+  cc_capsule_view view{capsule};
+  if (!view)
+    return {};
+  // pointer to managed matrix + create dims
+  auto cap_mat = view.as<M>();
+  npy_intp dims[2];
+  dims[0] = cap_mat->n_rows;
+  dims[1] = cap_mat->n_cols;
+  // create new 2D NumPy array from the matrix data buffer
+  py_object ar{
+    PyArray_New(
+      &PyArray_Type,               // subtype
+      sizeof dims / sizeof *dims,  // nd
+      dims,                        // dims
+      npy_typenum<T>,              // type_num
+      nullptr,                     // strides
+      cap_mat->memptr(),           // data
+      0,                           // itemsize (ignored)
+      NPY_ARRAY_FARRAY,            // flags (Armadillo buffers are aligned)
+      nullptr                      // obj (ignored)
+    )
+  };
+  if (!ar)
+    return {};
+  // set base object so NumPy array owns the capsule
+  if (PyArray_SetBaseObject(ar.as<PyArrayObject>(), capsule.release()) < 0)
+    return {};
+  return ar;
+}
+#endif  // NPYGL_HAS_ARMADILLO && !defined(NPYGL_NO_ARMADILLO)
 
 /**
  * Lightweight flat view of a NumPy array.

@@ -31,6 +31,11 @@ if(Python3_Development_FOUND AND Python3_NumPy_FOUND)
         LIBRARIES Python3::NumPy
         USE_RELEASE_CRT ${PY_MSVC_ALWAYS_RELEASE}
     )
+    # reduce compile time since we don't need Eigen3/Armadillo
+    target_compile_definitions(
+        npy_helpers_test PRIVATE
+        NPYGL_NO_ARMADILLO NPYGL_NO_EIGEN3
+    )
     add_test(NAME npy_helpers_test COMMAND npy_helpers_test)
     # C++20
     if(NPYGL_HAS_CC_20)
@@ -53,6 +58,8 @@ if(Python3_Development_FOUND AND Python3_NumPy_FOUND)
         LIBRARIES Python3::NumPy
         USE_RELEASE_CRT ${PY_MSVC_ALWAYS_RELEASE}
     )
+    # not using Armadillo currently (may change later)
+    target_compile_definitions(npy_helpers_test PRIVATE NPYGL_NO_ARMADILLO)
     # enable Eigen features if available
     if(Eigen3_FOUND)
         target_link_libraries(npy_capsule_test PRIVATE Eigen3::Eigen)
@@ -68,6 +75,11 @@ if(Python3_Development_FOUND AND Python3_NumPy_FOUND)
         LIBRARIES Python3::NumPy
         USE_RELEASE_CRT ${PY_MSVC_ALWAYS_RELEASE}
     )
+    # reduce compile time since we don't need Eigen3/Armadillo
+    target_compile_definitions(
+        npy_views_test PRIVATE
+        NPYGL_NO_ARMADILLO NPYGL_NO_EIGEN3
+    )
     add_test(NAME npy_views_test COMMAND npy_views_test)
 endif()
 
@@ -78,6 +90,8 @@ if(Python3_Development_FOUND)
         SOURCES pyhelpers.cc
         USE_RELEASE_CRT ${PY_MSVC_ALWAYS_RELEASE}
     )
+    # not using Armadillo currently (may change later)
+    target_compile_definitions(npy_helpers_test PRIVATE NPYGL_NO_ARMADILLO)
     if(Eigen3_FOUND)
         target_link_libraries(pyhelpers PRIVATE Eigen3::Eigen)
     endif()
@@ -99,6 +113,8 @@ if(Python3_Development_FOUND AND Python3_NumPy_FOUND)
         LIBRARIES Python3::NumPy
         USE_RELEASE_CRT ${PY_MSVC_ALWAYS_RELEASE}
     )
+    # not using Armadillo/Eigen3 currently (may change later)
+    target_compile_definitions(pymath PRIVATE NPYGL_NO_ARMADILLO NPYGL_NO_EIGEN3)
     # unittest test script
     add_test(
         NAME pymath_test
@@ -115,6 +131,11 @@ if(Python3_Development_FOUND AND Python3_NumPy_FOUND)
             USE_RELEASE_CRT ${PY_MSVC_ALWAYS_RELEASE}
         )
         npygl_require_cc_std(TARGET pymath_cc20 CC_STD 20)
+        # not using Armadillo/Eigen3 currently (may change later)
+        target_compile_definitions(
+            pymath_cc20 PRIVATE
+            NPYGL_NO_ARMADILLO NPYGL_NO_EIGEN3
+        )
         # unittest test script
         add_test(
             NAME pymath_cc20_test
@@ -141,6 +162,11 @@ if(NPYGL_SWIG_NPY_AVAILABLE)
         LIBRARIES Python3::NumPy
         USE_RELEASE_CRT ${PY_MSVC_ALWAYS_RELEASE}
     )
+    # not using Armadillo/Eigen3 currently (may change later)
+    target_compile_definitions(
+        pymath_swig PRIVATE
+        NPYGL_NO_ARMADILLO NPYGL_NO_EIGEN3
+    )
     # unittest test script
     add_test(
         NAME pymath_swig_test
@@ -160,6 +186,11 @@ if(NPYGL_SWIG_NPY_AVAILABLE)
             USE_RELEASE_CRT ${PY_MSVC_ALWAYS_RELEASE}
         )
         npygl_require_cc_std(TARGET pymath_swig_cc20 CC_STD 20)
+        # not using Armadillo/Eigen3 currently (may change later)
+        target_compile_definitions(
+            pymath_swig_cc20 PRIVATE
+            NPYGL_NO_ARMADILLO NPYGL_NO_EIGEN3
+        )
         # unittest test script
         add_test(
             NAME pymath_swig_cc20_test
