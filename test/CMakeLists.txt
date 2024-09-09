@@ -28,17 +28,18 @@ endif()
 
 # npy_helpers_test: NumPy Python helpers tests
 if(Python3_Development_FOUND AND Python3_NumPy_FOUND)
+    # reduce compile time since we don't need Eigen3/Armadillo
+    set_property(
+        SOURCE npy_helpers_test.cc PROPERTY COMPILE_DEFINITIONS
+        NPYGL_NO_ARMADILLO NPYGL_NO_EIGEN3
+    )
     # C++17
+    message(STATUS "ARMADILLO_LIBRARIES ${ARMADILLO_LIBRARIES}")
     npygl_add_py3_executable(
         TARGET npy_helpers_test
         SOURCES npy_helpers_test.cc
         LIBRARIES Python3::NumPy
         USE_RELEASE_CRT ${PY_MSVC_ALWAYS_RELEASE}
-    )
-    # reduce compile time since we don't need Eigen3/Armadillo
-    target_compile_definitions(
-        npy_helpers_test PRIVATE
-        NPYGL_NO_ARMADILLO NPYGL_NO_EIGEN3
     )
     add_test(NAME npy_helpers_test COMMAND npy_helpers_test)
     # C++20
@@ -50,11 +51,6 @@ if(Python3_Development_FOUND AND Python3_NumPy_FOUND)
             USE_RELEASE_CRT ${PY_MSVC_ALWAYS_RELEASE}
         )
         npygl_require_cc_std(TARGET npy_helpers_test_cc20 CC_STD 20)
-        # reduce compile time since we don't need Eigen3/Armadillo
-        target_compile_definitions(
-            npy_helpers_test_cc20 PRIVATE
-            NPYGL_NO_ARMADILLO NPYGL_NO_EIGEN3
-        )
         add_test(NAME npy_helpers_test_cc20 COMMAND npy_helpers_test_cc20)
     endif()
 endif()
@@ -115,6 +111,11 @@ endif()
 
 # pymath: Python math functions module
 if(Python3_Development_FOUND AND Python3_NumPy_FOUND)
+    # not using Armadillo/Eigen3 currently (may change later)
+    set_property(
+        SOURCE pymath.cc PROPERTY COMPILE_DEFINITIONS
+        NPYGL_NO_ARMADILLO NPYGL_NO_EIGEN3
+    )
     # C++17
     npygl_add_py3_extension(
         TARGET pymath
@@ -122,8 +123,6 @@ if(Python3_Development_FOUND AND Python3_NumPy_FOUND)
         LIBRARIES Python3::NumPy
         USE_RELEASE_CRT ${PY_MSVC_ALWAYS_RELEASE}
     )
-    # not using Armadillo/Eigen3 currently (may change later)
-    target_compile_definitions(pymath PRIVATE NPYGL_NO_ARMADILLO NPYGL_NO_EIGEN3)
     # unittest test script
     add_test(
         NAME pymath_test
@@ -140,11 +139,6 @@ if(Python3_Development_FOUND AND Python3_NumPy_FOUND)
             USE_RELEASE_CRT ${PY_MSVC_ALWAYS_RELEASE}
         )
         npygl_require_cc_std(TARGET pymath_cc20 CC_STD 20)
-        # not using Armadillo/Eigen3 currently (may change later)
-        target_compile_definitions(
-            pymath_cc20 PRIVATE
-            NPYGL_NO_ARMADILLO NPYGL_NO_EIGEN3
-        )
         # unittest test script
         add_test(
             NAME pymath_cc20_test
