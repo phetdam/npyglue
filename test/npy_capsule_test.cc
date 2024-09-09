@@ -53,6 +53,34 @@ int main()
   );
   npygl::py_error_exit();
 #endif  // NPYGL_HAS_EIGEN3
+  // create a NumPy array backed by an Armadillo complex matrix
+  auto a_ar = npygl::make_ndarray(
+    arma::cx_mat{
+      {{3.44, 5.423}, {9.11, 4.333}, {4.63563, 1.111}},
+      {{4.23, 2.123}, {3.4244, 5.22}, {0.999, 12.213}}
+    }
+  );
+  npygl::py_error_exit();
+  // create a NumPy array backed an Armadillo complex cube
+  // TODO: no make_ndarray overload for cubes yet
+#if 0
+  arma::cx_cube cube{2, 2, 3};
+  cube.slice(0) = {
+    {{3.4, 2.22}, {3.22, 4.23}},
+    {{5.34, 5.111}, {6.66, 1.123}}
+  };
+  cube.slice(1) = {
+    {{6.455, 1.111}, {4.232, 0.989}},
+    {{6.1212, 1.1139}, {6.45, 0.2345}}
+  };
+  cube.slice(2) = {
+    {{1.12, 4.412}, {5.34, 6.111}},
+    {{4.123, 1.998}, {8.99, 1.114}}
+  };
+  auto ac_ar = npygl::make_ndarray(std::move(cube));
+#endif  // 0
+#if NPYGL_HAS_ARMADILLO
+#endif  // NPYGL_HAS_ARMADILLO
   // create a "normal" NumPy array
   auto ar_init = Py_BuildValue("ddddd", 3.4, 1.222, 6.745, 5.2, 5.66, 7.333);
   npygl::py_error_exit();
@@ -69,6 +97,9 @@ int main()
     "-- Eigen::Matrix<unsigned, Eigen::Dynamic, Eigen::Dynamic, "
       "Eiden::StorageOptions::RowMajor>\n" << ec_ar << '\n' <<
 #endif  // NPYGL_HAS_EIGEN3
+#if NPYGL_HAS_ARMADILLO
+    "-- arma::cx_mat\n" << a_ar << '\n' <<
+#endif  // NPYGL_HAS_ARMADILLO
     "-- tuple[double]\n" << ar << '\n' << std::endl;
   npygl::py_error_exit();
   // get base objects for each array
@@ -78,6 +109,9 @@ int main()
   auto e_base = PyArray_BASE(e_ar.as<PyArrayObject>());
   auto ec_base = PyArray_BASE(ec_ar.as<PyArrayObject>());
 #endif  // NPYGL_HAS_EIGEN3
+#if NPYGL_HAS_ARMADILLO
+  auto a_base = PyArray_BASE(a_ar.as<PyArrayObject>());
+#endif  // NPYGL_HAS_ARMADILLO
   auto base = PyArray_BASE(ar.as<PyArrayObject>());
   // print base objects for each array
   std::cout <<
@@ -90,6 +124,9 @@ int main()
     "-- Eigen::Matrix<unsigned int, Eigen::Dynamic, Eigen::Dynamic, "
       "Eigen::StorageOptions::RowMajor>\n" << ec_base << '\n' <<
 #endif  // NPYGL_HAS_EIGEN3
+#if NPYGL_HAS_ARMADILLO
+    "-- arma::cx_mat\n" << a_base << '\n' <<
+#endif  // NPYGL_HAS_ARMADILLO
     "-- tuple[double]\n" << base << std::endl;
   npygl::py_error_exit();
   return EXIT_SUCCESS;
