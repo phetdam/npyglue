@@ -71,7 +71,7 @@ bool test_flat_views(PyObject* np_random)
 /**
  * Test modification of a NumPy array through matrix views.
  *
- * @param np_random Pytho object representing `numpy.random.random`
+ * @param np_random Python object representing `numpy.random.random`
  * @returns `true` on success, `false` on failure
  */
 bool test_matrix_views(PyObject* np_random)
