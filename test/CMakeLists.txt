@@ -2,6 +2,11 @@ cmake_minimum_required(VERSION ${CMAKE_MINIMUM_REQUIRED_VERSION})
 
 add_subdirectory(npygl_test)
 
+# note: we always use Armadillo in header-only mode, e.g. by defining
+# ARMA_DONT_USE_WRAPPER, as a convenience when compiling on Windows. this saves
+# use from needing a debug and release C runtime version of the wrapper
+add_compile_definitions(ARMA_DONT_USE_WRAPPER)
+
 # py_helpers_test: Python helpers tests
 if(Python3_Development_FOUND)
     npygl_add_py3_executable(
@@ -34,7 +39,6 @@ if(Python3_Development_FOUND AND Python3_NumPy_FOUND)
         NPYGL_NO_ARMADILLO NPYGL_NO_EIGEN3
     )
     # C++17
-    message(STATUS "ARMADILLO_LIBRARIES ${ARMADILLO_LIBRARIES}")
     npygl_add_py3_executable(
         TARGET npy_helpers_test
         SOURCES npy_helpers_test.cc
@@ -95,8 +99,6 @@ if(Python3_Development_FOUND)
         SOURCES pyhelpers.cc
         USE_RELEASE_CRT ${PY_MSVC_ALWAYS_RELEASE}
     )
-    # not using Armadillo currently (may change later)
-    target_compile_definitions(npy_helpers_test PRIVATE NPYGL_NO_ARMADILLO)
     if(Eigen3_FOUND)
         target_link_libraries(pyhelpers PRIVATE Eigen3::Eigen)
     endif()
@@ -149,15 +151,8 @@ if(Python3_Development_FOUND AND Python3_NumPy_FOUND)
     endif()
 endif()
 
-# helper variable to determine if we can build SWIG + NumPy extension module
-if(SWIG_FOUND AND Python3_Development_FOUND AND Python3_NumPy_FOUND)
-    set(NPYGL_SWIG_NPY_AVAILABLE ON)
-else()
-    set(NPYGL_SWIG_NPY_AVAILABLE OFF)
-endif()
-
 # pymath_swig: SWIG Python math functions module
-if(NPYGL_SWIG_NPY_AVAILABLE)
+if(SWIG_FOUND AND Python3_Development_FOUND AND Python3_NumPy_FOUND)
     npygl_add_swig_py3_module(
         TARGET pymath_swig
         INTERFACE pymath_swig.i
