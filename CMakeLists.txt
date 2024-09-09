@@ -98,11 +98,85 @@ else()
     message(STATUS "Eigen3 version: None")
 endif()
 
-# find Armadillo
-find_package(Armadillo 10.8.2)
+# find Armadillo. on Windows, we use our own script, as we want to use
+# Armadillo in header-only mode without requiring BLAS/LAPACK/ARPACK/HDF5
+set(NPYGL_ARMADILLO_MINVER 10.8.2)
+if(WIN32)
+    # find Armadillo include directory like in FindArmadillo.cmake
+    find_path(
+        ARMADILLO_INCLUDE_DIR
+        NAMES armadillo
+        PATHS "$ENV{ProgramFiles}/Armadillo/include"
+    )
+    # include directory exists so grab version info
+    if(ARMADILLO_INCLUDE_DIR)
+        # CMake sources say old Armadillo versions didn't have
+        # armadillo_bits/arma_version.hpp so default to 0.0.0
+        set(ARMADILLO_VERSION_MAJOR 0)
+        set(ARMADILLO_VERSION_MINOR 0)
+        set(ARMADILLO_VERSION_PATCH 0)
+        set(ARMADILLO_VERSION_NAME "EARLY RELEASE")
+        # if arma_version.hpp is available then we use it
+        set(
+            ARMA_VERSION_HPP_PATH
+            "${ARMADILLO_INCLUDE_DIR}/armadillo_bits/arma_version.hpp"
+        )
+        if(EXISTS "${ARMA_VERSION_HPP_PATH}")
+            # read lines containing ARMA_VERSION_* variables
+            file(
+                STRINGS "${ARMA_VERSION_HPP_PATH}" ARMA_VERSION_HPP_LINES
+                REGEX "#define ARMA_VERSION_[A-Z]+"
+            )
+            # get major, minor, patch versions
+            string(
+                REGEX REPLACE
+                ".*#define ARMA_VERSION_MAJOR ([0-9]+).*" "\\1"
+                ARMADILLO_VERSION_MAJOR "${ARMA_VERSION_HPP_LINES}"
+            )
+            string(
+                REGEX REPLACE
+                ".*#define ARMA_VERSION_MINOR ([0-9]+).*" "\\1"
+                ARMADILLO_VERSION_MINOR "${ARMA_VERSION_HPP_LINES}"
+            )
+            string(
+                REGEX REPLACE ".*#define ARMA_VERSION_PATCH ([0-9]+).*" "\\1"
+                ARMADILLO_VERSION_PATCH "${ARMA_VERSION_HPP_LINES}"
+            )
+            # as noted in FindArmadillo.cmake version name has more than one
+            # space between the macro and the string literal. we also want to
+            # drop the quotes around the string literal
+            string(
+                REGEX REPLACE
+                ".*#define ARMA_VERSION_NAME\ +\"([0-9a-zA-Z\ _-]+)\".*" "\\1"
+                ARMADILLO_VERSION_NAME "${ARMA_VERSION_HPP_LINES}"
+            )
+        endif()
+        # set version string
+        set(
+            ARMADILLO_VERSION_STRING
+            ${ARMADILLO_VERSION_MAJOR}.${ARMADILLO_VERSION_MINOR}.${ARMADILLO_VERSION_PATCH}
+        )
+    endif()
+    # set result variables like FindArmadillo does as appropriate
+    if(ARMADILLO_VERSION_STRING VERSION_GREATER_EQUAL NPYGL_ARMADILLO_MINVER)
+        set(Armadillo_FOUND TRUE)
+        set(ARMADILLO_FOUND TRUE)
+        set(ARMADILLO_INCLUDE_DIRS ${ARMADILLO_INCLUDE_DIR})
+    else()
+        message(
+            STATUS
+            "Could NOT find Armadillo >= ${NPYGL_ARMADILLO_MINVER} "
+"(found: ${ARMADILLO_VERSION_STRING})"
+        )
+    endif()
+else()
+    find_package(Armadillo ${NPYGL_ARMADILLO_MINVER})
+endif()
 # note: module is kind of old and does not define Armadillo_VERSION
 if(Armadillo_FOUND)
     message(STATUS "Armadillo version: ${ARMADILLO_VERSION_STRING}")
+    # need to manually add ARMADILLO_INCLUDE_DIRS if non-system install
+    include_directories(SYSTEM ${ARMADILLO_INCLUDE_DIRS})
 else()
     message(STATUS "Armadillo version: None")
 endif()
