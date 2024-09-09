@@ -484,8 +484,9 @@ py_object make_ndarray(arma::Mat<T>&& mat) noexcept
   // pointer to managed matrix + create dims
   auto cap_mat = view.as<M>();
   npy_intp dims[2];
-  dims[0] = cap_mat->n_rows;
-  dims[1] = cap_mat->n_cols;
+  // cast to silence C4365 warning
+  dims[0] = static_cast<npy_intp>(cap_mat->n_rows);
+  dims[1] = static_cast<npy_intp>(cap_mat->n_cols);
   // create new 2D NumPy array from the matrix data buffer
   py_object ar{
     PyArray_New(
