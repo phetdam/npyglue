@@ -24,6 +24,9 @@
 #if NPYGL_HAS_EIGEN3
 #include <Eigen/Core>
 #endif  // NPYGL_HAS_EIGEN3
+#if NPYGL_HAS_ARMADILLO
+#include <armadillo>
+#endif  // NPYGL_HAS_ARMADILLO
 
 // module name
 #define MODULE_NAME pyhelpers
@@ -169,16 +172,30 @@ enum {
 #if NPYGL_HAS_EIGEN3
   CAPSULE_EIGEN3_MATRIX = 3,
 #endif  // NPYGL_HAS_EIGEN3
-  CAPSULE_STD_MAP_VECTOR = 4
+#if NPYGL_HAS_ARMADILLO
+  CAPSULE_ARMADILLO_CUBE = 4,
+#endif  // NPYGL_HAS_ARMADILLO
+  CAPSULE_STD_MAP_VECTOR = 5
 };
 
 // macro to support conditional docstring indication of whether or not an
 // Eigen3 matrix capsule object can be created
 #if NPYGL_HAS_EIGEN3
-#define MAKE_CAPSULE_EIGEN3_MATRIX_OPTION "    ``CAPSULE_EIGEN3_MATRIX``\n"
+#define MAKE_CAPSULE_EIGEN3_MATRIX_OPTION \
+  "    CAPSULE_EIGEN3_MATRIX\n" \
+  "        Return an Eigen::MatrixXf\n"
 #else
 #define MAKE_CAPSULE_EIGEN3_MATRIX_OPTION ""
 #endif  // !NPYGL_HAS_EIGEN3
+// macro to support conditional docstring indication of whether or not an
+// Armadillo complex cube capsule object can be created
+#if NPYGL_HAS_ARMADILLO
+#define MAKE_CAPSULE_ARMADILLO_MATRIX_OPTION \
+  "    CAPSULE_ARMADILLO_CUBE\n" \
+  "        Return a random Gaussion arma::cx_cube\n"
+#else
+#define MAKE_CAPSULE_ARMADILLO_MATRIX_OPTION ""
+#endif  // NPYGL_HAS_ARMADILLO
 // TODO: consider making this a function try block
 NPYGL_PY_FUNC_DECLARE(
   make_capsule,
@@ -190,12 +207,16 @@ NPYGL_PY_FUNC_DECLARE(
   NPYGL_NPYDOC_PARAMETERS
   "type : int\n"
   "    Integral constant to indicate what capsule creation operation should\n"
-  "    executed. The accepted options are the following:\n"
+  "    executed. The accepted options and their effects are described below:\n"
   "\n"
-  "    ``CAPSULE_STD_MAP``\n"
-  "    ``CAPSULE_STD_VECTOR``\n"
+  "    CAPSULE_STD_MAP\n"
+  "        Return a std::map<std::string, double>\n"
+  "    CAPSULE_STD_VECTOR\n"
+  "        Return a std::vector<double>\n"
   MAKE_CAPSULE_EIGEN3_MATRIX_OPTION
-  "    ``CAPSULE_STD_MAP_VECTOR``\n"
+  MAKE_CAPSULE_ARMADILLO_MATRIX_OPTION
+  "    CAPSULE_STD_MAP_VECTOR\n"
+  "        Return a std::vector<std::map<std::string, double>>\n"
   "\n"
   NPYGL_NPYDOC_RETURNS
   "PyCapsule",
@@ -234,6 +255,13 @@ NPYGL_PY_FUNC_DECLARE(
       return py_object::create(std::move(mat)).release();
     }
 #endif  // NPYGL_HAS_EIGEN3
+#if NPYGL_HAS_ARMADILLO
+    case CAPSULE_ARMADILLO_CUBE:
+    {
+      arma::cx_cube cube{2, 3, 4, arma::fill::randn};
+      return py_object::create(std::move(cube)).release();
+    }
+#endif  // NPYGL_HAS_ARMADILLO
     case CAPSULE_STD_MAP_VECTOR:
     {
       std::vector<capsule_map_type> vec{
@@ -342,6 +370,9 @@ NPYGL_PY_FUNC_DECLARE(
 #if NPYGL_HAS_EIGEN3
     Eigen::MatrixXf,
 #endif  // NPYGL_HAS_EIGEN3
+#if NPYGL_HAS_ARMADILLO
+    arma::cx_cube,
+#endif  // NPYGL_HAS_ARMADILLO
     std::vector<capsule_map_type>
   >;
   // get capsule view
@@ -448,6 +479,9 @@ NPYGL_CONCAT(PyInit_, MODULE_NAME)()
 #if NPYGL_HAS_EIGEN3
   if (PyModule_AddIntMacro(mod, CAPSULE_EIGEN3_MATRIX)) return nullptr;
 #endif  // NPYGL_HAS_EIGEN3
+#if NPYGL_HAS_ARMADILLO
+  if (PyModule_AddIntMacro(mod, CAPSULE_ARMADILLO_CUBE)) return nullptr;
+#endif  // NPYGL_HAS_ARMADILLO
   if (PyModule_AddIntMacro(mod, CAPSULE_STD_MAP_VECTOR)) return nullptr;
   // done, create module
   return mod.release();
