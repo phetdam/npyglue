@@ -77,6 +77,7 @@ int main()
     {{4.123, 1.998}, {8.99, 1.114}}
   };
   auto ac_ar = npygl::make_ndarray(std::move(cube));
+  npygl::py_error_exit();
 #endif  // NPYGL_HAS_ARMADILLO
   // create a "normal" NumPy array
   auto ar_init = Py_BuildValue("ddddd", 3.4, 1.222, 6.745, 5.2, 5.66, 7.333);
