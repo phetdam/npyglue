@@ -388,6 +388,12 @@ private:
   // factory function is friend
   template <typename DistType, typename RngType, typename... DTs, typename... RTs>
   friend auto make_rng_wrapper(DTs&&..., delineator, RTs&&...);
+
+// MSVC needs a specific overload since it fails to deduce an empty pack
+#ifdef _MSC_VER
+  template <typename DistType, typename RngType, typename... RTs>
+  friend auto make_rng_wrapper(delineator /*delim*/, RTs&&...);
+#endif  // _MSC_VER
 };
 
 /**
@@ -397,10 +403,13 @@ private:
  * @tparam RngType *UniformRandomBitGenerator*
  * @tparam DTs... Argument types for the `DistType` ctor
  * @tparam RTs... Argument types for the `RngType` ctor
+ *
+ * @param dist_args... `DistType` ctor arguments
+ * @param delim Delimiter
+ * @param rng_args... `RngType` ctor arguments
  */
 template <typename DistType, typename RngType, typename... DTs, typename... RTs>
-auto make_rng_wrapper(
-  DTs&&... dist_args, delineator /*delim*/, RTs&&... rng_args)
+auto make_rng_wrapper(DTs&&... dist_args, delineator /*delim*/, RTs&&... rng_args)
 {
   rng_wrapper<typename DistType::result_type> w;
   // set distribution and RNG pointers
@@ -420,6 +429,42 @@ auto make_rng_wrapper(
   return w;
 }
 
+// MSVC needs a specific overload since it fails to deduce an empty pack
+#ifdef _MSC_VER
+/**
+ * Create a new `rng_wrapper` from the given distribution and RNG types.
+ *
+ * This overload only provides arguments for the `RngType`.
+ *
+ * @tparam DistType *RandomNumberDistribution*
+ * @tparam RngType *UniformRandomBitGenerator*
+ * @tparam RTs... Argument types for the `RngType` ctor
+ *
+ * @param delim Delimiter
+ * @param rng_args... `RngType` ctor arguments
+ */
+template <typename DistType, typename RngType, typename... RTs>
+auto make_rng_wrapper(delineator /*delim*/, RTs&&... rng_args)
+{
+  rng_wrapper<typename DistType::result_type> w;
+  // set distribution and RNG pointers
+  w.dist_ = new DistType{};
+  w.rng_ = new RngType{std::forward<RTs>(rng_args)...};
+  // set deleter
+  w.deleter_ = [](void* dist, void* rng)
+  {
+    static_cast<DistType*>(dist)->~DistType();
+    static_cast<RngType*>(rng)->~RngType();
+  };
+  // set invoker
+  w.invoker_ = [](void* dist, void* rng)
+  {
+    return (*static_cast<DistType*>(dist))(*static_cast<RngType*>(rng));
+  };
+  return w;
+}
+#endif  // _MSC_VER
+
 /**
  * Return a vector of random values drawn from `[0, 1]`.
  *
@@ -435,7 +480,7 @@ auto make_rng_wrapper(
  */
 template <typename T, typename A = std::allocator<double>>
 auto urand_vector(
-  std::size_t n, rng_type type, std::optional<std::uint_fast64_t> seed = {})
+  std::size_t n, rng_type type, std::optional<std::uint_fast32_t> seed = {})
 {
   // produce generator based on PRNG type
   auto gen = [type, seed]
@@ -480,7 +525,7 @@ auto urand_vector(
  */
 template <typename T, typename A = std::allocator<double>>
 inline auto urand_vector(
-  std::size_t n, std::optional<std::uint_fast64_t> seed = {})
+  std::size_t n, std::optional<std::uint_fast32_t> seed = {})
 {
   return urand_vector<T, A>(n, rng_type::mersenne, seed);
 }
