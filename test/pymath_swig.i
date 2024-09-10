@@ -41,6 +41,11 @@
 %module(docstring=MODULE_DOCSTRING) pymath_swig
 #endif  // !defined(NPYGL_SWIG_CC_20)
 
+// uppercase enum members to follow Python convention
+%rename("%(upper)s", %$isenumitem) "";
+// TODO: not sure how to remove enum class name. we just rename for now
+%rename(PRNG) rng_type;
+
 %include "npygl/ndarray.i"
 %include "npygl/testing/math.hh"
 
@@ -342,60 +347,33 @@ inline T py_inner(ndarray_flat_view<T> v1, ndarray_flat_view<T> v2)
 %template(finner) npygl::testing::py_inner<float>;
 
 // demonstration of wrapping a std::vector<T, A> into a NumPy array
-// TODO: will extend to feature Eigen::MatrixX[df] as well and when ready may
-// insert the matured methods into npygl/testing/math.hh
+// TODO: will extend to feature Eigen::MatrixX[df] as well
 %{
 #include <memory>
-#include <random>
 #include <vector>
 %}
 
-// uppercase enum members to follow Python convention
-%rename("%(upper)s", %$isenumitem) "";
-// TODO: not sure how to remove enum class name. we just rename for now
-%rename(PRNG) rng_type;
-
+// note: we don't have std::optional<T> typemaps so we use a simplifying
+// wrapper but purposefully keep the ugly return type so we can demonstrate
+// that SWIG doest not understand template default arguments
 %inline %{
 namespace npygl {
 namespace testing {
 
 /**
- * Enumeration for selecting a PRNG to use.
+ * Return a vector of random values drawn from `[0, 1]`.
  *
- * @note Currently unused. For virtual dispatch, we must create a CRTP base for
- *  the different PRNG types that inherits from an abstract class modeling the
- *  C++11 *UniformRandomBitGenerator* named requirement.
- */
-enum class rng_type {
-  mersenne,     // Mersenne Twister
-  mersenne64,   // 64-bit Mersenne Twister
-  ranlux48      // 48-bit RANLUX
-};
-
-/**
- * Function template that returns a random vector.
+ * @note SWIG's support for `auto` is still rather limited so we still have to
+ *  spell out the return type in its full glory.
  *
- * @note SWIG's support for `auto` is still rather limited so we still spell
- *  out the return type in its full glory.
- *
- * @tparam T Floating type
- * @tparam A Allocator type
- *
- * @param n Vector size
- * @param type PRNG type
+ * @todo Drop the allocator; if you want an allocator use an overload (so for
+ *  example a `std::pmr::vector<T>` can take a memory resource).
  */
 template <typename T, typename A = std::allocator<double>>
-std::vector<T, A> urand_vector(std::size_t n, rng_type type = rng_type::mersenne)
+std::vector<T, A> py_urand_vector(
+  std::size_t n, rng_type type = rng_type::mersenne)
 {
-  (void) type;  // TODO: currently used but we will use it later
-  // [0, 1] distribution object + seeded PRNG
-  std::uniform_real_distribution<T> dist;
-  std::mt19937 prng{std::random_device{}()};
-  // allocate vector to return
-  std::vector<T, A> vec(n);
-  for (auto& v : vec)
-    v = dist(prng);
-  return vec;
+  return urand_vector<T, A>(n, type);
 }
 
 }  // namespace testing
@@ -419,13 +397,13 @@ namespace npygl::testing {
   "n : int\n"
   "    Number of elements to generate\n"
   "type : rng_type, default=PRNG_MERSENNE\n"
-  "    PRNG generator to use (currently ignored)\n"
+  "    PRNG generator to use\n"
   "\n"
   NPYGL_NPYDOC_RETURNS
   "numpy.ndarray\n"
   "    Array shape ``(n,)`` of values"
 );
-%template(urand_vector) urand_vector<double, std::allocator<double>>;
+%template(urand_vector) py_urand_vector<double, std::allocator<double>>;
 
 %feature(
   "autodoc",
@@ -437,13 +415,13 @@ namespace npygl::testing {
   "n : int\n"
   "    Number of elements to generate\n"
   "type : rng_type, default=PRNG_MERSENNE\n"
-  "    PRNG generator to use (currently ignored)\n"
+  "    PRNG generator to use\n"
   "\n"
   NPYGL_NPYDOC_RETURNS
   "numpy.ndarray\n"
   "    Array shape ``(n,)`` of values"
 );
-%template(furand_vector) urand_vector<float, std::allocator<float>>;
+%template(furand_vector) py_urand_vector<float, std::allocator<float>>;
 
 }  // namespace npygl::testing
 

@@ -11,9 +11,16 @@
 #include <algorithm>
 #include <cassert>
 #include <cmath>
+#include <cstdint>
+#include <functional>
 #include <numeric>
+#include <optional>
+#include <random>
+#include <string>
+#include <stdexcept>
 #include <type_traits>
 
+#include "npygl/common.h"
 #include "npygl/features.h"
 #include "npygl/ndarray.hh"
 
@@ -320,6 +327,164 @@ inline V inner(ndarray_flat_view<T> in1, ndarray_flat_view<U> in2) noexcept
 #endif  // !NPYGL_HAS_CC_20
 }
 #endif  // NPYGL_SWIG_CC_20
+
+/**
+ * Enumeration for selecting a PRNG to use.
+ */
+enum class rng_type {
+  mersenne,     // Mersenne Twister
+  mersenne64,   // 64-bit Mersenne Twister
+  ranlux48      // 48-bit RANLUX
+};
+
+// implementation details SWIG should not process
+#ifndef SWIG
+/**
+ * Type used as an argument delineator.
+ */
+struct delineator {};
+
+/**
+ * A type-erasure wrapper for a distribution type and its PRNG type.
+ *
+ * This models an object that draws pseudo-random values from a distribution.
+ *
+ * @tparam T Type of the generated value
+ */
+template <typename T>
+class rng_wrapper {
+public:
+  using result_type = T;
+
+  /**
+   * Destroy the distribution object and the PRNG object.
+   */
+  ~rng_wrapper()
+  {
+    deleter_(dist_, rng_);
+  }
+
+  /**
+   * Get a pseudo-random value from the distribution using the internal PRNG.
+   */
+  T operator()() const
+  {
+    return invoker_(dist_, rng_);
+  }
+
+private:
+  /**
+   * Ctor.
+   *
+   * We disallow client creaton of the `rng_wrapper`.
+   */
+  rng_wrapper() = default;
+
+  void* dist_;
+  void* rng_;
+  std::function<void(void*, void*)> deleter_;
+  std::function<T(void*, void*)> invoker_;
+
+  // factory function is friend
+  template <typename DistType, typename RngType, typename... DTs, typename... RTs>
+  friend auto make_rng_wrapper(DTs&&..., delineator, RTs&&...);
+};
+
+/**
+ * Create a new `rng_wrapper` from the given distribution and RNG types.
+ *
+ * @tparam DistType *RandomNumberDistribution*
+ * @tparam RngType *UniformRandomBitGenerator*
+ * @tparam DTs... Argument types for the `DistType` ctor
+ * @tparam RTs... Argument types for the `RngType` ctor
+ */
+template <typename DistType, typename RngType, typename... DTs, typename... RTs>
+auto make_rng_wrapper(
+  DTs&&... dist_args, delineator /*delim*/, RTs&&... rng_args)
+{
+  rng_wrapper<typename DistType::result_type> w;
+  // set distribution and RNG pointers
+  w.dist_ = new DistType{std::forward<DTs>(dist_args)...};
+  w.rng_ = new RngType{std::forward<RTs>(rng_args)...};
+  // set deleter
+  w.deleter_ = [](void* dist, void* rng)
+  {
+    static_cast<DistType*>(dist)->~DistType();
+    static_cast<RngType*>(rng)->~RngType();
+  };
+  // set invoker
+  w.invoker_ = [](void* dist, void* rng)
+  {
+    return (*static_cast<DistType*>(dist))(*static_cast<RngType*>(rng));
+  };
+  return w;
+}
+
+/**
+ * Return a vector of random values drawn from `[0, 1]`.
+ *
+ * @todo Try directly exposing this to SWIG after creating typemaps for
+ * `std::optional<T>` for signed/unsigned integral types.
+ *
+ * @tparam T Floating type
+ * @tparam A Allocator type
+ *
+ * @param n Vector size
+ * @param type PRNG type
+ * @param seed Seed value to use
+ */
+template <typename T, typename A = std::allocator<double>>
+auto urand_vector(
+  std::size_t n, rng_type type, std::optional<std::uint_fast64_t> seed = {})
+{
+  // produce generator based on PRNG type
+  auto gen = [type, seed]
+  {
+    using dist_type = std::uniform_real_distribution<T>;
+    // use random_device is no seed value
+    auto sv = (seed) ? *seed : std::random_device{}();
+    // switch over RNG type
+    switch (type) {
+      case rng_type::mersenne:
+        return make_rng_wrapper<dist_type, std::mt19937>(delineator{}, sv);
+      case rng_type::mersenne64:
+        return make_rng_wrapper<dist_type, std::mt19937_64>(delineator{}, sv);
+      case rng_type::ranlux48:
+        return make_rng_wrapper<dist_type, std::ranlux48>(delineator{}, sv);
+      default:
+        throw std::logic_error{
+          NPYGL_PRETTY_FUNCTION_NAME +
+          std::string{": invalid PRNG type specifier"}
+        };
+    }
+  }();
+  // allocate vector to return + populate
+  std::vector<T, A> vec(n);
+  for (auto& v : vec)
+    v = gen();
+  return vec;
+}
+
+/**
+ * Return a vector of random values drawn from `[0, 1]`.
+ *
+ * The underlying PRNG used is the 32-bit Mersenne Twister.
+ *
+ * @todo Overloads confuse SWIG; probably keep in conditional block.
+ *
+ * @tparam T Floating type
+ * @tparam A Allocator type
+ *
+ * @param n Vector size
+ * @param type PRNG type
+ */
+template <typename T, typename A = std::allocator<double>>
+inline auto urand_vector(
+  std::size_t n, std::optional<std::uint_fast64_t> seed = {})
+{
+  return urand_vector<T, A>(n, rng_type::mersenne, seed);
+}
+#endif  // SWIG
 
 }  // namespace testing
 }  // namespace npygl
