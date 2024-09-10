@@ -508,6 +508,64 @@ py_object make_ndarray(arma::Mat<T>&& mat) noexcept
     return {};
   return ar;
 }
+
+/**
+ * Create a 3D NumPy array backed by an Armadillo cube object.
+ *
+ * @note Due to how the memory is laid out in an Armadillo cube the resulting
+ *  shape of the NumPy array is `(n_rows, n_cols, n_slices)`. This is not a
+ *  true 3D array or tensor; the Armadillo docs call the cube a pseudo-tensor.
+ *
+ * The backing Python object is a `PyCapsule` following the `cc_capsule_view`
+ * protocol that manages a moved `arma::Cube<T>` object. Upon creation of the
+ * NumPy array its flags will have `NPY_ARRAY_FARRAY`.
+ *
+ * On error the `py_object` is empty and a Python exception is set.
+ *
+ * @tparam T Element type
+ *
+ * @param cube Cube to consume
+ */
+template <typename T>
+py_object make_ndarray(arma::Cube<T>&& cube) noexcept
+{
+  using C = arma::Cube<T>;
+  // create capsule
+  auto capsule = py_object::create(std::move(cube));
+  if (!capsule)
+    return {};
+  // capsule view (should not error)
+  cc_capsule_view view{capsule};
+  if (!view)
+    return {};
+  // pointer to managed cube + create dims
+  auto cap_cube = view.as<C>();
+  npy_intp dims[3];
+  // cast to silence C4365 warning
+  dims[0] = static_cast<npy_intp>(cap_cube->n_rows);
+  dims[1] = static_cast<npy_intp>(cap_cube->n_cols);
+  dims[2] = static_cast<npy_intp>(cap_cube->n_slices);
+  // create new 3D NumPy array from the cube data buffer
+  py_object ar{
+    PyArray_New(
+      &PyArray_Type,               // subtype
+      sizeof dims / sizeof *dims,  // nd
+      dims,                        // dims
+      npy_typenum<T>,              // type_num
+      nullptr,                     // strides
+      cap_cube->memptr(),          // data
+      0,                           // itemsize (ignored)
+      NPY_ARRAY_FARRAY,            // flags (Armadillo buffers are aligned)
+      nullptr                      // obj (ignored)
+    )
+  };
+  if (!ar)
+    return {};
+  // set base object so NumPy array owns the capsule
+  if (PyArray_SetBaseObject(ar.as<PyArrayObject>(), capsule.release()) < 0)
+    return {};
+  return ar;
+}
 #endif  // NPYGL_HAS_ARMADILLO && !defined(NPYGL_NO_ARMADILLO)
 
 /**

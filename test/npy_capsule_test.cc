@@ -53,6 +53,7 @@ int main()
   );
   npygl::py_error_exit();
 #endif  // NPYGL_HAS_EIGEN3
+#if NPYGL_HAS_ARMADILLO
   // create a NumPy array backed by an Armadillo complex matrix
   auto a_ar = npygl::make_ndarray(
     arma::cx_mat{
@@ -61,9 +62,7 @@ int main()
     }
   );
   npygl::py_error_exit();
-  // create a NumPy array backed an Armadillo complex cube
-  // TODO: no make_ndarray overload for cubes yet
-#if 0
+  // create a NumPy array backed by an Armadillo complex cube
   arma::cx_cube cube{2, 2, 3};
   cube.slice(0) = {
     {{3.4, 2.22}, {3.22, 4.23}},
@@ -78,8 +77,6 @@ int main()
     {{4.123, 1.998}, {8.99, 1.114}}
   };
   auto ac_ar = npygl::make_ndarray(std::move(cube));
-#endif  // 0
-#if NPYGL_HAS_ARMADILLO
 #endif  // NPYGL_HAS_ARMADILLO
   // create a "normal" NumPy array
   auto ar_init = Py_BuildValue("ddddd", 3.4, 1.222, 6.745, 5.2, 5.66, 7.333);
@@ -99,6 +96,7 @@ int main()
 #endif  // NPYGL_HAS_EIGEN3
 #if NPYGL_HAS_ARMADILLO
     "-- arma::cx_mat\n" << a_ar << '\n' <<
+    "-- arma::cx_cube\n" << ac_ar << '\n' <<
 #endif  // NPYGL_HAS_ARMADILLO
     "-- tuple[double]\n" << ar << '\n' << std::endl;
   npygl::py_error_exit();
@@ -111,6 +109,7 @@ int main()
 #endif  // NPYGL_HAS_EIGEN3
 #if NPYGL_HAS_ARMADILLO
   auto a_base = PyArray_BASE(a_ar.as<PyArrayObject>());
+  auto ac_base = PyArray_BASE(ac_ar.as<PyArrayObject>());
 #endif  // NPYGL_HAS_ARMADILLO
   auto base = PyArray_BASE(ar.as<PyArrayObject>());
   // print base objects for each array
@@ -126,6 +125,7 @@ int main()
 #endif  // NPYGL_HAS_EIGEN3
 #if NPYGL_HAS_ARMADILLO
     "-- arma::cx_mat\n" << a_base << '\n' <<
+    "-- arma::cx_cube\n" << ac_base << '\n' <<
 #endif  // NPYGL_HAS_ARMADILLO
     "-- tuple[double]\n" << base << std::endl;
   npygl::py_error_exit();
