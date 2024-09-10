@@ -192,7 +192,7 @@ enum {
 #if NPYGL_HAS_ARMADILLO
 #define MAKE_CAPSULE_ARMADILLO_MATRIX_OPTION \
   "    CAPSULE_ARMADILLO_CUBE\n" \
-  "        Return a random Gaussion arma::cx_cube\n"
+  "        Return a arma::cx_cube\n"
 #else
 #define MAKE_CAPSULE_ARMADILLO_MATRIX_OPTION ""
 #endif  // NPYGL_HAS_ARMADILLO
@@ -258,7 +258,15 @@ NPYGL_PY_FUNC_DECLARE(
 #if NPYGL_HAS_ARMADILLO
     case CAPSULE_ARMADILLO_CUBE:
     {
-      arma::cx_cube cube{2, 3, 4, arma::fill::randn};
+      arma::cx_cube cube{2, 3, 2};
+      cube.slice(0) = {
+        {{4.33, 2.323}, {4.23, 0.222}, {6.345, 1.1}},
+        {{6.55, 4.12}, {4.11, 1.2323}, {6.77, 9.88}}
+      };
+      cube.slice(1) = {
+        {{5.66, 5.11}, {5.66, 11.222}, {5.44, 22.333}},
+        {{6.5, 1.22}, {1.222, 11.888}, {9.88, 2.33}}
+      };
       return py_object::create(std::move(cube)).release();
     }
 #endif  // NPYGL_HAS_ARMADILLO
