@@ -545,6 +545,26 @@ py_object make_ndarray(arma::Cube<T>&& cube) noexcept
   dims[0] = static_cast<npy_intp>(cap_cube->n_rows);
   dims[1] = static_cast<npy_intp>(cap_cube->n_cols);
   dims[2] = static_cast<npy_intp>(cap_cube->n_slices);
+  //
+  // if we want to interpret the arma::Cube<T> data as a tensor-like 3D array
+  // of the shape (n_slices, n_rows, n_cols), e.g. with dims as follows:
+  //
+  // dims[0] = static_cast<npy_intp>(cap_cube->n_slices);
+  // dims[1] = static_cast<npy_intp>(cap_cube->n_rows);
+  // dims[2] = static_cast<npy_intp>(cap_cube->n_cols);
+  //
+  // we will then need to define a strides (in bytes) array as follows:
+  //
+  // npy_intp strides[3];
+  // strides[0] = sizeof(T) * dims[1] * dims[2];
+  // strides[1] = sizeof(T);
+  // strides[2] = sizeof(T) * dims[1];
+  //
+  // this results in a NumPy array that is neither C nor Fortran contiguous so
+  // flags passed to PyArray_New are NPY_ARRAY_BEHAVED. essentially we will use
+  // strides to reinterpret a Fortran-contiguous (n_rows, n_cols, n_slices) 3D
+  // array as a (n_slices, n_rows, n_cols) tensor-like 3D array.
+  //
   // create new 3D NumPy array from the cube data buffer
   py_object ar{
     PyArray_New(
