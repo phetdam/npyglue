@@ -18,7 +18,11 @@ from npygl_utils import HelpFormatter
 import pyhelpers as ph  # type: ignore
 
 # indicate if module was built with Eigen or not
-_with_eigen = hasattr(ph, "CAPSULE_EIGEN3_MATRIX")
+_with_eigen = True if ph.eigen3_version() else False
+# indicate if module was built with Armadillo or not
+_with_arma = True if ph.armadillo_version() else False
+# constants for the different capsule creation methods
+_cap_methods = [(a, getattr(ph, a)) for a in dir(ph) if a.startswith("CAPSULE_")]
 
 
 class TestParseArgs1(unittest.TestCase):
@@ -59,12 +63,53 @@ class TestEigen3Version(unittest.TestCase):
             self.assertIsNone(ph.eigen3_version())
 
 
+class TestArmadilloVersion(unittest.TestCase):
+    """Test suite for armadillo_version."""
+
+    def test(self):
+        """Basic functional test."""
+        if _with_arma:
+            ver = ph.armadillo_version()
+            self.assertEqual(str, type(ver))
+        else:
+            self.assertIsNone(ph.armadillo_version())
+
+
 class TestCapsuleMap(unittest.TestCase):
     """Test suite for capsule_map."""
 
     def test(self):
         """Basic functional test."""
         self.assertEqual("PyCapsule", type(ph.capsule_map()).__name__)
+
+
+class TestMakeCapsule(unittest.TestCase):
+    """Test suite for make_capsule."""
+
+    def test(self):
+        """Basic functional test.
+
+        We want to be able to create a capsule and then get its string type.
+        """
+        for m_name, m_value in _cap_methods:
+            with self.subTest(m_name=m_name, m_value=m_value):
+                cap = ph.make_capsule(m_value)
+                self.assertEqual(str, type(ph.capsule_type(cap)))
+
+
+class TestCapsuleStr(unittest.TestCase):
+    """Test suite for capsule_str."""
+
+    def test(self):
+        """Basic functional test.
+
+        We want to create a capsule and then get is string representation. All
+        the available capsule types should be supported.
+        """
+        for m_name, m_value in _cap_methods:
+            with self.subTest(m_name=m_name, m_value=m_value):
+                cap = ph.make_capsule(m_value)
+                self.assertEqual(str, type(ph.capsule_str(cap)))
 
 
 def main(args: Optional[Iterable[str]] = None) -> int:

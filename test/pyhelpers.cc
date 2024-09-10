@@ -421,7 +421,7 @@ NPYGL_PY_FUNC_DECLARE(
   "If module was compiled without Eigen3 then ``None`` is returned instead.\n"
   "\n"
   NPYGL_NPYDOC_RETURNS
-  "Optional[str]",
+  "str or Nonr",
   self, args) noexcept
 {
 #if NPYGL_HAS_EIGEN3
@@ -435,6 +435,28 @@ NPYGL_PY_FUNC_DECLARE(
 #endif  // !NPYGL_HAS_EIGEN3
 }
 
+NPYGL_PY_FUNC_DECLARE(
+  armadillo_version,
+  "()",
+  "Return the Armadillo version string.\n"
+  "\n"
+  "If module was compiled without Armadillo then ``None`` is returned instead.\n"
+  "\n"
+  NPYGL_NPYDOC_RETURNS
+  "str or None",
+  self, args) noexcept
+{
+#if NPYGL_HAS_ARMADILLO
+  return PyUnicode_FromString(
+    NPYGL_STRINGIFY(ARMA_VERSION_MAJOR) "."
+    NPYGL_STRINGIFY(ARMA_VERSION_MINOR) "."
+    NPYGL_STRINGIFY(ARMA_VERSION_PATCH)
+  );
+#else
+  Py_RETURN_NONE;
+#endif  // !NPYGL_HAS_ARMADILLO
+}
+
 // module method table
 PyMethodDef mod_methods[] = {
   NPYGL_PY_FUNC_METHOD_DEF(parse_args_1, METH_VARARGS),
@@ -444,6 +466,7 @@ PyMethodDef mod_methods[] = {
   NPYGL_PY_FUNC_METHOD_DEF(capsule_str, METH_O),
   NPYGL_PY_FUNC_METHOD_DEF(capsule_type, METH_O),
   NPYGL_PY_FUNC_METHOD_DEF(eigen3_version, METH_NOARGS),
+  NPYGL_PY_FUNC_METHOD_DEF(armadillo_version, METH_NOARGS),
   {}  // zero-initialized sentinel member
 };
 
