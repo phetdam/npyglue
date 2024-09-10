@@ -388,11 +388,6 @@ NPYGL_PY_FUNC_DECLARE(
   "(o)",
   "Return the type name of the C++ object owned by the capsule.\n"
   "\n"
-  ".. note::\n"
-  "\n"
-  "   Currently the returned type name is not demangled from the Itanium ABI\n"
-  "   specification for what the mangled C++ type name should be.\n"
-  "\n"
   NPYGL_NPYDOC_PARAMETERS
   "o : PyCapsule\n"
   "    Python capsule object following the ``cc_capsule_view`` protocol\n"
