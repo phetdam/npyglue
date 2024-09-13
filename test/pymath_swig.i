@@ -346,7 +346,7 @@ inline T py_inner(ndarray_flat_view<T> v1, ndarray_flat_view<T> v2)
 );
 %template(finner) npygl::testing::py_inner<float>;
 
-// demonstration of wrapping a std::vector<T, A> into a NumPy array
+// demonstration of wrapping a std::vector<T> into a NumPy array
 // TODO: will extend to feature Eigen::MatrixX[df] as well
 %{
 #include <memory>
@@ -387,6 +387,7 @@ NPYGL_APPLY_NDARRAY_OUT_TYPEMAP(std::vector<float>);
 // note: as mentioned previously, SWIG does understand namespaces
 namespace npygl::testing {
 
+// FIXME: SWIG generates the docstring twice for some reason
 %feature(
   "autodoc",
   "Return a 1D NumPy array of randomly generated values.\n"
@@ -405,6 +406,7 @@ namespace npygl::testing {
 );
 %template(uniform_vector) py_uniform_vector<double>;
 
+// FIXME: SWIG generates the docstring twice for some reason
 %feature(
   "autodoc",
   "Return a 1D NumPy array of randomly generated values.\n"
