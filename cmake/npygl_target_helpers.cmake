@@ -260,6 +260,8 @@ function(npygl_add_swig_py3_module)
     if(MSVC)
         target_compile_options(
             ${HOST_TARGET} PRIVATE
+            # C4061: enumerator not explicitly handled by case label
+            /wd4061
             # C4127: conditional expression is constant (SWIG doesn't use constexpr)
             /wd4127
             # C4365: signed/unsigned mismatch during type conversion
