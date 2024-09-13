@@ -363,26 +363,26 @@ namespace testing {
 /**
  * Return a vector of random values drawn from `[0, 1]`.
  *
- * @note SWIG's support for `auto` is still rather limited so we still have to
- *  spell out the return type in its full glory.
- *
- * @todo Drop the allocator; if you want an allocator use an overload (so for
- *  example a `std::pmr::vector<T>` can take a memory resource).
+ * @note SWIG's support for `auto` in the 4.0.x series is rather limited so we
+ *  still have to spell out the return type in its full glory.
  */
-template <typename T, typename A = std::allocator<double>>
-std::vector<T, A> py_urand_vector(
+template <typename T>
+inline std::vector<T> py_uniform_vector(
   std::size_t n, rng_type type = rng_type::mersenne)
 {
-  return urand_vector<T, A>(n, type);
+  return uniform_vector<T>(n, type);
 }
 
 }  // namespace testing
 }  // namespace npygl
 %}
 
-// must specify all template arguments as SWIG doesn't understand defaults
-NPYGL_APPLY_NDARRAY_OUT_TYPEMAP((std::vector<double, std::allocator<double>>));
-NPYGL_APPLY_NDARRAY_OUT_TYPEMAP((std::vector<float, std::allocator<float>>));
+// note: if we were using std::vector<T, A> as a return type we would have to
+// specify all the template arguments as SWIG doesn't understand defaults.
+// parentheses would also be needed as otherwise something like
+// std::vector<double, std::allocator<double>> is treated as two macro args.
+NPYGL_APPLY_NDARRAY_OUT_TYPEMAP(std::vector<double>);
+NPYGL_APPLY_NDARRAY_OUT_TYPEMAP(std::vector<float>);
 
 // note: as mentioned previously, SWIG does understand namespaces
 namespace npygl::testing {
@@ -403,7 +403,7 @@ namespace npygl::testing {
   "numpy.ndarray\n"
   "    Array shape ``(n,)`` of values"
 );
-%template(urand_vector) py_urand_vector<double, std::allocator<double>>;
+%template(uniform_vector) py_uniform_vector<double>;
 
 %feature(
   "autodoc",
@@ -421,12 +421,12 @@ namespace npygl::testing {
   "numpy.ndarray\n"
   "    Array shape ``(n,)`` of values"
 );
-%template(furand_vector) py_urand_vector<float, std::allocator<float>>;
+%template(funiform_vector) py_uniform_vector<float>;
 
 }  // namespace npygl::testing
 
-NPYGL_CLEAR_NDARRAY_OUT_TYPEMAP((std::vector<double, std::allocator<double>>));
-NPYGL_CLEAR_NDARRAY_OUT_TYPEMAP((std::vector<float, std::allocator<float>>));
+NPYGL_CLEAR_NDARRAY_OUT_TYPEMAP(std::vector<double>);
+NPYGL_CLEAR_NDARRAY_OUT_TYPEMAP(std::vector<float>);
 
 NPYGL_DISABLE_EXCEPTION_HANDLER
 

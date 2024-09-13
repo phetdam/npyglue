@@ -466,21 +466,26 @@ auto make_rng_wrapper(delineator /*delim*/, RTs&&... rng_args)
 #endif  // _MSC_VER
 
 /**
+ * Type alias for `std::optional<std::uint_fast_32_t>`.
+ *
+ * This is helpful as a way to specify a seed value or to use `random_device`.
+ */
+using optional_seed_type = std::optional<std::uint_fast32_t>;
+
+/**
  * Return a vector of random values drawn from `[0, 1]`.
  *
  * @todo Try directly exposing this to SWIG after creating typemaps for
  * `std::optional<T>` for signed/unsigned integral types.
  *
  * @tparam T Floating type
- * @tparam A Allocator type
  *
  * @param n Vector size
  * @param type PRNG type
  * @param seed Seed value to use
  */
-template <typename T, typename A = std::allocator<double>>
-auto urand_vector(
-  std::size_t n, rng_type type, std::optional<std::uint_fast32_t> seed = {})
+template <typename T>
+auto uniform_vector(std::size_t n, rng_type type, optional_seed_type seed = {})
 {
   // produce generator based on PRNG type
   auto gen = [type, seed]
@@ -504,7 +509,7 @@ auto urand_vector(
     }
   }();
   // allocate vector to return + populate
-  std::vector<T, A> vec(n);
+  std::vector<T> vec(n);
   for (auto& v : vec)
     v = gen();
   return vec;
@@ -518,16 +523,14 @@ auto urand_vector(
  * @todo Overloads confuse SWIG; probably keep in conditional block.
  *
  * @tparam T Floating type
- * @tparam A Allocator type
  *
  * @param n Vector size
- * @param type PRNG type
+ * @param seed Seed value to use
  */
-template <typename T, typename A = std::allocator<double>>
-inline auto urand_vector(
-  std::size_t n, std::optional<std::uint_fast32_t> seed = {})
+template <typename T>
+inline auto uniform_vector(std::size_t n, optional_seed_type seed = {})
 {
-  return urand_vector<T, A>(n, rng_type::mersenne, seed);
+  return uniform_vector<T>(n, rng_type::mersenne, seed);
 }
 #endif  // SWIG
 
