@@ -31,6 +31,16 @@ if(Python3_Development_FOUND)
     add_test(NAME py_capsule_test COMMAND py_capsule_test)
 endif()
 
+# py_format_test: Python compile-time format strings test
+if(Python3_Development_FOUND)
+    npygl_add_py3_executable(
+        TARGET py_format_test
+        SOURCES py_format_test.cc
+        USE_RELEASE_CRT ${PY_MSVC_ALWAYS_RELEASE}
+    )
+    add_test(NAME py_format_test COMMAND py_format_test)
+endif()
+
 # npy_helpers_test: NumPy Python helpers tests
 if(Python3_Development_FOUND AND Python3_NumPy_FOUND)
     # reduce compile time since we don't need Eigen3/Armadillo

@@ -21,6 +21,7 @@
 #include <sstream>
 #include <string>
 #include <string_view>
+#include <tuple>
 #include <type_traits>
 #include <typeinfo>
 #include <utility>
@@ -63,6 +64,76 @@ namespace npygl {
 ///////////////////////////////////////////////////////////////////////////////
 // Python argument parsing                                                   //
 ///////////////////////////////////////////////////////////////////////////////
+
+/**
+ * Traits type for providing the Python argument parsing format for a type.
+ *
+ * @tparam Ts... types
+ */
+template <typename... Ts>
+struct py_format_type;
+
+/**
+ * Placeholder type to indicate that subsequence format units are optional.
+ */
+struct py_optional_args {};
+
+/**
+ * Define a Python format type specialization for a single type.
+ *
+ * @param type C type
+ * @param fmt Format string specification for `PyArg_ParseTuple`.
+ */
+#define NPYGL_PY_FORMAT_TYPE_SPEC(type, fmt) \
+  template <> \
+  struct py_format_type<type> { \
+    static constexpr const auto value = fmt; \
+  }
+
+// see https://docs.python.org/3/c-api/arg.html for formatting details
+NPYGL_PY_FORMAT_TYPE_SPEC(const char*, "s");
+NPYGL_PY_FORMAT_TYPE_SPEC(unsigned char, "b");
+NPYGL_PY_FORMAT_TYPE_SPEC(short, "h");
+NPYGL_PY_FORMAT_TYPE_SPEC(int, "i");
+// note: no long or long long because Py_ssize_t can be either
+// NPYGL_PY_FORMAT_TYPE_SPEC(long, "l");
+// NPYGL_PY_FORMAT_TYPE_SPEC(long long, "L");
+NPYGL_PY_FORMAT_TYPE_SPEC(Py_ssize_t, "n");
+NPYGL_PY_FORMAT_TYPE_SPEC(float, "f");
+NPYGL_PY_FORMAT_TYPE_SPEC(double, "d");
+NPYGL_PY_FORMAT_TYPE_SPEC(Py_complex, "D");
+NPYGL_PY_FORMAT_TYPE_SPEC(PyObject*, "O");
+NPYGL_PY_FORMAT_TYPE_SPEC(py_optional_args, "|");
+
+/**
+ * Traits type providing the Python argument parsing format for a type pack.
+ *
+ * @tparam Ts... types
+ */
+template <typename... Ts>
+struct py_format_type {
+  static constexpr const char value[] = {*py_format_type<Ts>::value..., '\0'};
+};
+
+/**
+ * Partial specialization when specifying the types using a tuple.
+ *
+ * @tparam Ts... types
+ */
+template <typename... Ts>
+struct py_format_type<std::tuple<Ts...>> {
+  static constexpr const char value[] = {*py_format_type<Ts>::value..., '\0'};
+};
+
+/**
+ * Compile-time Python argument format string.
+ *
+ * @todo Consider making this a null-terminated array instead of a pointer.
+ *
+ * @tparam Ts... types
+ */
+template <typename... Ts>
+inline constexpr const char* py_format = py_format_type<Ts...>::value;
 
 namespace detail {
 
