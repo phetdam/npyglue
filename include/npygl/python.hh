@@ -135,6 +135,132 @@ struct py_format_type<std::tuple<Ts...>> {
 template <typename... Ts>
 inline constexpr const char* py_format = py_format_type<Ts...>::value;
 
+/**
+ * Parse Python arguments into the given variadic arguments.
+ *
+ * @note This function is intended for use with `METH_VARARGS` functions only.
+ *
+ * @tparam Ts... types
+ *
+ * @param args Python arguments
+ * @param vars Variables to parse arguments into
+ * @returns `true` on success, `false` on error
+ */
+template <typename... Ts>
+bool parse_args(PyObject* args, Ts&... vars) noexcept
+{
+  return !!PyArg_ParseTuple(args, py_format<Ts...>, &vars...);
+}
+
+namespace detail {
+
+/**
+ * Parse Python arguments into the given variable references.
+ *
+ * @note This function is intended for use with `METH_VARARGS` functions only.
+ *
+ * @tparam Ts... types
+ * @tparam Is... Index values from 0 through sizeof...(Ts) - 1
+ *
+ * @param args Python arguments
+ * @param vars Variable references to parse arguments into
+ * @param var_is Unused index sequence to deduce indices
+ * @returns `true` on success, `false` on error
+ */
+template <typename... Ts, std::size_t... Is>
+bool parse_args(
+  PyObject* args,
+  const std::tuple<Ts&...>& vars,
+  std::index_sequence<Is...> /*var_is*/) noexcept
+{
+  static_assert(sizeof...(Ts) == sizeof...(Is));
+  return !!PyArg_ParseTuple(args, py_format<Ts...>, &std::get<Is>(vars)...);
+}
+
+}  // namespace detail
+
+/**
+ * Parse Python arguments into the given variable references.
+ *
+ * @note This function is intended for use with `METH_VARARGS` functions only.
+ *
+ * @tparam Ts... types
+ *
+ * @param args Python arguments
+ * @param vars Variable references to parse arguments into
+ * @returns `true` on success, `false` on error
+ */
+template <typename... Ts>
+bool parse_args(PyObject* args, const std::tuple<Ts&...>& vars) noexcept
+{
+  return detail::parse_args(args, vars, std::index_sequence_for<Ts...>{});
+}
+
+namespace detail {
+
+/**
+ * Parse Python arguments into the given variable references.
+ *
+ * @note This function is intended for use with `METH_VARARGS` functions only.
+ *
+ * @tparam RTs... Required types
+ * @tparam RIs... Index values from 0 through sizeof...(RTs) - 1
+ * @tparam OTs... Optional types
+ * @tparam OIs... Index values from 0 through sizeof...(OTs) - 1
+ *
+ * @param args Python arguments
+ * @param reqs Variable references to parse required arguments into
+ * @param req_is Unused index sequence to deduce indices
+ * @param opts Varuable references to parse optional arguments into
+ * @param opt_is Unused index sequence to deduce indices
+ * @returns `true` on success, `false` on error
+ */
+template <typename... RTs, std::size_t... RIs, typename... OTs, std::size_t... OIs>
+bool parse_args(
+  PyObject* args,
+  const std::tuple<RTs&...>& reqs,
+  std::index_sequence<RIs...> /*req_is*/,
+  const std::tuple<OTs&...>& opts,
+  std::index_sequence<OIs...> /*opt_is*/)
+{
+  return !!PyArg_ParseTuple(
+    args,
+    py_format<RTs..., py_optional_args, OTs...>,
+    &std::get<RIs>(reqs)...,
+    &std::get<OIs>(opts)...
+  );
+}
+
+}  // namespace detail
+
+/**
+ * Parse Python arguments into the given variable references.
+ *
+ * @note This function is intended for use with `METH_VARARGS` functions only.
+ *
+ * @tparam RTs... Required types
+ * @tparam OTs... Optional types
+ *
+ * @param args Python arguments
+ * @param reqs Variable references to parse required arguments into
+ * @param opts Varuable references to parse optional arguments into
+ * @returns `true` on success, `false` on error
+ */
+template <typename... RTs, typename... OTs>
+bool parse_args(
+  PyObject* args,
+  const std::tuple<RTs&...>& reqs,
+  const std::tuple<OTs&...>& opts)
+{
+  return detail::parse_args(
+    args,
+    reqs,
+    std::index_sequence_for<RTs...>{},
+    opts,
+    std::index_sequence_for<OTs...>{}
+  );
+}
+
 namespace detail {
 
 /**
