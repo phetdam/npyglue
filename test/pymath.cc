@@ -8,7 +8,9 @@
 #define PY_SSIZE_T_CLEAN
 #include <Python.h>
 
+#include <climits>
 #include <cstdint>
+#include <type_traits>
 
 #include "npygl/common.h"
 #include "npygl/features.h"
@@ -455,6 +457,59 @@ NPYGL_PY_FUNC_DECLARE(
   return inner<float>(args);
 }
 
+NPYGL_PY_FUNC_DECLARE(
+  uniform_vector,
+  "(n, type, seed=None)",
+  "Return a 1D NumPy array of randomly generated values.\n"
+  "\n"
+  "The memory backing the returned array is held by a std::vector<double>.\n"
+  "\n"
+  NPYGL_NPYDOC_PARAMETERS
+  "n : int\n"
+  "    Number of elements to generate\n"
+  "type : rng_type, default=PRNG_MERSENNE\n"
+  "    PRNG generator to use\n"
+  "seed : int, default=None\n"
+  "    Seed value to use\n"
+  "\n"
+  NPYGL_NPYDOC_RETURNS
+  "numpy.ndarray\n"
+  "    Array shape ``(n,)`` of values",
+  self, args) noexcept
+{
+  using npygl::testing::optional_seed_type;
+  using npygl::testing::rng_type;
+  using npygl::testing::uniform_vector;
+  // number of values, incoming type, seed value
+  Py_ssize_t n;
+  int type = static_cast<std::underlying_type_t<rng_type>>(rng_type::mersenne);
+  int seed = INT_MAX;
+  // parse arguments
+  if (!npygl::parse_args(args, std::tie(n), std::tie(type, seed)))
+    return nullptr;
+  // type has to be valid
+  if (type < 0) {
+    PyErr_SetString(PyExc_ValueError, "PRNG type value cannot be negative");
+    return nullptr;
+  }
+  if (type >= static_cast<std::underlying_type_t<rng_type>>(rng_type::max)) {
+    PyErr_SetString(PyExc_ValueError, "PRNG type exceeds available maximum");
+    return nullptr;
+  }
+  // seed has to be nonnegative
+  if (seed < 0) {
+    PyErr_SetString(PyExc_ValueError, "seed value must be nonnegative");
+    return nullptr;
+  }
+  // compute random vector and return
+  auto res = uniform_vector<double>(
+    static_cast<std::size_t>(n),
+    static_cast<rng_type>(type),
+    (seed == INT_MAX) ? optional_seed_type{} : optional_seed_type{seed}
+  );
+  return npygl::make_ndarray(std::move(res)).release();
+}
+
 // module method table
 PyMethodDef mod_methods[] = {
   // TODO: consider using METH_O for single-argument array functions
@@ -470,6 +525,7 @@ PyMethodDef mod_methods[] = {
   NPYGL_PY_FUNC_METHOD_DEF(fnorm2, METH_O),
   NPYGL_PY_FUNC_METHOD_DEF(inner, METH_VARARGS),
   NPYGL_PY_FUNC_METHOD_DEF(finner, METH_VARARGS),
+  NPYGL_PY_FUNC_METHOD_DEF(uniform_vector, METH_VARARGS),
   {}  // zero-initialized sentinel member
 };
 

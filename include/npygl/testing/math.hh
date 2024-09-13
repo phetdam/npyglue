@@ -334,7 +334,11 @@ inline V inner(ndarray_flat_view<T> in1, ndarray_flat_view<U> in2) noexcept
 enum class rng_type {
   mersenne,     // Mersenne Twister
   mersenne64,   // 64-bit Mersenne Twister
-  ranlux48      // 48-bit RANLUX
+  ranlux48,     // 48-bit RANLUX
+// hide max value from SWIG
+#ifndef SWIG
+  max           // number of types
+#endif  // SWIG
 };
 
 // implementation details SWIG should not process
