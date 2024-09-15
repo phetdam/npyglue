@@ -470,25 +470,16 @@ constexpr auto as_underlying(E v)
   return static_cast<std::underlying_type_t<E>>(v);
 }
 
-NPYGL_PY_KWFUNC_DECLARE(
-  uniform_vector,
-  "(n, type=PRNG_MERSENNE, seed=None)",
-  "Return a 1D NumPy array of randomly generated values.\n"
-  "\n"
-  "The memory backing the returned array is held by a std::vector<double>.\n"
-  "\n"
-  NPYGL_NPYDOC_PARAMETERS
-  "n : int\n"
-  "    Number of elements to generate\n"
-  "type : rng_type, default=PRNG_MERSENNE\n"
-  "    PRNG generator to use\n"
-  "seed : int, default=None\n"
-  "    Seed value to use\n"
-  "\n"
-  NPYGL_NPYDOC_RETURNS
-  "numpy.ndarray\n"
-  "    Array shape ``(n,)`` of values",
-  self, args, kwargs) noexcept
+/**
+ * Python wrapper for `uniform_vector`.
+ *
+ * @tparam T Output element type, either `float`, `double`, or `long double`
+ *
+ * @param args Python argument tuple
+ * @param kwargs Python argument dict
+ */
+template <typename T>
+PyObject* uniform_vector(PyObject* args, PyObject* kwargs) noexcept
 {
   using npygl::testing::optional_seed_type;
   using npygl::testing::rng_type;
@@ -517,12 +508,58 @@ NPYGL_PY_KWFUNC_DECLARE(
     return nullptr;
   }
   // compute random vector and return
-  auto res = uniform_vector<double>(
+  auto res = uniform_vector<T>(
     static_cast<std::size_t>(n),
     static_cast<rng_type>(type),
     (seed == INT_MAX) ? optional_seed_type{} : optional_seed_type{seed}
   );
   return npygl::make_ndarray(std::move(res)).release();
+}
+
+NPYGL_PY_KWFUNC_DECLARE(
+  uniform_vector,
+  "(n, type=PRNG_MERSENNE, seed=None)",
+  "Return a 1D NumPy array of randomly generated values.\n"
+  "\n"
+  "The memory backing the returned array is held by a std::vector<double>.\n"
+  "\n"
+  NPYGL_NPYDOC_PARAMETERS
+  "n : int\n"
+  "    Number of elements to generate\n"
+  "type : rng_type, default=PRNG_MERSENNE\n"
+  "    PRNG generator to use\n"
+  "seed : int, default=None\n"
+  "    Seed value to use\n"
+  "\n"
+  NPYGL_NPYDOC_RETURNS
+  "numpy.ndarray\n"
+  "    Array shape ``(n,)`` of values",
+  self, args, kwargs) noexcept
+{
+  return uniform_vector<double>(args, kwargs);
+}
+
+NPYGL_PY_KWFUNC_DECLARE(
+  funiform_vector,
+  "(n, type=PRNG_MERSENNE, seed=None)",
+  "Return a 1D NumPy array of randomly generated values.\n"
+  "\n"
+  "The memory backing the returned array is held by a std::vector<float>.\n"
+  "\n"
+  NPYGL_NPYDOC_PARAMETERS
+  "n : int\n"
+  "    Number of elements to generate\n"
+  "type : rng_type, default=PRNG_MERSENNE\n"
+  "    PRNG generator to use\n"
+  "seed : int, default=None\n"
+  "    Seed value to use\n"
+  "\n"
+  NPYGL_NPYDOC_RETURNS
+  "numpy.ndarray\n"
+  "    Array shape ``(n,)`` of values",
+  self, args, kwargs) noexcept
+{
+  return uniform_vector<float>(args, kwargs);
 }
 
 // module method table
@@ -541,6 +578,7 @@ PyMethodDef mod_methods[] = {
   NPYGL_PY_FUNC_METHOD_DEF(inner, METH_VARARGS),
   NPYGL_PY_FUNC_METHOD_DEF(finner, METH_VARARGS),
   NPYGL_PY_FUNC_METHOD_DEF(uniform_vector, METH_VARARGS | METH_KEYWORDS),
+  NPYGL_PY_FUNC_METHOD_DEF(funiform_vector, METH_VARARGS | METH_KEYWORDS),
   {}  // zero-initialized sentinel member
 };
 
