@@ -186,6 +186,8 @@ endif()
 if(MSVC)
     add_compile_options(
         /Wall
+        # C4061: enum value not explicitly handled by case label
+        /wd4061
         # C4514: unreferenced inline function has been removed
         /wd4514
         # C4623: default ctor was implicitly defined as deleted

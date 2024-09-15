@@ -457,9 +457,22 @@ NPYGL_PY_FUNC_DECLARE(
   return inner<float>(args);
 }
 
-NPYGL_PY_FUNC_DECLARE(
+/**
+ * Helper for casting a scoped or unscoped enum to its underlying type.
+ *
+ * @tparam E Enum type
+ *
+ * @param v Enum value to cast
+ */
+template <typename E, typename = std::enable_if_t<std::is_enum_v<E>>>
+constexpr auto as_underlying(E v)
+{
+  return static_cast<std::underlying_type_t<E>>(v);
+}
+
+NPYGL_PY_KWFUNC_DECLARE(
   uniform_vector,
-  "(n, type, seed=None)",
+  "(n, type=PRNG_MERSENNE, seed=None)",
   "Return a 1D NumPy array of randomly generated values.\n"
   "\n"
   "The memory backing the returned array is held by a std::vector<double>.\n"
@@ -475,24 +488,26 @@ NPYGL_PY_FUNC_DECLARE(
   NPYGL_NPYDOC_RETURNS
   "numpy.ndarray\n"
   "    Array shape ``(n,)`` of values",
-  self, args) noexcept
+  self, args, kwargs) noexcept
 {
   using npygl::testing::optional_seed_type;
   using npygl::testing::rng_type;
   using npygl::testing::uniform_vector;
   // number of values, incoming type, seed value
   Py_ssize_t n;
-  int type = static_cast<std::underlying_type_t<rng_type>>(rng_type::mersenne);
+  auto type = as_underlying(rng_type::mersenne);
   int seed = INT_MAX;
+  // kwarg names
+  const char* kws[] = {"type", "seed"};
   // parse arguments
-  if (!npygl::parse_args(args, std::tie(n), std::tie(type, seed)))
+  if (!npygl::parse_args(args, std::tie(n), kws, kwargs, std::tie(type, seed)))
     return nullptr;
   // type has to be valid
   if (type < 0) {
     PyErr_SetString(PyExc_ValueError, "PRNG type value cannot be negative");
     return nullptr;
   }
-  if (type >= static_cast<std::underlying_type_t<rng_type>>(rng_type::max)) {
+  if (type >= as_underlying(rng_type::max)) {
     PyErr_SetString(PyExc_ValueError, "PRNG type exceeds available maximum");
     return nullptr;
   }
@@ -525,7 +540,7 @@ PyMethodDef mod_methods[] = {
   NPYGL_PY_FUNC_METHOD_DEF(fnorm2, METH_O),
   NPYGL_PY_FUNC_METHOD_DEF(inner, METH_VARARGS),
   NPYGL_PY_FUNC_METHOD_DEF(finner, METH_VARARGS),
-  NPYGL_PY_FUNC_METHOD_DEF(uniform_vector, METH_VARARGS),
+  NPYGL_PY_FUNC_METHOD_DEF(uniform_vector, METH_VARARGS | METH_KEYWORDS),
   {}  // zero-initialized sentinel member
 };
 
@@ -549,11 +564,31 @@ PyModuleDef mod_def = {
 
 }  // namespace
 
+/**
+ * Helper macro to add an enum value as an integer constant.
+ *
+ * @param mod Module object
+ * @param name Name to add enum value under
+ * @param value Enum value
+ * @returns `true` on success, `false` on error
+ */
+#define ADD_ENUM(mod, name, value) \
+  !PyModule_AddIntConstant(mod, name, as_underlying(value))
+
 // visible module initialization function
 PyMODINIT_FUNC
 NPYGL_CONCAT(PyInit_, MODULE_NAME)()
 {
+  using npygl::testing::rng_type;
   // import NumPy C API and create module
   import_array();
-  return PyModule_Create(&mod_def);
+  npygl::py_object mod{PyModule_Create(&mod_def)};
+  if (!mod)
+    return nullptr;
+  // add PRNG selection constants
+  if (!ADD_ENUM(mod, "PRNG_MERSENNE", rng_type::mersenne)) return nullptr;
+  if (!ADD_ENUM(mod, "PRNG_MERSENNE64", rng_type::mersenne64)) return nullptr;
+  if (!ADD_ENUM(mod, "PRNG_RANLUX48", rng_type::ranlux48)) return nullptr;
+  // release module object
+  return mod.release();
 }

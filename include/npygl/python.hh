@@ -221,8 +221,10 @@ bool parse_args(
   const std::tuple<RTs&...>& reqs,
   std::index_sequence<RIs...> /*req_is*/,
   const std::tuple<OTs&...>& opts,
-  std::index_sequence<OIs...> /*opt_is*/)
+  std::index_sequence<OIs...> /*opt_is*/) noexcept
 {
+  static_assert(sizeof...(RTs) == sizeof...(RIs));
+  static_assert(sizeof...(OTs) == sizeof...(OIs));
   return !!PyArg_ParseTuple(
     args,
     py_format<RTs..., py_optional_args, OTs...>,
@@ -250,12 +252,117 @@ template <typename... RTs, typename... OTs>
 bool parse_args(
   PyObject* args,
   const std::tuple<RTs&...>& reqs,
-  const std::tuple<OTs&...>& opts)
+  const std::tuple<OTs&...>& opts) noexcept
 {
   return detail::parse_args(
     args,
     reqs,
     std::index_sequence_for<RTs...>{},
+    opts,
+    std::index_sequence_for<OTs...>{}
+  );
+}
+
+namespace detail {
+
+/**
+ * Helper that expands a pack of indices into the empty string.
+ *
+ * @tparam Is... Indexing pack
+ */
+template <std::size_t... Is>
+inline constexpr const char* empty_string = "";
+
+/**
+ * Parse Python arguments into the given variable references.
+ *
+ * @note This function is only for `METH_VARARGS | METH_KEYWORDS` functions.
+ *
+ * @tparam RTs... Required types
+ * @tparam RIs... Index values from 0 through sizeof...(RTs) - 1
+ * @tparam N Number of keyword arguments
+ * @tparam OTs... Optional types
+ * @tparam OIs... Index values from 0 through sizeof...(OTs) - 1
+ *
+ * @param args Python required arguments
+ * @param reqs Variable references to parse required arguments into
+ * @param req_is Unused index sequence to deduce indices
+ * @param kws Optional keywords argument names
+ * @param kwargs Python keyword optional arguments
+ * @param opts Varuable references to parse optional keywords arguments into
+ * @param req_is Unused index sequence to deduce indices
+ * @returns `true` on success, `false` on error
+ */
+template <
+  typename... RTs,
+  std::size_t... RIs,
+  std::size_t N,
+  typename... OTs,
+  std::size_t... OIs>
+bool parse_args(
+  PyObject* args,
+  const std::tuple<RTs&...>& reqs,
+  std::index_sequence<RIs...> /*req_is*/,
+  const char* (&kws)[N],
+  PyObject* kwargs,
+  const std::tuple<OTs&...>& opts,
+  std::index_sequence<OIs...> /*opt_is*/) noexcept
+{
+  // counts of required and optional types
+  constexpr auto n_req = sizeof...(RTs);
+  constexpr auto n_opt = sizeof...(OTs);
+  // sanity checks
+  static_assert(n_req == sizeof...(RIs));
+  static_assert(n_opt == sizeof...(OIs));
+  static_assert(n_opt == N);
+  // construct array of names. the positional args we force to be positional
+  // only by using "" and zero everything out. +1 for terminating nullptr
+  const char* names[n_req + n_opt + 1] = {empty_string<RIs>...};
+  // use fold expression to iterate over pack and set kwarg names
+  ((names[n_req + OIs] = kws[OIs]), ...);
+  // parse args and kwargs
+  return !!PyArg_ParseTupleAndKeywords(
+    args,
+    kwargs,
+    py_format<RTs..., py_optional_args, OTs...>,
+    (char**) names,
+    &std::get<RIs>(reqs)...,
+    &std::get<OIs>(opts)...
+  );
+}
+
+}  // namespace detail
+
+/**
+ * Parse Python arguments into the given variable references.
+ *
+ * @note This function is only for `METH_VARARGS | METH_KEYWORDS` functions.
+ *
+ * @tparam RTs... Required types
+ * @tparam N Number of keyword arguments
+ * @tparam OTs... Optional types
+ *
+ * @param args Python required arguments
+ * @param reqs Variable references to parse required arguments into
+ * @param kws Optional keywords argument names
+ * @param kwargs Python keyword optional arguments
+ * @param opts Varuable references to parse optional keywords arguments into
+ * @returns `true` on success, `false` on error
+ */
+template <typename... RTs, std::size_t N, typename... OTs>
+bool parse_args(
+  PyObject* args,
+  const std::tuple<RTs&...>& reqs,
+  const char* (&kws)[N],
+  PyObject* kwargs,
+  const std::tuple<OTs&...>& opts) noexcept
+{
+  return detail::parse_args(
+    args,
+    reqs,
+    std::index_sequence_for<RTs...>{},
+    kws,
+    kwargs,
     opts,
     std::index_sequence_for<OTs...>{}
   );
@@ -1631,15 +1738,84 @@ METH_CLASS, METH_STATIC, METH_COEXIST"
     !(Flags & METH_NOARGS) || (!(Flags & METH_VARARGS) && !(Flags & METH_O)),
     "METH_NOARGS specified with other flags"
   );
+  // class and static cannot both be provided
+  static_assert(
+    !(Flags & METH_CLASS) || !(Flags & METH_STATIC),
+    "cannot have both METH_CLASS and METH_STATIC set"
+  );
   // build
   return {name, func, Flags, doc};
 }
 
 /**
- * Create a `PyMethodDef` from a function declared with `NPYGL_PY_FUNC_DECLARE`.
+ * Macro for declaring a `PyCFunctionWithKeywords`.
+ *
+ * The format of `argstr` is a tuple of comma-separated identifiers.
  *
  * @param name Function name
- * @param flags `PyMethodDef` flags valid for a `PyCFunction`
+ * @param argstr String literal of the format `"(...)"` representing arguments
+ * @param doc String literal docstring
+ * @param self Identifier for the first `PyObject*` argument (usually unused)
+ * @param args Identifier for the second `PyObject*` argument (args)
+ * @param kwargs Identifier for the third `PyObject*` argument (kwargs)
+ */
+#define NPYGL_PY_KWFUNC_DECLARE(name, argstr, doc, self, args, kwargs) \
+  PyDoc_STRVAR( \
+    NPYGL_CONCAT(name, _doc), \
+    NPYGL_STRINGIFY(name) argstr "\n" NPYGL_CLINIC_MARKER doc); \
+  PyObject* name( \
+    [[maybe_unused]] PyObject* self, \
+    [[maybe_unused]] PyObject* args, \
+    [[maybe_unused]] PyObject* kwargs)
+
+/**
+ * Create a `PyMethodDef` struct for a `PyCFunctionWithKeywords`.
+ *
+ * @tparam Flags `PyMethodDef` flags to populate its `ml_flags` member
+ *
+ * @param name Function name
+ * @param func Function pointer
+ * @param doc Function docstring
+ */
+template <int Flags>
+constexpr PyMethodDef make_method_def(
+  const char* name, PyCFunctionWithKeywords func, const char* doc) noexcept
+{
+  // must not have any other flags besides the allowed ones
+  static_assert(
+    !(
+      Flags &
+      ~METH_VARARGS &
+      ~METH_KEYWORDS &
+      ~METH_CLASS &
+      ~METH_STATIC &
+      ~METH_COEXIST
+    ),
+    "Flags contains a flag that is not METH_VARARGS, METH_KEYWORDS, METH_O, \
+METH_CLASS, METH_STATIC, METH_COEXIST"
+  );
+  // must have both METH_VARARGS and METH_KEYWORDS
+  static_assert(
+    (Flags & METH_VARARGS) && (Flags & METH_KEYWORDS),
+    "Flags must contain METH_VARARGS | METH_KEYWORDS"
+  );
+  // class and static cannot both be provided
+  static_assert(
+    !(Flags & METH_CLASS) || !(Flags & METH_STATIC),
+    "cannot have both METH_CLASS and METH_STATIC set"
+  );
+  // build. silence MSVC warning as we cannot do anything about this
+NPYGL_MSVC_WARNING_PUSH()
+NPYGL_MSVC_WARNING_DISABLE(4191)
+  return {name, (PyCFunction) func, Flags, doc};
+NPYGL_MSVC_WARNING_POP()
+}
+
+/**
+ * Create a `PyMethodDef` from a `NPYGL_PY_[KW]FUNC_DECLARE` function.
+ *
+ * @param name Function name
+ * @param flags `PyMethodDef` flags valid for the corresponding function type
  */
 #define NPYGL_PY_FUNC_METHOD_DEF(name, flags) \
   npygl::make_method_def<flags>( \
