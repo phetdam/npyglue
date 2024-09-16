@@ -47,6 +47,7 @@
 %rename(PRNG) rng_type;
 
 %include "npygl/ndarray.i"
+%include "npygl/python.i"
 %include "npygl/testing/math.hh"
 
 %{

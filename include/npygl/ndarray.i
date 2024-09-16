@@ -20,9 +20,6 @@
 #include <npygl/python.hh>
 %}
 
-// include Python helpers
-%include "npygl/python.i"
-
 // forward declaration of the ndarray_flat_view template in the npygl namespace
 // so that SWIG can properly match typemaps against unqualified use of the type
 // name inside a namespace in processed C++ code without us needing to %include
