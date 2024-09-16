@@ -1,7 +1,7 @@
 /**
  * @file ndarray.i
  * @author Derek Huang
- * @brief SWIG interface file for npyglue NumPy array helpers
+ * @brief npyglue SWIG NumPy array helpers
  * @copyright MIT License
  */
 
@@ -16,13 +16,12 @@
 #endif  // SWIGPYTHON
 
 %{
-#include <exception>
-#include <stdexcept>
-#include <utility>
-
 #include <npygl/ndarray.hh>  // includes <numpy/ndarrayobject.h>
 #include <npygl/python.hh>
 %}
+
+// include Python helpers
+%include "npygl/python.i"
 
 // forward declaration of the ndarray_flat_view template in the npygl namespace
 // so that SWIG can properly match typemaps against unqualified use of the type
@@ -349,71 +348,3 @@ NPYGL_STD_SPAN_INOUT_TYPEMAP(unsigned long)
 "Returns\n"
 "-------\n"
 %enddef  // NPYGL_NPYDOC_RETURNS
-
-/**
- * Macro to enable a general C++ exception handler.
- *
- * The exception messages will simply use the `what()` members.
- */
-%define NPYGL_ENABLE_EXCEPTION_HANDLER
-%exception {
-  try {
-    $action
-  }
-  // overflow
-  catch (const std::overflow_error& ex) {
-    PyErr_SetString(PyExc_OverflowError, ex.what());
-    SWIG_fail;
-  }
-  // incorrect argument value
-  catch (const std::invalid_argument& ex) {
-    PyErr_SetString(
-      PyExc_ValueError,
-      (std::string{"std::invalid_argument thrown. "} + ex.what()).c_str()
-    );
-    SWIG_fail;
-  }
-  // underflow error mapped to ArithmeticError
-  catch (const std::underflow_error& ex) {
-    PyErr_SetString(
-      PyExc_ArithmeticError,
-      (std::string{"std::underflow_error thrown. "} + ex.what()).c_str()
-    );
-    SWIG_fail;
-  }
-  // domain error mapped to ValueError
-  catch (const std::domain_error& ex) {
-    PyErr_SetString(
-      PyExc_ValueError,
-      (std::string{"std::domain_error thrown. "} + ex.what()).c_str()
-    );
-    SWIG_fail;
-  }
-  // range error considered a TypeError
-  catch (const std::range_error& ex) {
-    PyErr_SetString(
-      PyExc_TypeError,
-      (std::string{"std::range_error thrown. "} + ex.what()).c_str()
-    );
-    SWIG_fail;
-  }
-  // base case. shouldn't use PyExc_Exception directly (RuntimeError instead)
-  // this we use to catch std::runtime_error as well
-  catch (const std::exception& ex) {
-    PyErr_SetString(PyExc_RuntimeError, ex.what());
-    SWIG_fail;
-  }
-  // unknown exception (on Windows, could be SEH for example)
-  catch (...) {
-    PyErr_SetString(PyExc_RuntimeError, "Unknown C++ exception thrown");
-    SWIG_fail;
-  }
-}
-%enddef  // NPYGL_ENABLE_EXCEPTION_HANDLER
-
-/**
- * Macro to disable any previously defined C++ `%exception` block.
- */
-%define NPYGL_DISABLE_EXCEPTION_HANDLER
-%exception;
-%enddef  // NPYGL_DISABLE_EXCEPTION_HANDLER

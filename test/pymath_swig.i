@@ -349,7 +349,9 @@ inline T py_inner(ndarray_flat_view<T> v1, ndarray_flat_view<T> v2)
 // demonstration of wrapping a std::vector<T> into a NumPy array
 // TODO: will extend to feature Eigen::MatrixX[df] as well
 %{
+#include <cstdint>
 #include <memory>
+#include <optional>
 #include <vector>
 %}
 
@@ -365,12 +367,21 @@ namespace testing {
  *
  * @note SWIG's support for `auto` in the 4.0.x series is rather limited so we
  *  still have to spell out the return type in its full glory.
+ *
+ * @todo Still not really able to get SWIG to handle `std::optional<T>` so we
+ *  use a hack where `UINT_MAX `is considered the "default" value.
  */
 template <typename T>
 inline std::vector<T> py_uniform_vector(
-  std::size_t n, rng_type type = rng_type::mersenne)
+  std::size_t n,
+  rng_type type = rng_type::mersenne,
+  unsigned int seed = UINT_MAX)
 {
-  return uniform_vector<T>(n, type);
+  return uniform_vector<T>(
+    n,
+    type,
+    (seed == UINT_MAX) ? optional_seed_type{} : optional_seed_type{seed}
+  );
 }
 
 }  // namespace testing

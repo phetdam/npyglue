@@ -244,18 +244,16 @@ class TestUniformVector(unittest.TestCase):
             ]
         )
         # FIXME: SWIG functions don't support keyword arguments
-        # FIXME: SWIG functions do not take a seed argument
         if self.swig_module(pm):
-            self.skipTest(
-                "SWIG module does not support invocation with keyword "
-                "arguments and does not take a seed argument"
+            assert_allclose(
+                exp,
+                pm.uniform_vector(exp.size, pm.PRNG_MERSENNE, self.seed)
             )
-            return
-        # actual test
-        assert_allclose(
-            exp,
-            pm.uniform_vector(exp.size, type=pm.PRNG_MERSENNE, seed=self.seed)
-        )
+        else:
+            assert_allclose(
+                exp,
+                pm.uniform_vector(exp.size, type=pm.PRNG_MERSENNE, seed=self.seed)
+            )
 
     def test_funiform_mersenne(self):
         """Test using the Mersenne Twister but with single-precision output."""
@@ -268,14 +266,15 @@ class TestUniformVector(unittest.TestCase):
         )
         # see above comments
         if self.swig_module(pm):
-            self.skipTest(
-                "SWIG module does not support invocation with keyword "
-                "arguments and does not take a seed argument"
+            assert_allclose(
+                exp,
+                pm.funiform_vector(exp.size, pm.PRNG_MERSENNE, self.seed)
             )
-        assert_allclose(
-            exp,
-            pm.funiform_vector(exp.size, type=pm.PRNG_MERSENNE, seed=self.seed)
-        )
+        else:
+            assert_allclose(
+                exp,
+                pm.funiform_vector(exp.size, type=pm.PRNG_MERSENNE, seed=self.seed)
+            )
 
 
 def main(args: Optional[Iterable[str]] = None) -> int:
