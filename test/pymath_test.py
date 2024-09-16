@@ -210,6 +210,74 @@ class TestInner(unittest.TestCase):
             pm.inner(in1, in2)
 
 
+class TestUniformVector(unittest.TestCase):
+    """Test suite for uniform_vector tests."""
+
+    # fixed seed value shared by all the tests
+    seed = 8
+
+    @staticmethod
+    def swig_module(mod: "module") -> bool:
+        """Indicate via the module's name if it is SWIG-generated.
+
+        Test modules have "_swig" as part of the module name.
+
+        .. note::
+
+           This function can only be called when pm is non-None. This is why
+           we do not use the unittest.skipIf decorators (pm still None).
+        """
+        return "swig" in pm.__name__
+
+
+    def test_uniform_mersenne(self):
+        """Test using the Mersenne Twister to generate values."""
+        # hardcoded expected values because not sure how to get the NumPy
+        # MT19937 instance and Generator to reproduce the same values
+        # note: use np.set_printoptions(precision=10) in order to get higher
+        # precision display of the returned values to satisfy assert_allclose
+        exp = np.array(
+            [
+                0.0111144383, 0.2394395717, 0.3775169763, 0.8164612845,
+                0.4223508088, 0.6120333329, 0.7660629294, 0.4019251138,
+                0.8720885877, 0.9264383943
+            ]
+        )
+        # FIXME: SWIG functions don't support keyword arguments
+        # FIXME: SWIG functions do not take a seed argument
+        if self.swig_module(pm):
+            self.skipTest(
+                "SWIG module does not support invocation with keyword "
+                "arguments and does not take a seed argument"
+            )
+            return
+        # actual test
+        assert_allclose(
+            exp,
+            pm.uniform_vector(exp.size, type=pm.PRNG_MERSENNE, seed=self.seed)
+        )
+
+    def test_funiform_mersenne(self):
+        """Test using the Mersenne Twister but with single-precision output."""
+        exp = np.array(
+            [
+                0.8734294, 0.011114438, 0.96854067, 0.23943958, 0.86919457,
+                0.37751698, 0.5308557, 0.81646127, 0.23272833, 0.4223508
+            ],
+            dtype=np.float32
+        )
+        # see above comments
+        if self.swig_module(pm):
+            self.skipTest(
+                "SWIG module does not support invocation with keyword "
+                "arguments and does not take a seed argument"
+            )
+        assert_allclose(
+            exp,
+            pm.funiform_vector(exp.size, type=pm.PRNG_MERSENNE, seed=self.seed)
+        )
+
+
 def main(args: Optional[Iterable[str]] = None) -> int:
     """Main function.
 
