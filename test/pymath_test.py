@@ -210,8 +210,8 @@ class TestInner(unittest.TestCase):
             pm.inner(in1, in2)
 
 
-class TestUniformVector(unittest.TestCase):
-    """Test suite for uniform_vector tests."""
+class TestUniform(unittest.TestCase):
+    """Test suite for uniform tests."""
 
     # fixed seed value shared by all the tests
     seed = 8
@@ -247,12 +247,12 @@ class TestUniformVector(unittest.TestCase):
         if self.swig_module(pm):
             assert_allclose(
                 exp,
-                pm.uniform_vector(exp.size, pm.PRNG_MERSENNE, self.seed)
+                pm.uniform(exp.size, pm.PRNG_MERSENNE, self.seed)
             )
         else:
             assert_allclose(
                 exp,
-                pm.uniform_vector(exp.size, type=pm.PRNG_MERSENNE, seed=self.seed)
+                pm.uniform(exp.size, type=pm.PRNG_MERSENNE, seed=self.seed)
             )
 
     def test_funiform_mersenne(self):
@@ -268,12 +268,12 @@ class TestUniformVector(unittest.TestCase):
         if self.swig_module(pm):
             assert_allclose(
                 exp,
-                pm.funiform_vector(exp.size, pm.PRNG_MERSENNE, self.seed)
+                pm.funiform(exp.size, pm.PRNG_MERSENNE, self.seed)
             )
         else:
             assert_allclose(
                 exp,
-                pm.funiform_vector(exp.size, type=pm.PRNG_MERSENNE, seed=self.seed)
+                pm.funiform(exp.size, type=pm.PRNG_MERSENNE, seed=self.seed)
             )
 
 

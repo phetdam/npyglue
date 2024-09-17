@@ -471,7 +471,7 @@ constexpr auto as_underlying(E v)
 }
 
 /**
- * Python wrapper for `uniform_vector`.
+ * Python wrapper for `uniform`.
  *
  * @tparam T Output element type, either `float`, `double`, or `long double`
  *
@@ -479,11 +479,11 @@ constexpr auto as_underlying(E v)
  * @param kwargs Python argument dict
  */
 template <typename T>
-PyObject* uniform_vector(PyObject* args, PyObject* kwargs) noexcept
+PyObject* uniform(PyObject* args, PyObject* kwargs) noexcept
 {
   using npygl::testing::optional_seed_type;
   using npygl::testing::rng_type;
-  using npygl::testing::uniform_vector;
+  using npygl::testing::uniform;
   // number of values, incoming type, seed value
   Py_ssize_t n;
   auto type = as_underlying(rng_type::mersenne);
@@ -508,7 +508,7 @@ PyObject* uniform_vector(PyObject* args, PyObject* kwargs) noexcept
     return nullptr;
   }
   // compute random vector and return
-  auto res = uniform_vector<T>(
+  auto res = uniform<T>(
     static_cast<std::size_t>(n),
     static_cast<rng_type>(type),
     (seed == INT_MAX) ? optional_seed_type{} : optional_seed_type{seed}
@@ -517,7 +517,7 @@ PyObject* uniform_vector(PyObject* args, PyObject* kwargs) noexcept
 }
 
 NPYGL_PY_KWFUNC_DECLARE(
-  uniform_vector,
+  uniform,
   "(n, type=PRNG_MERSENNE, seed=None)",
   "Return a 1D NumPy array of randomly generated values.\n"
   "\n"
@@ -536,11 +536,11 @@ NPYGL_PY_KWFUNC_DECLARE(
   "    Array shape ``(n,)`` of values",
   self, args, kwargs) noexcept
 {
-  return uniform_vector<double>(args, kwargs);
+  return uniform<double>(args, kwargs);
 }
 
 NPYGL_PY_KWFUNC_DECLARE(
-  funiform_vector,
+  funiform,
   "(n, type=PRNG_MERSENNE, seed=None)",
   "Return a 1D NumPy array of randomly generated values.\n"
   "\n"
@@ -559,7 +559,7 @@ NPYGL_PY_KWFUNC_DECLARE(
   "    Array shape ``(n,)`` of values",
   self, args, kwargs) noexcept
 {
-  return uniform_vector<float>(args, kwargs);
+  return uniform<float>(args, kwargs);
 }
 
 // module method table
@@ -577,8 +577,8 @@ PyMethodDef mod_methods[] = {
   NPYGL_PY_FUNC_METHOD_DEF(fnorm2, METH_O),
   NPYGL_PY_FUNC_METHOD_DEF(inner, METH_VARARGS),
   NPYGL_PY_FUNC_METHOD_DEF(finner, METH_VARARGS),
-  NPYGL_PY_FUNC_METHOD_DEF(uniform_vector, METH_VARARGS | METH_KEYWORDS),
-  NPYGL_PY_FUNC_METHOD_DEF(funiform_vector, METH_VARARGS | METH_KEYWORDS),
+  NPYGL_PY_FUNC_METHOD_DEF(uniform, METH_VARARGS | METH_KEYWORDS),
+  NPYGL_PY_FUNC_METHOD_DEF(funiform, METH_VARARGS | METH_KEYWORDS),
   {}  // zero-initialized sentinel member
 };
 

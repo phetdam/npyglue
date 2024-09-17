@@ -489,7 +489,7 @@ using optional_seed_type = std::optional<std::uint_fast32_t>;
  * @param seed Seed value to use
  */
 template <typename T>
-auto uniform_vector(std::size_t n, rng_type type, optional_seed_type seed = {})
+auto uniform(std::size_t n, rng_type type, optional_seed_type seed = {})
 {
   // produce generator based on PRNG type
   auto gen = [type, seed]
@@ -532,9 +532,9 @@ auto uniform_vector(std::size_t n, rng_type type, optional_seed_type seed = {})
  * @param seed Seed value to use
  */
 template <typename T>
-inline auto uniform_vector(std::size_t n, optional_seed_type seed = {})
+inline auto uniform(std::size_t n, optional_seed_type seed = {})
 {
-  return uniform_vector<T>(n, rng_type::mersenne, seed);
+  return uniform<T>(n, rng_type::mersenne, seed);
 }
 #endif  // SWIG
 

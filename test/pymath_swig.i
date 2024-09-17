@@ -373,12 +373,12 @@ namespace testing {
  *  use a hack where `UINT_MAX `is considered the "default" value.
  */
 template <typename T>
-inline std::vector<T> py_uniform_vector(
+inline std::vector<T> py_uniform(
   std::size_t n,
   rng_type type = rng_type::mersenne,
   unsigned int seed = UINT_MAX)
 {
-  return uniform_vector<T>(
+  return uniform<T>(
     n,
     type,
     (seed == UINT_MAX) ? optional_seed_type{} : optional_seed_type{seed}
@@ -416,7 +416,7 @@ namespace npygl::testing {
   "numpy.ndarray\n"
   "    Array shape ``(n,)`` of values"
 );
-%template(uniform_vector) py_uniform_vector<double>;
+%template(uniform) py_uniform<double>;
 
 // FIXME: SWIG generates the docstring twice for some reason
 %feature(
@@ -435,7 +435,7 @@ namespace npygl::testing {
   "numpy.ndarray\n"
   "    Array shape ``(n,)`` of values"
 );
-%template(funiform_vector) py_uniform_vector<float>;
+%template(funiform) py_uniform<float>;
 
 }  // namespace npygl::testing
 
