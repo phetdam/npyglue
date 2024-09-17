@@ -399,7 +399,8 @@ NPYGL_APPLY_NDARRAY_OUT_TYPEMAP(std::vector<float>);
 // note: as mentioned previously, SWIG does understand namespaces
 namespace npygl::testing {
 
-// FIXME: SWIG generates the docstring twice for some reason
+// FIXME: SWIG generates the docstring thrice because it generates three
+// wrapper functions in order to handle the py_uniform default arguments
 %feature(
   "autodoc",
   "Return a 1D NumPy array of randomly generated values.\n"
@@ -418,7 +419,8 @@ namespace npygl::testing {
 );
 %template(uniform) py_uniform<double>;
 
-// FIXME: SWIG generates the docstring twice for some reason
+// FIXME: SWIG generates the docstring thrice because it generates three
+// wrapper functions in order to handle the py_uniform default arguments
 %feature(
   "autodoc",
   "Return a 1D NumPy array of randomly generated values.\n"
