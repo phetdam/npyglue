@@ -494,13 +494,14 @@ PyObject* uniform(PyObject* args, PyObject* kwargs) noexcept
   if (!npygl::parse_args(args, std::tie(n), kws, kwargs, std::tie(type, seed)))
     return nullptr;
   // type has to be valid
-  if (type < 0) {
-    PyErr_SetString(PyExc_ValueError, "PRNG type value cannot be negative");
-    return nullptr;
-  }
-  if (type >= as_underlying(rng_type::max)) {
-    PyErr_SetString(PyExc_ValueError, "PRNG type exceeds available maximum");
-    return nullptr;
+  switch (type) {
+    case as_underlying(rng_type::mersenne):
+    case as_underlying(rng_type::mersenne64):
+    case as_underlying(rng_type::ranlux48):
+      break;
+    default:
+      PyErr_SetString(PyExc_ValueError, "unknown PRNG type value");
+      return nullptr;
   }
   // seed has to be nonnegative
   if (seed < 0) {
