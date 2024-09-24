@@ -94,7 +94,7 @@ private:
       failed++;
     // print success
     else
-      std::cout << "ok";
+      std::cout << "\n  OK";
     // need final newline
     std::cout << std::endl;
   }
@@ -214,7 +214,7 @@ test_main(const format_input<Ns, Inputs>&... inputs)
   (check_format<Inputs>(n_failed, inputs.fmt), ...);
   // report failure/success
   if (n_failed)
-    std::cout << "Failed: " << n_failed << " of " << n_tests << std::endl;
+    std::cout << "Failed " << n_failed << " of " << n_tests << std::endl;
   else
     std::cout << "Passed " << n_tests << " of " << n_tests << std::endl;
   return !!n_failed;
