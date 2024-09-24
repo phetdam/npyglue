@@ -81,13 +81,16 @@ struct py_optional_args {};
 /**
  * Define a Python format type specialization for a single type.
  *
+ * This provides a null-terminated char array format string and a length value.
+ *
  * @param type C type
- * @param fmt Format string specification for `PyArg_ParseTuple`.
+ * @param fmt Format string specification for `PyArg_ParseTuple`
  */
 #define NPYGL_PY_FORMAT_TYPE_SPEC(type, fmt) \
   template <> \
   struct py_format_type<type> { \
-    static constexpr const auto value = fmt; \
+    static constexpr const char value[] = fmt; \
+    static constexpr std::size_t length = sizeof value - 1; \
   }
 
 // see https://docs.python.org/3/c-api/arg.html for formatting details
@@ -106,14 +109,56 @@ NPYGL_PY_FORMAT_TYPE_SPEC(PyObject*, "O");
 NPYGL_PY_FORMAT_TYPE_SPEC(py_optional_args, "|");
 
 /**
- * Traits type providing the Python argument parsing format for a type pack.
+ * Partial specialization for a single type to terminate template instantation.
  *
- * @tparam Ts... types
+ * @tparam Is... Indices from 0 through `py_format_type<T>::length - 1`
+ * @tparam Js... Indices from 0 (unused)
+ * @tparam T Type to get format string for
  */
-template <typename... Ts>
-struct py_format_type {
-  static constexpr const char value[] = {*py_format_type<Ts>::value..., '\0'};
+template <std::size_t... Is, std::size_t... Js, typename T>
+struct py_format_type<std::index_sequence<Is...>, std::index_sequence<Js...>, T>
+  : py_format_type<T> {};
+
+/**
+ * Partial specialization for building the format string for multiple types.
+ *
+ * The `value` character array is built recursively via index pack expansion.
+ *
+ * @tparam Is... Indices from 0 through `py_format_type<T>::length - 1`
+ * @tparam Js... Indices from 0 through `py_format_type<Ts...>::length - 1`
+ * @tparam T Type to get format string for
+ * @tparam Ts... Remaining types to get format string for
+ */
+template <std::size_t... Is, std::size_t... Js, typename T, typename... Ts>
+struct py_format_type<
+  std::index_sequence<Is...>,
+  std::index_sequence<Js...>,
+  T,
+  Ts...
+> {
+  static constexpr const char value[] = {
+    py_format_type<T>::value[Is]...,
+    py_format_type<Ts...>::value[Js]...,
+    '\0'
+  };
+  static constexpr auto length = sizeof value - 1;
 };
+
+/**
+ * Partial specialization for providing the format string for multiple types.
+ *
+ * This uses the index sequence partial specializations to provide members.
+ *
+ * @tparam T First type
+ * @tparam Ts... Remaining types
+ */
+template <typename T, typename... Ts>
+struct py_format_type<T, Ts...> : py_format_type<
+  std::make_index_sequence<py_format_type<T>::length>,
+  std::make_index_sequence<py_format_type<Ts...>::length>,
+  T,
+  Ts...
+> {};
 
 /**
  * Partial specialization when specifying the types using a tuple.
@@ -121,9 +166,7 @@ struct py_format_type {
  * @tparam Ts... types
  */
 template <typename... Ts>
-struct py_format_type<std::tuple<Ts...>> {
-  static constexpr const char value[] = {*py_format_type<Ts>::value..., '\0'};
-};
+struct py_format_type<std::tuple<Ts...>> : py_format_type<Ts...> {};
 
 /**
  * Compile-time Python argument format string.
