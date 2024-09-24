@@ -106,6 +106,7 @@ NPYGL_PY_FORMAT_TYPE_SPEC(float, "f");
 NPYGL_PY_FORMAT_TYPE_SPEC(double, "d");
 NPYGL_PY_FORMAT_TYPE_SPEC(Py_complex, "D");
 NPYGL_PY_FORMAT_TYPE_SPEC(PyObject*, "O");
+NPYGL_PY_FORMAT_TYPE_SPEC(PyBytesObject*, "S");
 NPYGL_PY_FORMAT_TYPE_SPEC(py_optional_args, "|");
 
 /**
