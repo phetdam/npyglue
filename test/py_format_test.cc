@@ -31,8 +31,7 @@ struct format_checker {
   /**
    * Check that the types produces the expected Python format string.
    *
-   * @tparam Ts... types
-   * @tparam N Length of format string literal
+   * @tparam N Length of format string literal (includes null terminator)
    *
    * @param failed Number of failures to update (untouched if no error)
    * @param fmt String literal expected format string
@@ -40,10 +39,10 @@ struct format_checker {
   template <std::size_t N>
   void operator()(unsigned int& failed, const char (&fmt)[N]) const
   {
-    // need to have enough types to match the given format string
-    static_assert(sizeof...(Ts) + 1 == N, "not enough types to match format");
-    // call implementation
-    check(failed, std::index_sequence_for<Ts...>{}, fmt);
+    // must not be empty string (which is just null terminator)
+    static_assert(N > 1, "format string literal cannot be empty");
+    // call implementation. note N includes null terminator so we pass N - 1
+    check(failed, std::make_index_sequence<N - 1>{}, fmt);
   }
 
 private:
@@ -52,8 +51,8 @@ private:
    *
    * This is the implementation function that uses the index pack for indexing.
    *
-   * @tparam Is... Index values from 0 through N - 1
-   * @tparam N Length of format string literal
+   * @tparam Is... Index values from 0 through N - 2
+   * @tparam N Length of format string literal (includes null terminator)
    *
    * @param failed Number of failures to update (untouched if no error)
    * @param seq Unused index sequence to deduce index pack
@@ -69,6 +68,8 @@ private:
     using tuple_type = std::tuple<Ts...>;
     // format type being tested (also tests the tuple partial specialization)
     using format_type = npygl::py_format_type<tuple_type>;
+    // length of the tested format string (sans null terminator)
+    constexpr auto len = sizeof npygl::py_format_type<tuple_type>::value - 1;
     // each test case announces the comparison being done
     std::cout << "Checking format of " <<
       npygl::type_name(typeid(format_type)) << "... " << std::flush;
@@ -77,18 +78,35 @@ private:
     (
       [&]
       {
-        // no mismatch
-        if (npygl::py_format<tuple_type>[Is] == fmt[Is])
-          return;
-        // mismatch
-        std::cout << "\n  Mismatch at index " << Is << ": " <<
-          npygl::py_format<tuple_type>[Is] << " != " << fmt[Is] <<
-          " (expected)" << std::flush;
-        mismatch = true;
+        // indexing within the py_format string
+        if constexpr (Is < len) {
+          // no mismatch
+          if (npygl::py_format<tuple_type>[Is] == fmt[Is])
+            return;
+          // mismatch
+          std::cout << "\n  Mismatch at index " << Is << ": " <<
+            npygl::py_format<tuple_type>[Is] << " != " << fmt[Is] <<
+            " (expected)" << std::flush;
+          mismatch = true;
+        }
+        // outside the format string
+        else {
+          std::cout << "\n  Mismatch at index " << Is << ": (none) != " <<
+            fmt[Is] << " (expected)" << std::flush;
+          mismatch = true;
+        }
       }()
       ,
       ...
     );
+    // py_format string longer than the expected fmt
+    if constexpr (len > N - 1) {
+      for (auto i = N - 1; i < len; i++)
+        std::cout << "\n  Mismatch at index " << i << ": " <<
+          npygl::py_format<tuple_type>[i] << " != (none) (expected)" <<
+          std::flush;
+      mismatch = true;
+    }
     // at least one failure
     if (mismatch)
       failed++;
@@ -238,11 +256,16 @@ int main()
     Py_ssize_t, PyBytesObject*,
     npygl::py_optional_args, double, Py_complex, PyObject*
   >;
+  using types_5 = std::tuple<
+    Py_buffer, PyObject*, PyObject*,
+    npygl::py_optional_args, Py_complex, Py_buffer, Py_buffer
+  >;
   // run tests
   return test_main(
     make_input<types_1>("ih|O"),
     make_input<types_2>("dfO|nsD"),
     make_input<types_3>("ssO|DDin"),
-    make_input<types_4>("nS|dDO")
+    make_input<types_4>("nS|dDO"),
+    make_input<types_5>("y*OO|Dy*y*")
   );
 }
