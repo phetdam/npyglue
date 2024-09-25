@@ -69,7 +69,7 @@ private:
     // format type being tested (also tests the tuple partial specialization)
     using format_type = npygl::py_format_type<tuple_type>;
     // length of the tested format string (sans null terminator)
-    constexpr auto len = sizeof npygl::py_format_type<tuple_type>::value - 1;
+    constexpr auto len = npygl::py_format_type<tuple_type>::length;
     // each test case announces the comparison being done
     std::cout << "Checking format of " <<
       npygl::type_name(typeid(format_type)) << "... " << std::flush;
