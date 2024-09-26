@@ -339,6 +339,51 @@ enum class rng_type {
 
 // implementation details SWIG should not process
 #ifndef SWIG
+
+/**
+ * Traits type to map a `rng_type` value to a PRNG type.
+ *
+ * This provides the default PRNG type for any member without a specialization.
+ *
+ * @tparam R `rng_type` value
+ */
+template <rng_type R>
+struct rng_type_traits {
+  using type = std::mt19937;
+};
+
+/**
+ * Specialization for the Mersenne Twister.
+ */
+template <>
+struct rng_type_traits<rng_type::mersenne> {
+  using type = std::mt19937;
+};
+
+/**
+ * Specialization for the 64-bit Mersenne Twister.
+ */
+template <>
+struct rng_type_traits<rng_type::mersenne64> {
+  using type = std::mt19937_64;
+};
+
+/**
+ * Specialization for the 48-bit RANLUX.
+ */
+template <>
+struct rng_type_traits<rng_type::ranlux48> {
+  using type = std::ranlux48;
+};
+
+/**
+ * Provide the PRNG type given a `rng_type` value.
+ *
+ * @tparam R `rng_type` value
+ */
+template <rng_type R>
+using rng_type_t = typename rng_type_traits<R>::type;
+
 /**
  * Type used as an argument delineator.
  */
@@ -392,7 +437,7 @@ private:
 // MSVC needs a specific overload since it fails to deduce an empty pack
 #ifdef _MSC_VER
   template <typename DistType, typename RngType, typename... RTs>
-  friend auto make_rng_wrapper(delineator /*delim*/, RTs&&...);
+  friend auto make_rng_wrapper(delineator, RTs&&...);
 #endif  // _MSC_VER
 };
 
@@ -429,12 +474,13 @@ auto make_rng_wrapper(DTs&&... dist_args, delineator /*delim*/, RTs&&... rng_arg
   return w;
 }
 
-// MSVC needs a specific overload since it fails to deduce an empty pack
 #ifdef _MSC_VER
 /**
  * Create a new `rng_wrapper` from the given distribution and RNG types.
  *
  * This overload only provides arguments for the `RngType`.
+ *
+ * @note Overload provided because MSVC fails to deduce an empty pack.
  *
  * @tparam DistType *RandomNumberDistribution*
  * @tparam RngType *UniformRandomBitGenerator*
@@ -490,17 +536,19 @@ auto uniform(std::size_t n, rng_type type, optional_seed_type seed = {})
   // produce generator based on PRNG type
   auto gen = [type, seed]
   {
-    using dist_type = std::uniform_real_distribution<T>;
+    using Dist = std::uniform_real_distribution<T>;
     // use random_device is no seed value
     auto sv = (seed) ? *seed : std::random_device{}();
+    // delineator object
+    constexpr delineator d;
     // switch over RNG type
     switch (type) {
       case rng_type::mersenne:
-        return make_rng_wrapper<dist_type, std::mt19937>(delineator{}, sv);
+        return make_rng_wrapper<Dist, rng_type_t<rng_type::mersenne>>(d, sv);
       case rng_type::mersenne64:
-        return make_rng_wrapper<dist_type, std::mt19937_64>(delineator{}, sv);
+        return make_rng_wrapper<Dist, rng_type_t<rng_type::mersenne64>>(d, sv);
       case rng_type::ranlux48:
-        return make_rng_wrapper<dist_type, std::ranlux48>(delineator{}, sv);
+        return make_rng_wrapper<Dist, rng_type_t<rng_type::ranlux48>>(d, sv);
       default:
         throw std::logic_error{
           NPYGL_PRETTY_FUNCTION_NAME +
