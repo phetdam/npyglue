@@ -482,11 +482,11 @@ template <typename T>
 PyObject* uniform(PyObject* args, PyObject* kwargs) noexcept
 {
   using npygl::testing::optional_seed_type;
-  using npygl::testing::rng_type;
+  using npygl::testing::rngs;
   using npygl::testing::uniform;
   // number of values, incoming type, seed value
   Py_ssize_t n;
-  auto type = as_underlying(rng_type::mersenne);
+  auto type = as_underlying(rngs::mersenne);
   int seed = INT_MAX;
   // kwarg names
   const char* kws[] = {"type", "seed"};
@@ -495,9 +495,9 @@ PyObject* uniform(PyObject* args, PyObject* kwargs) noexcept
     return nullptr;
   // type has to be valid
   switch (type) {
-    case as_underlying(rng_type::mersenne):
-    case as_underlying(rng_type::mersenne64):
-    case as_underlying(rng_type::ranlux48):
+    case as_underlying(rngs::mersenne):
+    case as_underlying(rngs::mersenne64):
+    case as_underlying(rngs::ranlux48):
       break;
     default:
       PyErr_SetString(PyExc_ValueError, "unknown PRNG type value");
@@ -511,7 +511,7 @@ PyObject* uniform(PyObject* args, PyObject* kwargs) noexcept
   // compute random vector and return
   auto res = uniform<T>(
     static_cast<std::size_t>(n),
-    static_cast<rng_type>(type),
+    static_cast<rngs>(type),
     (seed == INT_MAX) ? optional_seed_type{} : optional_seed_type{seed}
   );
   return npygl::make_ndarray(std::move(res)).release();
@@ -527,7 +527,7 @@ NPYGL_PY_KWFUNC_DECLARE(
   NPYGL_NPYDOC_PARAMETERS
   "n : int\n"
   "    Number of elements to generate\n"
-  "type : rng_type, default=PRNG_MERSENNE\n"
+  "type : rngs, default=PRNG_MERSENNE\n"
   "    PRNG generator to use\n"
   "seed : int, default=None\n"
   "    Seed value to use\n"
@@ -550,7 +550,7 @@ NPYGL_PY_KWFUNC_DECLARE(
   NPYGL_NPYDOC_PARAMETERS
   "n : int\n"
   "    Number of elements to generate\n"
-  "type : rng_type, default=PRNG_MERSENNE\n"
+  "type : rngs, default=PRNG_MERSENNE\n"
   "    PRNG generator to use\n"
   "seed : int, default=None\n"
   "    Seed value to use\n"
@@ -618,16 +618,16 @@ PyModuleDef mod_def = {
 PyMODINIT_FUNC
 NPYGL_CONCAT(PyInit_, MODULE_NAME)()
 {
-  using npygl::testing::rng_type;
+  using npygl::testing::rngs;
   // import NumPy C API and create module
   import_array();
   npygl::py_object mod{PyModule_Create(&mod_def)};
   if (!mod)
     return nullptr;
   // add PRNG selection constants
-  if (!ADD_ENUM(mod, "PRNG_MERSENNE", rng_type::mersenne)) return nullptr;
-  if (!ADD_ENUM(mod, "PRNG_MERSENNE64", rng_type::mersenne64)) return nullptr;
-  if (!ADD_ENUM(mod, "PRNG_RANLUX48", rng_type::ranlux48)) return nullptr;
+  if (!ADD_ENUM(mod, "PRNG_MERSENNE", rngs::mersenne)) return nullptr;
+  if (!ADD_ENUM(mod, "PRNG_MERSENNE64", rngs::mersenne64)) return nullptr;
+  if (!ADD_ENUM(mod, "PRNG_RANLUX48", rngs::ranlux48)) return nullptr;
   // release module object
   return mod.release();
 }

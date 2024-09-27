@@ -44,7 +44,7 @@
 // uppercase enum members to follow Python convention
 %rename("%(upper)s", %$isenumitem) "";
 // TODO: not sure how to remove enum class name. we just rename for now
-%rename(PRNG) rng_type;
+%rename(PRNG) rngs;
 
 %include "npygl/ndarray.i"
 %include "npygl/python.i"
@@ -374,9 +374,7 @@ namespace testing {
  */
 template <typename T>
 inline std::vector<T> py_uniform(
-  std::size_t n,
-  rng_type type = rng_type::mersenne,
-  unsigned int seed = UINT_MAX)
+  std::size_t n, rngs type = rngs::mersenne, unsigned int seed = UINT_MAX)
 {
   return uniform<T>(
     n,
@@ -410,7 +408,7 @@ namespace npygl::testing {
   NPYGL_NPYDOC_PARAMETERS
   "n : int\n"
   "    Number of elements to generate\n"
-  "type : rng_type, default=PRNG_MERSENNE\n"
+  "type : rngs, default=PRNG_MERSENNE\n"
   "    PRNG generator to use\n"
   "\n"
   NPYGL_NPYDOC_RETURNS
@@ -430,7 +428,7 @@ namespace npygl::testing {
   NPYGL_NPYDOC_PARAMETERS
   "n : int\n"
   "    Number of elements to generate\n"
-  "type : rng_type, default=PRNG_MERSENNE\n"
+  "type : rngs, default=PRNG_MERSENNE\n"
   "    PRNG generator to use\n"
   "\n"
   NPYGL_NPYDOC_RETURNS

@@ -13,12 +13,14 @@
 #include <cmath>
 #include <cstdint>
 #include <functional>
+#include <memory>
 #include <numeric>
 #include <optional>
 #include <random>
 #include <string>
 #include <stdexcept>
 #include <type_traits>
+#include <utility>
 
 #include "npygl/common.h"
 #include "npygl/features.h"
@@ -331,7 +333,7 @@ inline V inner(ndarray_flat_view<T> in1, ndarray_flat_view<U> in2) noexcept
 /**
  * Enumeration for selecting a PRNG to use.
  */
-enum class rng_type {
+enum class rngs {
   mersenne,     // Mersenne Twister
   mersenne64,   // 64-bit Mersenne Twister
   ranlux48,     // 48-bit RANLUX
@@ -341,13 +343,13 @@ enum class rng_type {
 #ifndef SWIG
 
 /**
- * Traits type to map a `rng_type` value to a PRNG type.
+ * Traits type to map a `rngs` value to a PRNG type.
  *
  * This provides the default PRNG type for any member without a specialization.
  *
- * @tparam R `rng_type` value
+ * @tparam R `rngs` value
  */
-template <rng_type R>
+template <rngs R>
 struct rng_type_traits {
   using type = std::mt19937;
 };
@@ -356,7 +358,7 @@ struct rng_type_traits {
  * Specialization for the Mersenne Twister.
  */
 template <>
-struct rng_type_traits<rng_type::mersenne> {
+struct rng_type_traits<rngs::mersenne> {
   using type = std::mt19937;
 };
 
@@ -364,7 +366,7 @@ struct rng_type_traits<rng_type::mersenne> {
  * Specialization for the 64-bit Mersenne Twister.
  */
 template <>
-struct rng_type_traits<rng_type::mersenne64> {
+struct rng_type_traits<rngs::mersenne64> {
   using type = std::mt19937_64;
 };
 
@@ -372,16 +374,16 @@ struct rng_type_traits<rng_type::mersenne64> {
  * Specialization for the 48-bit RANLUX.
  */
 template <>
-struct rng_type_traits<rng_type::ranlux48> {
+struct rng_type_traits<rngs::ranlux48> {
   using type = std::ranlux48;
 };
 
 /**
- * Provide the PRNG type given a `rng_type` value.
+ * Provide the PRNG type given a `rngs` value.
  *
- * @tparam R `rng_type` value
+ * @tparam R `rngs` value
  */
-template <rng_type R>
+template <rngs R>
 using rng_type_t = typename rng_type_traits<R>::type;
 
 /**
@@ -430,86 +432,122 @@ private:
   std::function<void(void*, void*)> deleter_;
   std::function<T(void*, void*)> invoker_;
 
-  // factory function is friend
-  template <typename DistType, typename RngType, typename... DTs, typename... RTs>
-  friend auto make_rng_wrapper(DTs&&..., delineator, RTs&&...);
-
-// MSVC needs a specific overload since it fails to deduce an empty pack
-#ifdef _MSC_VER
-  template <typename DistType, typename RngType, typename... RTs>
-  friend auto make_rng_wrapper(delineator, RTs&&...);
-#endif  // _MSC_VER
+  // builder needs to be friend
+  template <typename DistType, typename RngType>
+  friend class rng_wrapper_builder;
 };
 
 /**
- * Create a new `rng_wrapper` from the given distribution and RNG types.
+ * Provides the input type pair for the `rng_wrapper`.
  *
  * @tparam DistType *RandomNumberDistribution*
- * @tparam RngType *UniformRandomBitGenerator*
- * @tparam DTs... Argument types for the `DistType` ctor
- * @tparam RTs... Argument types for the `RngType` ctor
- *
- * @param dist_args... `DistType` ctor arguments
- * @param delim Delimiter
- * @param rng_args... `RngType` ctor arguments
+ * @tparam Rng `rngs` value
  */
-template <typename DistType, typename RngType, typename... DTs, typename... RTs>
-auto make_rng_wrapper(DTs&&... dist_args, delineator /*delim*/, RTs&&... rng_args)
-{
-  rng_wrapper<typename DistType::result_type> w;
-  // set distribution and RNG pointers
-  w.dist_ = new DistType{std::forward<DTs>(dist_args)...};
-  w.rng_ = new RngType{std::forward<RTs>(rng_args)...};
-  // set deleter
-  w.deleter_ = [](void* dist, void* rng)
-  {
-    static_cast<DistType*>(dist)->~DistType();
-    static_cast<RngType*>(rng)->~RngType();
-  };
-  // set invoker
-  w.invoker_ = [](void* dist, void* rng)
-  {
-    return (*static_cast<DistType*>(dist))(*static_cast<RngType*>(rng));
-  };
-  return w;
-}
+template <typename DistType, rngs Rng>
+using rng_wrapper_type_pair = std::pair<DistType, rng_type_t<Rng>>;
 
-#ifdef _MSC_VER
 /**
- * Create a new `rng_wrapper` from the given distribution and RNG types.
+ * Builder for the `rng_wrapper` that provides a fluent builder API.
  *
- * This overload only provides arguments for the `RngType`.
- *
- * @note Overload provided because MSVC fails to deduce an empty pack.
+ * This replaces an older factory function template and enhances exception
+ * safety guarantees if a method throws during building.
  *
  * @tparam DistType *RandomNumberDistribution*
  * @tparam RngType *UniformRandomBitGenerator*
- * @tparam RTs... Argument types for the `RngType` ctor
- *
- * @param delim Delimiter
- * @param rng_args... `RngType` ctor arguments
  */
-template <typename DistType, typename RngType, typename... RTs>
-auto make_rng_wrapper(delineator /*delim*/, RTs&&... rng_args)
-{
-  rng_wrapper<typename DistType::result_type> w;
-  // set distribution and RNG pointers
-  w.dist_ = new DistType{};
-  w.rng_ = new RngType{std::forward<RTs>(rng_args)...};
-  // set deleter
-  w.deleter_ = [](void* dist, void* rng)
+template <typename DistType, typename RngType>
+class rng_wrapper_builder {
+public:
+  /**
+   * Construct the distribution object the `rng_wrapper` will use.
+   *
+   * @tparam Args... `DistType` ctor arguments
+   */
+  template <typename... Args>
+  auto& dist(Args&&... args)
   {
-    static_cast<DistType*>(dist)->~DistType();
-    static_cast<RngType*>(rng)->~RngType();
-  };
-  // set invoker
-  w.invoker_ = [](void* dist, void* rng)
+    dist_.reset(new DistType{std::forward<Args>(args)...});
+    return *this;
+  }
+
+  /**
+   * Construct the PRNG object the `rng_wrapper` will use.
+   *
+   * @tparam Args... `RngType` ctor arguments
+   */
+  template <typename... Args>
+  auto& rng(Args&&... args)
   {
-    return (*static_cast<DistType*>(dist))(*static_cast<RngType*>(rng));
-  };
-  return w;
-}
-#endif  // _MSC_VER
+    rng_.reset(new RngType{std::forward<Args>(args)...});
+    return *this;
+  }
+
+  /**
+   * Finish building the `rng_wrapper` by setting its members.
+   */
+  auto operator()()
+  {
+    // set deleter
+    w_.deleter_ = [](void* dist, void* rng)
+    {
+      static_cast<DistType*>(dist)->~DistType();
+      static_cast<RngType*>(rng)->~RngType();
+    };
+    // set invoker
+    w_.invoker_ = [](void* dist, void* rng)
+    {
+      return (*static_cast<DistType*>(dist))(*static_cast<RngType*>(rng));
+    };
+    // release distribution and PRNG objects and return
+    w_.dist_ = dist_.release();
+    w_.rng_ = rng_.release();
+    return std::move(w_);
+  }
+
+private:
+  // private distribution and PRNG objects. unique_ptr prevents leaks
+  std::unique_ptr<DistType> dist_;
+  std::unique_ptr<RngType> rng_;
+  // target PRNG wrapper
+  rng_wrapper<typename DistType::result_type> w_;
+};
+
+/**
+ * Traits class for `rng_wrapper_builder`.
+ *
+ * @tparam Ts... types
+ */
+template <typename... Ts>
+struct rng_wrapper_builder_traits {};
+
+/**
+ * Partial specialization for a distribution and PRNG type.
+ *
+ * @tparam DistType *RandomNumberDistribution*
+ * @tparam RngType *UniformRandomBitGenerator*
+ */
+template <typename DistType, typename RngType>
+struct rng_wrapper_builder_traits<DistType, RngType> {
+  using type = rng_wrapper_builder<DistType, RngType>;
+};
+
+/**
+ * Partial specialization for a distribution and PRNG type pair.
+ *
+ * @tparam DistType *RandomNumberDistribution*
+ * @tparam RngType *UniformRandomBitGenerator*
+ */
+template <typename DistType, typename RngType>
+struct rng_wrapper_builder_traits<std::pair<DistType, RngType>>
+  : rng_wrapper_builder_traits<DistType, RngType> {};
+
+/**
+ * Retrieve the `rng_wrapper_builder` specialization.
+ *
+ * @tparam Ts... types
+ */
+template <typename... Ts>
+using rng_wrapper_builder_t = typename rng_wrapper_builder_traits<Ts...>::type;
 
 /**
  * Type alias for `std::optional<std::uint_fast_32_t>`.
@@ -531,24 +569,28 @@ using optional_seed_type = std::optional<std::uint_fast32_t>;
  * @param seed Seed value to use
  */
 template <typename T>
-auto uniform(std::size_t n, rng_type type, optional_seed_type seed = {})
+auto uniform(std::size_t n, rngs type, optional_seed_type seed = {})
 {
   // produce generator based on PRNG type
   auto gen = [type, seed]
   {
-    using Dist = std::uniform_real_distribution<T>;
+    using dist_type = std::uniform_real_distribution<T>;
     // use random_device is no seed value
     auto sv = (seed) ? *seed : std::random_device{}();
-    // delineator object
-    constexpr delineator d;
     // switch over RNG type
     switch (type) {
-      case rng_type::mersenne:
-        return make_rng_wrapper<Dist, rng_type_t<rng_type::mersenne>>(d, sv);
-      case rng_type::mersenne64:
-        return make_rng_wrapper<Dist, rng_type_t<rng_type::mersenne64>>(d, sv);
-      case rng_type::ranlux48:
-        return make_rng_wrapper<Dist, rng_type_t<rng_type::ranlux48>>(d, sv);
+      case rngs::mersenne:
+        return rng_wrapper_builder<dist_type, rng_type_t<rngs::mersenne>>{}
+          .dist()
+          .rng(sv)();
+      case rngs::mersenne64:
+        return rng_wrapper_builder<dist_type, rng_type_t<rngs::mersenne64>>{}
+          .dist()
+          .rng(sv)();
+      case rngs::ranlux48:
+        return rng_wrapper_builder<dist_type, rng_type_t<rngs::ranlux48>>{}
+          .dist()
+          .rng(sv)();
       default:
         throw std::logic_error{
           NPYGL_PRETTY_FUNCTION_NAME +
@@ -578,7 +620,7 @@ auto uniform(std::size_t n, rng_type type, optional_seed_type seed = {})
 template <typename T>
 inline auto uniform(std::size_t n, optional_seed_type seed = {})
 {
-  return uniform<T>(n, rng_type::mersenne, seed);
+  return uniform<T>(n, rngs::mersenne, seed);
 }
 #endif  // SWIG
 
