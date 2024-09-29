@@ -16,6 +16,7 @@
 #include <complex>
 #include <cstdint>
 #include <filesystem>
+#include <sstream>
 #include <string>
 #include <type_traits>
 #include <utility>
@@ -343,13 +344,214 @@ inline auto make_ndarray(PyObject* obj) noexcept
 }
 
 /**
- * Create a 1D NumPy array backed by a C++ vector with C memory layout.
+ * Forward declaration for a NumPy array builder.
+ *
+ * This builder class is intended to facilitate creation of NumPy arrays from
+ * existing Python capsule objects via the `cc_capsule_view`.
+ */
+template <typename... Ts>
+struct ndarray_capsule_builder;
+
+/**
+ * Traits class for the NumPy array capsule builder.
+ *
+ * This is useful for retrieving the `ndarray_capsule_builder` target type
+ * without performing a member access (which requires a complete) type.
+ *
+ * @tparam T type
+ */
+template <typename T>
+struct ndarray_capsule_builder_traits {};
+
+/**
+ * Partial specialization for builders with a single type.
+ *
+ * @tparam T Builder object type
+ */
+template <typename T>
+struct ndarray_capsule_builder_traits<ndarray_capsule_builder<T>> {
+  using object_type = T;
+};
+
+/**
+ * Partial specialization for builders with a tuple of types.
+ *
+ * We don't allow targeting multiple types at once.
+ *
+ * @tparam Ts... Tuple types
+ */
+template <typename... Ts>
+struct ndarray_capsule_builder_traits<
+  ndarray_capsule_builder<std::tuple<Ts...>> > {};
+
+/**
+ * NumPy array builder CRTP base class.
+ *
+ * This provides a safe, end-user invocable `operator()` that performs the
+ * necessary type checking before calling the unsafe `operator()`.
+ *
+ * We use CRTP here as a form of static polymorphism.
+ *
+ * @tparam
+ */
+template <typename Builder>
+struct ndarray_capsule_builder_base {
+  /**
+   * Create a NumPy array backed by the C++ object managed by a Python capsule.
+   *
+   * @note We take the `py_object` by rvalue reference to semantically indicate
+   *  that the Python object is to be consumed as reference will be stolen.
+   *
+   * On error the `py_object` is empty and a Python exception is set.
+   *
+   * @param cap Python capsule following the `cc_capsule_view` protocol.
+   */
+  py_object operator()(py_object&& cap) const noexcept
+  {
+    using T = typename ndarray_capsule_builder_traits<Builder>::object_type;
+    // get capsule view
+    cc_capsule_view view{cap};
+    if (!view)
+      return {};
+    // check if type is correct
+    if (!view.is<T>()) {
+      // note: technically does not provide noexcept guarantee
+      std::stringstream ss;
+      ss << NPYGL_PRETTY_FUNCTION_NAME << ": capsule of incorrect C++ type";
+      PyErr_SetString(PyExc_TypeError, ss.str().c_str());
+    }
+    // create NumPy array from the capsule
+    return static_cast<const Builder&>(*this)(std::move(cap), view.as<T>());
+  }
+};
+
+/**
+ * NumPy array builder for building from a capsule holding a C++ vector.
+ *
+ * @tparam T Element type
+ * @tparam A Allocator type
+ */
+template <typename T, typename A>
+struct ndarray_capsule_builder<std::vector<T, A>>
+  : ndarray_capsule_builder_base<ndarray_capsule_builder<std::vector<T, A>>> {
+  using object_type = std::vector<T, A>;
+
+  /**
+   * Create a 1D NumPy array with C memory layout backed by a C++ vector.
+   *
+   * @note This overload does not validate the capsule or the object pointer.
+   *
+   * On error the `py_object` is empty and a Python exception is set.
+   *
+   * @param cap Python capsule following `cc_capsule_view` protocol
+   * @param cap_vec Pointer to C++ vector retrieved from the capsule
+   */
+  py_object operator()(py_object&& cap, object_type* cap_vec) const noexcept
+  {
+    // create new 1D NumPy array from the vector's data buffer
+    // note: cast to suppress C4365 from MSVC. no array needed since 1D
+    auto dim = static_cast<npy_intp>(cap_vec->size());
+    py_object ar{
+      PyArray_SimpleNewFromData(1, &dim, npy_typenum<T>, cap_vec->data())
+    };
+    if (!ar)
+      return {};
+    // set base object so NumPy array owns the capsule
+    if (PyArray_SetBaseObject(ar.as<PyArrayObject>(), cap.release()) < 0)
+      return {};
+    // success
+    return ar;
+  }
+};
+
+// enable if we have Eigen 3 unless NPYGL_NO_EIGEN3 is defined
+#if NPYGL_HAS_EIGEN3 && !defined(NPYGL_NO_EIGEN3)
+/**
+ * NumPy array builder for building from a capsule holding an Eigen matrix.
+ *
+ * @tparam T Element type
+ * @tparam R Number of rows
+ * @tparam C Number of columns
+ * @tparam O Matrix options
+ * @tparam RMax Max number of rows
+ * @tparam CMax max number of columns
+ */
+template <typename T, int R, int C, int O, int RMax, int RMin>
+struct ndarray_capsule_builder<Eigen::Matrix<T, R, C, O, RMax, RMin>>
+  : ndarray_capsule_builder_base<
+      ndarray_capsule_builder<Eigen::Matrix<T, R, C, O, RMax, RMin>> > {
+  using object_type = Eigen::Matrix<T, R, C, O, RMax, RMin>;
+
+  /**
+   * Create a 2D NumPy array backed by an Eigen3 matrix object.
+   *
+   * @note This overload does not validate the capsule or the object pointer.
+   *
+   * On error the `py_object` is empty and a Python exception is set.
+   *
+   * @param cap Python capsule following `cc_capsule_view` protocol
+   * @param cap_mat Pointer to C++ Eigen3 matrix retrieved from the capsule
+   */
+  py_object operator()(py_object&& cap, object_type* cap_mat) const noexcept
+  {
+    // create dims
+    npy_intp dims[2];
+    dims[0] = cap_mat->rows();
+    dims[1] = cap_mat->cols();
+    // data order. Eigen matrices are column major by default
+    constexpr auto order = []
+    {
+      if constexpr (O & Eigen::StorageOptions::RowMajor)
+        return NPY_ARRAY_C_CONTIGUOUS;
+      else
+        return NPY_ARRAY_F_CONTIGUOUS;
+    }();
+    // create new 2D NumPy array from the matrix data buffer
+    py_object ar{
+      PyArray_New(
+        &PyArray_Type,               // subtype
+        sizeof dims / sizeof *dims,  // nd
+        dims,                        // dims
+        npy_typenum<T>,              // type_num
+        nullptr,                     // strides
+        cap_mat->data(),             // data
+        0,                           // itemsize (ignored)
+        order | NPY_ARRAY_BEHAVED,   // flags (Eigen matrix buffers are aligned)
+        nullptr                      // obj (ignored)
+      )
+    };
+    if (!ar)
+      return {};
+    // set base object so NumPy array owns the capsule
+    if (PyArray_SetBaseObject(ar.as<PyArrayObject>(), cap.release()) < 0)
+      return {};
+    return ar;
+  }
+};
+#endif  // !NPYGL_HAS_EIGEN3 || defined(NPYGL_NO_EIGEN3)
+
+/**
+ * Global builder for creating a NumPy array from a Python capsule.
+ *
+ * This provides a functional interface to the `ndarray_capsule_builder`.
+ *
+ * @tparam Ts... Target C++ types
+ */
+template <typename... Ts>
+inline constexpr ndarray_capsule_builder<Ts...> make_ndarray_from_capsule;
+
+/**
+ * Create a 1D NumPy array with C memory layout backed by a C++ vector.
  *
  * The backing Python object is a `PyCapsule` following the `cc_capsule_view`
  * protocol that manages the moved C++ vector. Upon creation of the NumPy array
  * its array flags will be equivalent to `NPY_ARRAY_DEFAULT`.
  *
  * On error the `py_object` is empty and a Python exception is set.
+ *
+ * @todo May consider creating a `make_ndarray(T&&)` template with the same
+ *  logic that delegates to `make_ndarray_from_capsule<T>`. Documentation will
+ *  instead be moved to the relevant `ndarray_capsule_builder` functions.
  *
  * @tparam T Element type
  * @tparam A Allocator type
@@ -369,23 +571,13 @@ py_object make_ndarray(std::vector<T, A>&& vec) noexcept
   if (!view)
     return {};
   // create new 1D NumPy array from the vector's data buffer
-  auto cap_vec = view.as<V>();
-  // note: cast to suppress C4365 from MSVC. no array needed since 1D
-  auto dim = static_cast<npy_intp>(cap_vec->size());
-  py_object ar{PyArray_SimpleNewFromData(1, &dim, npy_typenum<T>, cap_vec->data())};
-  if (!ar)
-    return {};
-  // set base object so NumPy array owns the capsule
-  if (PyArray_SetBaseObject(ar.as<PyArrayObject>(), capsule.release()) < 0)
-    return {};
-  // success
-  return ar;
+  return make_ndarray_from_capsule<V>(std::move(capsule), view.as<V>());
 }
 
 // enable if we have Eigen 3 unless NPYGL_NO_EIGEN3 is defined
 #if NPYGL_HAS_EIGEN3 && !defined(NPYGL_NO_EIGEN3)
 /**
- * Create a 2D NumPy array backed by an Eigen 3 matrix object.
+ * Create a 2D NumPy array backed by an Eigen3 matrix object.
  *
  * The backing Python object is a `PyCapsule` following the `cc_capsule_view`
  * protocol that manages a moved `Eigen::Matrix<...>` object. Upon creation of
@@ -415,39 +607,8 @@ py_object make_ndarray(Eigen::Matrix<T, R, C, O, RMax, RMin>&& mat) noexcept
   cc_capsule_view view{capsule};
   if (!view)
     return {};
-  // pointer to managed matrix + create dims
-  auto cap_mat = view.as<M>();
-  npy_intp dims[2];
-  dims[0] = cap_mat->rows();
-  dims[1] = cap_mat->cols();
-  // data order. Eigen matrices are column major by default
-  constexpr auto order = []
-  {
-    if constexpr (O & Eigen::StorageOptions::RowMajor)
-      return NPY_ARRAY_C_CONTIGUOUS;
-    else
-      return NPY_ARRAY_F_CONTIGUOUS;
-  }();
-  // create new 2D NumPy array from the matrix data buffer
-  py_object ar{
-    PyArray_New(
-      &PyArray_Type,               // subtype
-      sizeof dims / sizeof *dims,  // nd
-      dims,                        // dims
-      npy_typenum<T>,              // type_num
-      nullptr,                     // strides
-      cap_mat->data(),             // data
-      0,                           // itemsize (ignored)
-      order | NPY_ARRAY_BEHAVED,   // flags (Eigen matrix buffers are aligned)
-      nullptr                      // obj (ignored)
-    )
-  };
-  if (!ar)
-    return {};
-  // set base object so NumPy array owns the capsule
-  if (PyArray_SetBaseObject(ar.as<PyArrayObject>(), capsule.release()) < 0)
-    return {};
-  return ar;
+  // create Eigen3 matrix from capsule
+  return make_ndarray_from_capsule<M>(std::move(capsule), view.as<M>());
 }
 #endif  // NPYGL_HAS_EIGEN3 && !defined(NPYGL_NO_EIGEN3)
 
