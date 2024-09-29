@@ -610,8 +610,6 @@ auto uniform(std::size_t n, rngs type, optional_seed_type seed = {})
  *
  * The underlying PRNG used is the 32-bit Mersenne Twister.
  *
- * @todo Overloads confuse SWIG; probably keep in conditional block.
- *
  * @tparam T Floating type
  *
  * @param n Vector size
