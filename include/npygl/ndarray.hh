@@ -403,7 +403,7 @@ struct ndarray_capsule_builder_base {
    * Create a NumPy array backed by the C++ object managed by a Python capsule.
    *
    * @note We take the `py_object` by rvalue reference to semantically indicate
-   *  that the Python object is to be consumed as reference will be stolen.
+   *  that the Python object is to be consumed as a reference will be stolen.
    *
    * On error the `py_object` is empty and a Python exception is set.
    *
@@ -534,6 +534,123 @@ struct ndarray_capsule_builder<Eigen::Matrix<T, R, C, O, RMax, RMin>>
   }
 };
 #endif  // !NPYGL_HAS_EIGEN3 || defined(NPYGL_NO_EIGEN3)
+
+// enable if we have Armadillo unless NPYGL_NO_ARMADILLO is defined
+#if NPYGL_HAS_ARMADILLO && !defined(NPYGL_NO_ARMADILLO)
+/**
+ * NumPy array builder for building from a capsule holding an Armadillo matrix.
+ *
+ * @tparam T Element type
+ */
+template <typename T>
+struct ndarray_capsule_builder<arma::Mat<T>>
+  : ndarray_capsule_builder_base<ndarray_capsule_builder<arma::Mat<T>>> {
+  using object_type = arma::Mat<T>;
+
+  /**
+   * Create a 2D NumPy array backed by an Armadillo matrix object.
+   *
+   * @note This overload does not validate the capsule or the object pointer.
+   *
+   * On error the `py_object` is empty and a Python exception is set.
+   *
+   * @note If moving from an `arma::Row<T>` or an `arma::Col<T>` the resulting
+   *  NumPy array is still 2D but one dimension will be 1.
+   *
+   * @param cap Python capsule following `cc_capsule_view` protocol
+   * @param cap_mat Pointer to C++ Armadillo matrix retrieved from the capsule
+   */
+  py_object operator()(py_object&& cap, object_type* cap_mat) const noexcept
+  {
+    // create dims
+    npy_intp dims[2];
+    // cast to silence C4365 warning
+    dims[0] = static_cast<npy_intp>(cap_mat->n_rows);
+    dims[1] = static_cast<npy_intp>(cap_mat->n_cols);
+    // create new 2D NumPy array from the matrix data buffer
+    py_object ar{
+      PyArray_New(
+        &PyArray_Type,               // subtype
+        sizeof dims / sizeof *dims,  // nd
+        dims,                        // dims
+        npy_typenum<T>,              // type_num
+        nullptr,                     // strides
+        cap_mat->memptr(),           // data
+        0,                           // itemsize (ignored)
+        NPY_ARRAY_FARRAY,            // flags (Armadillo buffers are aligned)
+        nullptr                      // obj (ignored)
+      )
+    };
+    if (!ar)
+      return {};
+    // set base object so NumPy array owns the capsule
+    if (PyArray_SetBaseObject(ar.as<PyArrayObject>(), cap.release()) < 0)
+      return {};
+    return ar;
+  }
+};
+
+/**
+ * NumPy array builder for building from a capsule holding an Armadillo cube.
+ *
+ * @tparam T Element type
+ */
+template <typename T>
+struct ndarray_capsule_builder<arma::Cube<T>>
+  : ndarray_capsule_builder_base<ndarray_capsule_builder<arma::Cube<T>>> {
+  using object_type = arma::Cube<T>;
+
+  py_object operator()(py_object&& cap, object_type* cap_cube) const noexcept
+  {
+    // create dims
+    npy_intp dims[3];
+    // cast to silence C4365 warning
+    dims[0] = static_cast<npy_intp>(cap_cube->n_rows);
+    dims[1] = static_cast<npy_intp>(cap_cube->n_cols);
+    dims[2] = static_cast<npy_intp>(cap_cube->n_slices);
+    //
+    // if we want to interpret the arma::Cube<T> data as a tensor-like 3D array
+    // of the shape (n_slices, n_rows, n_cols), e.g. with dims as follows:
+    //
+    // dims[0] = static_cast<npy_intp>(cap_cube->n_slices);
+    // dims[1] = static_cast<npy_intp>(cap_cube->n_rows);
+    // dims[2] = static_cast<npy_intp>(cap_cube->n_cols);
+    //
+    // we will then need to define a strides (in bytes) array as follows:
+    //
+    // npy_intp strides[3];
+    // strides[0] = sizeof(T) * dims[1] * dims[2];
+    // strides[1] = sizeof(T);
+    // strides[2] = sizeof(T) * dims[1];
+    //
+    // this results in a NumPy array that is neither C nor Fortran contiguous
+    // so flags passed to PyArray_New are NPY_ARRAY_BEHAVED. essentially we use
+    // strides to reinterpret a Fortran-contiguous (n_rows, n_cols, n_slices)
+    // 3D array as a (n_slices, n_rows, n_cols) tensor-like 3D array.
+    //
+    // create new 3D NumPy array from the cube data buffer
+    py_object ar{
+      PyArray_New(
+        &PyArray_Type,               // subtype
+        sizeof dims / sizeof *dims,  // nd
+        dims,                        // dims
+        npy_typenum<T>,              // type_num
+        nullptr,                     // strides
+        cap_cube->memptr(),          // data
+        0,                           // itemsize (ignored)
+        NPY_ARRAY_FARRAY,            // flags (Armadillo buffers are aligned)
+        nullptr                      // obj (ignored)
+      )
+    };
+    if (!ar)
+      return {};
+    // set base object so NumPy array owns the capsule
+    if (PyArray_SetBaseObject(ar.as<PyArrayObject>(), cap.release()) < 0)
+      return {};
+    return ar;
+  }
+};
+#endif  // !NPYGL_HAS_ARMADILLO || defined(NPYGL_NO_ARMADILLO)
 
 /**
  * NumPy array builder for working with a number of capsule types.
@@ -714,32 +831,8 @@ py_object make_ndarray(arma::Mat<T>&& mat) noexcept
   cc_capsule_view view{capsule};
   if (!view)
     return {};
-  // pointer to managed matrix + create dims
-  auto cap_mat = view.as<M>();
-  npy_intp dims[2];
-  // cast to silence C4365 warning
-  dims[0] = static_cast<npy_intp>(cap_mat->n_rows);
-  dims[1] = static_cast<npy_intp>(cap_mat->n_cols);
-  // create new 2D NumPy array from the matrix data buffer
-  py_object ar{
-    PyArray_New(
-      &PyArray_Type,               // subtype
-      sizeof dims / sizeof *dims,  // nd
-      dims,                        // dims
-      npy_typenum<T>,              // type_num
-      nullptr,                     // strides
-      cap_mat->memptr(),           // data
-      0,                           // itemsize (ignored)
-      NPY_ARRAY_FARRAY,            // flags (Armadillo buffers are aligned)
-      nullptr                      // obj (ignored)
-    )
-  };
-  if (!ar)
-    return {};
-  // set base object so NumPy array owns the capsule
-  if (PyArray_SetBaseObject(ar.as<PyArrayObject>(), capsule.release()) < 0)
-    return {};
-  return ar;
+  // create Armadillo matrix from capsule
+  return make_ndarray_from_capsule<M>(std::move(capsule), view.as<M>());
 }
 
 /**
@@ -754,6 +847,10 @@ py_object make_ndarray(arma::Mat<T>&& mat) noexcept
  * NumPy array its flags will have `NPY_ARRAY_FARRAY`.
  *
  * On error the `py_object` is empty and a Python exception is set.
+ *
+ * @todo May consider creating a `make_ndarray(T&&)` template with the same
+ *  logic that delegates to `make_ndarray_from_capsule<T>`. Documentation will
+ *  instead be moved to the relevant `ndarray_capsule_builder` functions.
  *
  * @tparam T Element type
  *
@@ -771,53 +868,8 @@ py_object make_ndarray(arma::Cube<T>&& cube) noexcept
   cc_capsule_view view{capsule};
   if (!view)
     return {};
-  // pointer to managed cube + create dims
-  auto cap_cube = view.as<C>();
-  npy_intp dims[3];
-  // cast to silence C4365 warning
-  dims[0] = static_cast<npy_intp>(cap_cube->n_rows);
-  dims[1] = static_cast<npy_intp>(cap_cube->n_cols);
-  dims[2] = static_cast<npy_intp>(cap_cube->n_slices);
-  //
-  // if we want to interpret the arma::Cube<T> data as a tensor-like 3D array
-  // of the shape (n_slices, n_rows, n_cols), e.g. with dims as follows:
-  //
-  // dims[0] = static_cast<npy_intp>(cap_cube->n_slices);
-  // dims[1] = static_cast<npy_intp>(cap_cube->n_rows);
-  // dims[2] = static_cast<npy_intp>(cap_cube->n_cols);
-  //
-  // we will then need to define a strides (in bytes) array as follows:
-  //
-  // npy_intp strides[3];
-  // strides[0] = sizeof(T) * dims[1] * dims[2];
-  // strides[1] = sizeof(T);
-  // strides[2] = sizeof(T) * dims[1];
-  //
-  // this results in a NumPy array that is neither C nor Fortran contiguous so
-  // flags passed to PyArray_New are NPY_ARRAY_BEHAVED. essentially we will use
-  // strides to reinterpret a Fortran-contiguous (n_rows, n_cols, n_slices) 3D
-  // array as a (n_slices, n_rows, n_cols) tensor-like 3D array.
-  //
-  // create new 3D NumPy array from the cube data buffer
-  py_object ar{
-    PyArray_New(
-      &PyArray_Type,               // subtype
-      sizeof dims / sizeof *dims,  // nd
-      dims,                        // dims
-      npy_typenum<T>,              // type_num
-      nullptr,                     // strides
-      cap_cube->memptr(),          // data
-      0,                           // itemsize (ignored)
-      NPY_ARRAY_FARRAY,            // flags (Armadillo buffers are aligned)
-      nullptr                      // obj (ignored)
-    )
-  };
-  if (!ar)
-    return {};
-  // set base object so NumPy array owns the capsule
-  if (PyArray_SetBaseObject(ar.as<PyArrayObject>(), capsule.release()) < 0)
-    return {};
-  return ar;
+  // create Armadillo cube from capsule
+  return make_ndarray_from_capsule<C>(std::move(capsule), view.as<C>());
 }
 #endif  // NPYGL_HAS_ARMADILLO && !defined(NPYGL_NO_ARMADILLO)
 

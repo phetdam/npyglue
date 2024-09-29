@@ -103,7 +103,9 @@ if(Python3_Development_FOUND AND Python3_NumPy_FOUND)
 endif()
 
 # pyhelpers: Python helpers test module
-if(Python3_Development_FOUND)
+# TODO: consider allowing conditional compilation without NumPy, in which case
+# there will be a separate Python test script run for the NumPy tests
+if(Python3_Development_FOUND AND Python3_NumPy_FOUND)
     npygl_add_py3_extension(
         TARGET pyhelpers
         SOURCES pyhelpers.cc

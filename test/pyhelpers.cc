@@ -172,9 +172,10 @@ enum {
   CAPSULE_EIGEN3_MATRIX = 3,
 #endif  // NPYGL_HAS_EIGEN3
 #if NPYGL_HAS_ARMADILLO
-  CAPSULE_ARMADILLO_CUBE = 4,
+  CAPSULE_ARMADILLO_MATRIX = 4,
+  CAPSULE_ARMADILLO_CUBE = 5,
 #endif  // NPYGL_HAS_ARMADILLO
-  CAPSULE_STD_MAP_VECTOR = 5
+  CAPSULE_STD_MAP_VECTOR = 6
 };
 
 // macro to support conditional docstring indication of whether or not an
@@ -186,14 +187,18 @@ enum {
 #else
 #define MAKE_CAPSULE_EIGEN3_MATRIX_OPTION ""
 #endif  // !NPYGL_HAS_EIGEN3
-// macro to support conditional docstring indication of whether or not an
-// Armadillo complex cube capsule object can be created
+// macros to support conditional docstring indication of whether or not
+// Armadillo float matrix and complex cube capsule objects can be created
 #if NPYGL_HAS_ARMADILLO
 #define MAKE_CAPSULE_ARMADILLO_MATRIX_OPTION \
+  "    CAPSULE_ARMADILLO_MATRIX\n" \
+  "        Return an arma::fmat\n"
+#define MAKE_CAPSULE_ARMADILLO_CUBE_OPTION \
   "    CAPSULE_ARMADILLO_CUBE\n" \
-  "        Return a arma::cx_cube\n"
+  "        Return an arma::cx_cube\n"
 #else
 #define MAKE_CAPSULE_ARMADILLO_MATRIX_OPTION ""
+#define MAKE_CAPSULE_ARMADILLO_CUBE_OPTION ""
 #endif  // NPYGL_HAS_ARMADILLO
 // TODO: consider making this a function try block
 NPYGL_PY_FUNC_DECLARE(
@@ -214,6 +219,7 @@ NPYGL_PY_FUNC_DECLARE(
   "        Return a std::vector<double>\n"
   MAKE_CAPSULE_EIGEN3_MATRIX_OPTION
   MAKE_CAPSULE_ARMADILLO_MATRIX_OPTION
+  MAKE_CAPSULE_ARMADILLO_CUBE_OPTION
   "    CAPSULE_STD_MAP_VECTOR\n"
   "        Return a std::vector<std::map<std::string, double>>\n"
   "\n"
@@ -255,6 +261,15 @@ NPYGL_PY_FUNC_DECLARE(
     }
 #endif  // NPYGL_HAS_EIGEN3
 #if NPYGL_HAS_ARMADILLO
+    case CAPSULE_ARMADILLO_MATRIX:
+    {
+      arma::fmat mat{
+        {1.f, 2.33f, 4.33f, 1.564f},
+        {4.55f, 55.6f, 1.212f, 4.333f},
+        {4.232f, 9.83f, 1.56f, 65.34f}
+      };
+      return py_object::create(std::move(mat)).release();
+    }
     case CAPSULE_ARMADILLO_CUBE:
     {
       arma::cx_cube cube{2, 3, 2};
@@ -378,6 +393,7 @@ NPYGL_PY_FUNC_DECLARE(
     Eigen::MatrixXf,
 #endif  // NPYGL_HAS_EIGEN3
 #if NPYGL_HAS_ARMADILLO
+    arma::fmat,
     arma::cx_cube,
 #endif  // NPYGL_HAS_ARMADILLO
     std::vector<capsule_map_type>
@@ -432,12 +448,10 @@ NPYGL_PY_FUNC_DECLARE(
 #if NPYGL_HAS_EIGEN3
     Eigen::MatrixXf,
 #endif  // NPYGL_HAS_EIGEN3
-// TODO: not yet supported
-#if 0
 #if NPYGL_HAS_ARMADILLO
+    arma::fmat,
     arma::cx_cube,
 #endif  // NPYGL_HAS_ARMADILLO
-#endif  // 0
     std::vector<double>  // note: std::vector<float> would be supported too
   >;
   // return new NumPy array if a supported cc_capsule_view capsule
@@ -540,6 +554,7 @@ NPYGL_CONCAT(PyInit_, MODULE_NAME)()
   if (PyModule_AddIntMacro(mod, CAPSULE_EIGEN3_MATRIX)) return nullptr;
 #endif  // NPYGL_HAS_EIGEN3
 #if NPYGL_HAS_ARMADILLO
+  if (PyModule_AddIntMacro(mod, CAPSULE_ARMADILLO_MATRIX)) return nullptr;
   if (PyModule_AddIntMacro(mod, CAPSULE_ARMADILLO_CUBE)) return nullptr;
 #endif  // NPYGL_HAS_ARMADILLO
   if (PyModule_AddIntMacro(mod, CAPSULE_STD_MAP_VECTOR)) return nullptr;
