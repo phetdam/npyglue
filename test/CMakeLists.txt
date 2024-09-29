@@ -107,6 +107,7 @@ if(Python3_Development_FOUND)
     npygl_add_py3_extension(
         TARGET pyhelpers
         SOURCES pyhelpers.cc
+        LIBRARIES Python3::NumPy
         USE_RELEASE_CRT ${PY_MSVC_ALWAYS_RELEASE}
     )
     if(Eigen3_FOUND)

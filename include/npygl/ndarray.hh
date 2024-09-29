@@ -18,7 +18,9 @@
 #include <filesystem>
 #include <sstream>
 #include <string>
+#include <tuple>
 #include <type_traits>
+#include <typeinfo>
 #include <utility>
 #include <vector>
 
@@ -57,6 +59,7 @@
 #include <numpy/ndarraytypes.h>
 
 #include "npygl/common.h"
+#include "npygl/demangle.hh"
 #include "npygl/features.h"
 #include "npygl/python.hh"
 #include "npygl/range_views.hh"
@@ -404,7 +407,7 @@ struct ndarray_capsule_builder_base {
    *
    * On error the `py_object` is empty and a Python exception is set.
    *
-   * @param cap Python capsule following the `cc_capsule_view` protocol.
+   * @param cap Python capsule following the `cc_capsule_view` protocol
    */
   py_object operator()(py_object&& cap) const noexcept
   {
@@ -417,8 +420,10 @@ struct ndarray_capsule_builder_base {
     if (!view.is<T>()) {
       // note: technically does not provide noexcept guarantee
       std::stringstream ss;
-      ss << NPYGL_PRETTY_FUNCTION_NAME << ": capsule of incorrect C++ type";
+      ss << NPYGL_PRETTY_FUNCTION_NAME << ": capsule backed by " <<
+        type_name(view.info()) << " is not supported";
       PyErr_SetString(PyExc_TypeError, ss.str().c_str());
+      return {};
     }
     // create NumPy array from the capsule
     return static_cast<const Builder&>(*this)(std::move(cap), view.as<T>());
@@ -531,6 +536,65 @@ struct ndarray_capsule_builder<Eigen::Matrix<T, R, C, O, RMax, RMin>>
 #endif  // !NPYGL_HAS_EIGEN3 || defined(NPYGL_NO_EIGEN3)
 
 /**
+ * NumPy array builder for working with a number of capsule types.
+ *
+ * This is useful when you have a tuple of supported capsule C++ object types
+ * you want to check against at runtime to create the NumPy array.
+ *
+ * @note Does not inherit `ndarray_capsule_builder_base` because we need a
+ *  `operator()` that will loop and check all the specified types.
+ *
+ * @tparam Ts... C++ object types
+ */
+template <typename... Ts>
+struct ndarray_capsule_builder<std::tuple<Ts...>>
+  : ndarray_capsule_builder<Ts>... {
+  /**
+   * Create a NumPy array backed by the C++ object managed by a Python capsule.
+   *
+   * The capsule type will be checked against each of the specified types.
+   *
+   * On error the `py_object` is empty and a Python exception is set.
+   *
+   * @param cap Python capsule following the `cc_capsule_view` protocol
+   */
+  py_object operator()(py_object&& cap) const noexcept
+  {
+    // get capsule view
+    cc_capsule_view view{cap};
+    if (!view)
+      return {};
+    // check if type is correct + create NumPy array if correct
+    py_object ar;
+    (
+      [&, this]
+      {
+        using self_type = ndarray_capsule_builder<Ts>;
+        // wrong type so continue
+        if (!view.is<Ts>())
+          return true;
+        // correct type so create NumPy array
+        ar = static_cast<const self_type&>(*this)(std::move(cap), view.as<Ts>());
+        return false;
+      }()
+      &&
+      ...
+    );
+    // if empty, set error
+    if (!ar) {
+       // note: technically does not provide noexcept guarantee
+      std::stringstream ss;
+      // TODO: need utility to get joined type list from pack of types
+      ss << NPYGL_PRETTY_FUNCTION_NAME << ": capsule backed by " <<
+        type_name(view.info()) << " is not supported";
+      PyErr_SetString(PyExc_TypeError, ss.str().c_str());
+    }
+    // return (empty on error)
+    return ar;
+  }
+};
+
+/**
  * Global builder for creating a NumPy array from a Python capsule.
  *
  * This provides a functional interface to the `ndarray_capsule_builder`.
@@ -586,6 +650,10 @@ py_object make_ndarray(std::vector<T, A>&& vec) noexcept
  *
  * On error the `py_object` is empty and a Python exception is set.
  *
+ * @todo May consider creating a `make_ndarray(T&&)` template with the same
+ *  logic that delegates to `make_ndarray_from_capsule<T>`. Documentation will
+ *  instead be moved to the relevant `ndarray_capsule_builder` functions.
+ *
  * @tparam T Element type
  * @tparam R Number of rows
  * @tparam C Number of columns
@@ -625,6 +693,10 @@ py_object make_ndarray(Eigen::Matrix<T, R, C, O, RMax, RMin>&& mat) noexcept
  *
  * @note If moving from an `arma::Row<T>` or an `arma::Col<T>` the resulting
  *  NumPy array is still 2D but one dimension will be 1.
+ *
+ * @todo May consider creating a `make_ndarray(T&&)` template with the same
+ *  logic that delegates to `make_ndarray_from_capsule<T>`. Documentation will
+ *  instead be moved to the relevant `ndarray_capsule_builder` functions.
  *
  * @tparam T Element type
  *

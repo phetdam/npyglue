@@ -17,8 +17,7 @@
 #include "npygl/common.h"
 #include "npygl/demangle.hh"
 #include "npygl/features.h"
-// TODO: currently this module only tests the non-NumPy Python C++ helpers
-// #include "npygl/ndarray.hh"  // includes <numpy/ndarrayobject.h>
+#include "npygl/ndarray.hh"  // includes <numpy/ndarrayobject.h>
 #include "npygl/python.hh"
 
 #if NPYGL_HAS_EIGEN3
@@ -414,6 +413,39 @@ NPYGL_PY_FUNC_DECLARE(
 }
 
 NPYGL_PY_FUNC_DECLARE(
+  array_from_capsule,
+  "(o)",
+  "Return a new NumPy array backed by the C++ object owned by the capsule.\n"
+  "\n"
+  NPYGL_NPYDOC_PARAMETERS
+  "o : PyCapsule\n"
+  "    Python capsule object following the ``cc_capsule_view`` protocol\n"
+  "\n"
+  NPYGL_NPYDOC_RETURNS
+  "numpy.ndarray",
+  self, obj) noexcept
+{
+  // get reference-incremented Python object
+  npygl::py_object cap{obj, npygl::py_object::incref};
+  // supported types
+  using supported_types = std::tuple<
+#if NPYGL_HAS_EIGEN3
+    Eigen::MatrixXf,
+#endif  // NPYGL_HAS_EIGEN3
+// TODO: not yet supported
+#if 0
+#if NPYGL_HAS_ARMADILLO
+    arma::cx_cube,
+#endif  // NPYGL_HAS_ARMADILLO
+#endif  // 0
+    std::vector<double>  // note: std::vector<float> would be supported too
+  >;
+  // return new NumPy array if a supported cc_capsule_view capsule
+  return npygl::make_ndarray_from_capsule<supported_types>(std::move(cap))
+    .release();
+}
+
+NPYGL_PY_FUNC_DECLARE(
   eigen3_version,
   "()",
   "Return the Eigen3 version string.\n"
@@ -467,6 +499,7 @@ PyMethodDef mod_methods[] = {
   NPYGL_PY_FUNC_METHOD_DEF(capsule_type, METH_O),
   NPYGL_PY_FUNC_METHOD_DEF(eigen3_version, METH_NOARGS),
   NPYGL_PY_FUNC_METHOD_DEF(armadillo_version, METH_NOARGS),
+  NPYGL_PY_FUNC_METHOD_DEF(array_from_capsule, METH_O),
   {}  // zero-initialized sentinel member
 };
 
@@ -495,7 +528,8 @@ PyModuleDef mod_def = {
 PyMODINIT_FUNC
 NPYGL_CONCAT(PyInit_, MODULE_NAME)()
 {
-  // create module
+  // import NumPy C API and create module
+  import_array();
   npygl::py_object mod{PyModule_Create(&mod_def)};
   if (!mod)
     return nullptr;
