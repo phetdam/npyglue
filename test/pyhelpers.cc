@@ -17,7 +17,6 @@
 #include "npygl/common.h"
 #include "npygl/demangle.hh"
 #include "npygl/features.h"
-#include "npygl/ndarray.hh"  // includes <numpy/ndarrayobject.h>
 #include "npygl/python.hh"
 
 #if NPYGL_HAS_EIGEN3
@@ -26,6 +25,11 @@
 #if NPYGL_HAS_ARMADILLO
 #include <armadillo>
 #endif  // NPYGL_HAS_ARMADILLO
+
+// allow compilation without NumPy headers
+#if NPYGL_HAS_NUMPY
+#include "npygl/ndarray.hh"  // includes <numpy/ndarrayobject.h>
+#endif  // NPYGL_HAS_NUMPY
 
 // module name
 #define MODULE_NAME pyhelpers
@@ -428,6 +432,8 @@ NPYGL_PY_FUNC_DECLARE(
   return PyUnicode_FromString(npygl::type_name(view.info()));
 }
 
+// array_from_capsule only available if compiled with NumPy headers
+#if NPYGL_HAS_NUMPY
 NPYGL_PY_FUNC_DECLARE(
   array_from_capsule,
   "(o)",
@@ -458,6 +464,43 @@ NPYGL_PY_FUNC_DECLARE(
   return npygl::make_ndarray_from_capsule<supported_types>(std::move(cap))
     .release();
 }
+#endif  // NPYGL_HAS_NUMPY
+
+NPYGL_PY_FUNC_DECLARE(
+  numpy_abi_version,
+  "()",
+  "Return the ABI version number of the NumPy array used during compilation.\n"
+  "\n"
+  "If module was compiled without NumPy headers ``None`` is returned instead.\n"
+  "\n"
+  NPYGL_NPYDOC_RETURNS
+  "int or None",
+  self, args) noexcept
+{
+#if NPYGL_HAS_NUMPY
+  return PyLong_FromUnsignedLong(PyArray_GetNDArrayCVersion());
+#else
+  Py_RETURN_NONE;
+#endif  // !NPYGL_HAS_NUMPY
+}
+
+NPYGL_PY_FUNC_DECLARE(
+  numpy_api_version,
+  "()",
+  "Return the API version number of the NumPy C API used during compilation.\n"
+  "\n"
+  "If module was compiled without NumPy headers ``None`` is returned instead.\n"
+  "\n"
+  NPYGL_NPYDOC_RETURNS
+  "int or None",
+  self, args) noexcept
+{
+#if NPYGL_HAS_NUMPY
+  return PyLong_FromUnsignedLong(PyArray_GetNDArrayCFeatureVersion());
+#else
+  Py_RETURN_NONE;
+#endif  // !NPYGL_HAS_NUMPY
+}
 
 NPYGL_PY_FUNC_DECLARE(
   eigen3_version,
@@ -467,7 +510,7 @@ NPYGL_PY_FUNC_DECLARE(
   "If module was compiled without Eigen3 then ``None`` is returned instead.\n"
   "\n"
   NPYGL_NPYDOC_RETURNS
-  "str or Nonr",
+  "str or None",
   self, args) noexcept
 {
 #if NPYGL_HAS_EIGEN3
@@ -513,7 +556,11 @@ PyMethodDef mod_methods[] = {
   NPYGL_PY_FUNC_METHOD_DEF(capsule_type, METH_O),
   NPYGL_PY_FUNC_METHOD_DEF(eigen3_version, METH_NOARGS),
   NPYGL_PY_FUNC_METHOD_DEF(armadillo_version, METH_NOARGS),
+#if NPYGL_HAS_NUMPY
   NPYGL_PY_FUNC_METHOD_DEF(array_from_capsule, METH_O),
+#endif  // NPYGL_HAS_NUMPY
+  NPYGL_PY_FUNC_METHOD_DEF(numpy_abi_version, METH_NOARGS),
+  NPYGL_PY_FUNC_METHOD_DEF(numpy_api_version, METH_NOARGS),
   {}  // zero-initialized sentinel member
 };
 
@@ -542,8 +589,10 @@ PyModuleDef mod_def = {
 PyMODINIT_FUNC
 NPYGL_CONCAT(PyInit_, MODULE_NAME)()
 {
-  // import NumPy C API and create module
+  // import NumPy C API if built with NumPy headers + create module
+#if NPYGL_HAS_NUMPY
   import_array();
+#endif  // NPYGL_HAS_NUMPY
   npygl::py_object mod{PyModule_Create(&mod_def)};
   if (!mod)
     return nullptr;

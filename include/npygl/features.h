@@ -70,6 +70,17 @@
 #define NPYGL_HAS_INCLUDE_CHECK 0
 #endif  // !defined(__has_include)
 
+// check if the main NumPy array object header is available
+#if NPYGL_HAS_INCLUDE_CHECK
+#if __has_include(<numpy/ndarrayobject.h>)
+#define NPYGL_HAS_NUMPY 1
+#endif  // __has_include(<numpy/ndarrayobject.h>)
+#endif  // NPYGL_HAS_INCLUDE_CHECK
+
+#ifndef NPYGL_HAS_NUMPY
+#define NPYGL_HAS_NUMPY 0
+#endif  // NPYGL_HAS_NUMPY
+
 // check if we have Eigen 3 available by looking for its signature file
 #if NPYGL_HAS_INCLUDE_CHECK
 #if __has_include(<signature_of_eigen3_matrix_library>)

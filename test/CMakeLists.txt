@@ -105,23 +105,34 @@ endif()
 # pyhelpers: Python helpers test module
 # TODO: consider allowing conditional compilation without NumPy, in which case
 # there will be a separate Python test script run for the NumPy tests
-if(Python3_Development_FOUND AND Python3_NumPy_FOUND)
+if(Python3_Development_FOUND)
     npygl_add_py3_extension(
         TARGET pyhelpers
         SOURCES pyhelpers.cc
-        LIBRARIES Python3::NumPy
         USE_RELEASE_CRT ${PY_MSVC_ALWAYS_RELEASE}
     )
+    if(Python3_NumPy_FOUND)
+        target_link_libraries(pyhelpers PRIVATE Python3::NumPy)
+    endif()
     if(Eigen3_FOUND)
         target_link_libraries(pyhelpers PRIVATE Eigen3::Eigen)
     endif()
-    # test script
+    # test script for non-NumPy tests
     add_test(
         NAME pyhelpers_test
         COMMAND python ${CMAKE_CURRENT_SOURCE_DIR}/pyhelpers_test.py
         WORKING_DIRECTORY
             ${CMAKE_BINARY_DIR}$<${NPYGL_MULTI_CONFIG_GENERATOR}:/$<CONFIG>>
     )
+    # test script for NumPy tests
+    if(Python3_NumPy_FOUND)
+        add_test(
+            NAME pyhelpers_npy_test
+            COMMAND python ${CMAKE_CURRENT_SOURCE_DIR}/pyhelpers_npy_test.py
+            WORKING_DIRECTORY
+                ${CMAKE_BINARY_DIR}$<${NPYGL_MULTI_CONFIG_GENERATOR}:/$<CONFIG>>
+        )
+    endif()
 endif()
 
 # pymath: Python math functions module
