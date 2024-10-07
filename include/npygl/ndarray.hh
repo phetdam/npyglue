@@ -444,9 +444,11 @@ struct ndarray_capsule_builder<std::vector<T, A>>
   /**
    * Create a 1D NumPy array with C memory layout backed by a C++ vector.
    *
-   * @note This overload does not validate the capsule or the object pointer.
+   * The capsule-backed NumPy array will have flags `NPY_ARRAY_DEFAULT`.
    *
    * On error the `py_object` is empty and a Python exception is set.
+   *
+   * @note This overload does not validate the capsule or the object pointer.
    *
    * @param cap Python capsule following `cc_capsule_view` protocol
    * @param cap_vec Pointer to C++ vector retrieved from the capsule
@@ -490,9 +492,12 @@ struct ndarray_capsule_builder<Eigen::Matrix<T, R, C, O, RMax, RMin>>
   /**
    * Create a 2D NumPy array backed by an Eigen3 matrix object.
    *
-   * @note This overload does not validate the capsule or the object pointer.
+   * The capsule-backed NumPy array will have flags `NPY_ARRAY_BEHAVED` and one
+   * of `NPY_ARRAY_C_CONTIGUOUS` or `NPY_ARRAY_F_CONTIGUOUS`.
    *
    * On error the `py_object` is empty and a Python exception is set.
+   *
+   * @note This overload does not validate the capsule or the object pointer.
    *
    * @param cap Python capsule following `cc_capsule_view` protocol
    * @param cap_mat Pointer to C++ Eigen3 matrix retrieved from the capsule
@@ -550,9 +555,11 @@ struct ndarray_capsule_builder<arma::Mat<T>>
   /**
    * Create a 2D NumPy array backed by an Armadillo matrix object.
    *
-   * @note This overload does not validate the capsule or the object pointer.
+   * The capsule-backed NumPy array will have flags `NPY_ARRAY_FARRAY`.
    *
    * On error the `py_object` is empty and a Python exception is set.
+   *
+   * @note This overload does not validate the capsule or the object pointer.
    *
    * @note If moving from an `arma::Row<T>` or an `arma::Col<T>` the resulting
    *  NumPy array is still 2D but one dimension will be 1.
@@ -600,6 +607,22 @@ struct ndarray_capsule_builder<arma::Cube<T>>
   : ndarray_capsule_builder_base<ndarray_capsule_builder<arma::Cube<T>>> {
   using object_type = arma::Cube<T>;
 
+  /**
+   * Create a 3D NumPy array backed by an Armadillo cube object.
+   *
+   * The capsule-backed NumPy array will have flags `NPY_ARRAY_FARRAY`.
+   *
+   * On error the `py_object` is empty and a Python exception is set.
+   *
+   * @note Due to how the memory is laid out in an Armadillo cube the resulting
+   *  shape of the NumPy array is `(n_rows, n_cols, n_slices)`. This is not a
+   *  true 3D array or tensor; the Armadillo docs call the cube a pseudo-tensor.
+   *
+   * @note This overload does not validate the capsule or the object pointer.
+   *
+   * @param cap Python capsule following `cc_capsule_view` protocol
+   * @param cap_cube Pointer to C++ Armadillo cube retrieved from the capsule
+   */
   py_object operator()(py_object&& cap, object_type* cap_cube) const noexcept
   {
     // create dims
@@ -722,156 +745,35 @@ template <typename... Ts>
 inline constexpr ndarray_capsule_builder<Ts...> make_ndarray_from_capsule;
 
 /**
- * Create a 1D NumPy array with C memory layout backed by a C++ vector.
- *
- * The backing Python object is a `PyCapsule` following the `cc_capsule_view`
- * protocol that manages the moved C++ vector. Upon creation of the NumPy array
- * its array flags will be equivalent to `NPY_ARRAY_DEFAULT`.
+ * Create a NumPy array from an appropriate C++ object.
  *
  * On error the `py_object` is empty and a Python exception is set.
  *
- * @todo May consider creating a `make_ndarray(T&&)` template with the same
- *  logic that delegates to `make_ndarray_from_capsule<T>`. Documentation will
- *  instead be moved to the relevant `ndarray_capsule_builder` functions.
+ * Construction involves using `py_object::create()` to create a `PyCapsule`
+ * from the C++ object and then creating a NumPy array backed by this capsule
+ * via the appropriate `make_ndarray_from_capsule` partial specialization.
  *
- * @tparam T Element type
- * @tparam A Allocator type
+ * For details on how the NumPy array is constructed for a particular type see
+ * the appropriate `ndarray_capsule_builder<...>` documentation comments.
  *
- * @param vec Vector to consume
+ * @tparam T C++ object interpretable as a multidimensional array
+ *
+ * @param obj C++ object to create a NumPy array from
  */
-template <typename T, typename A>
-py_object make_ndarray(std::vector<T, A>&& vec) noexcept
+template <typename T, typename = std::enable_if_t<!std::is_reference_v<T>>>
+py_object make_ndarray(T&& obj) noexcept
 {
-  using V = std::vector<T, A>;
-  // create capsule from vector
-  auto capsule = py_object::create(std::move(vec));
-  if (!capsule)
-    return {};
-  // get capsule view (should not error)
-  cc_capsule_view view{capsule};
-  if (!view)
-    return {};
-  // create new 1D NumPy array from the vector's data buffer
-  return make_ndarray_from_capsule<V>(std::move(capsule), view.as<V>());
-}
-
-// enable if we have Eigen 3 unless NPYGL_NO_EIGEN3 is defined
-#if NPYGL_HAS_EIGEN3 && !defined(NPYGL_NO_EIGEN3)
-/**
- * Create a 2D NumPy array backed by an Eigen3 matrix object.
- *
- * The backing Python object is a `PyCapsule` following the `cc_capsule_view`
- * protocol that manages a moved `Eigen::Matrix<...>` object. Upon creation of
- * the NumPy array its flags will have `NPY_ARRAY_BEHAVED` and then one of
- * `NPY_ARRAY_C_CONTIGUOUS` or `NPY_ARRAY_F_CONTIGUOUS`.
- *
- * On error the `py_object` is empty and a Python exception is set.
- *
- * @todo May consider creating a `make_ndarray(T&&)` template with the same
- *  logic that delegates to `make_ndarray_from_capsule<T>`. Documentation will
- *  instead be moved to the relevant `ndarray_capsule_builder` functions.
- *
- * @tparam T Element type
- * @tparam R Number of rows
- * @tparam C Number of columns
- * @tparam O Matrix options
- * @tparam RMax Max number of rows
- * @tparam CMax max number of columns
- *
- * @param mat Matrix to consume
- */
-template <typename T, int R, int C, int O, int RMax, int RMin>
-py_object make_ndarray(Eigen::Matrix<T, R, C, O, RMax, RMin>&& mat) noexcept
-{
-  using M = Eigen::Matrix<T, R, C, O, RMax, RMin>;
   // create capsule
-  auto capsule = py_object::create(std::move(mat));
+  auto capsule = py_object::create(std::move(obj));
   if (!capsule)
     return {};
   // capsule view (should not error)
   cc_capsule_view view{capsule};
   if (!view)
     return {};
-  // create Eigen3 matrix from capsule
-  return make_ndarray_from_capsule<M>(std::move(capsule), view.as<M>());
+  // create NumPy array from capsule using builder
+  return make_ndarray_from_capsule<T>(std::move(capsule), view.as<T>());
 }
-#endif  // NPYGL_HAS_EIGEN3 && !defined(NPYGL_NO_EIGEN3)
-
-// enable if we have Armadillo unless NPYGL_NO_ARMADILLO is defined
-#if NPYGL_HAS_ARMADILLO && !defined(NPYGL_NO_ARMADILLO)
-/**
- * Create a 2D NumPy array backed by an Armadillo matrix object.
- *
- * The backing Python object is a `PyCapsule` following the `cc_capsule_view`
- * protocol that manages a moved `arma::Mat<T>` object. Upon creation of the
- * NumPy array its flags will have `NPY_ARRAY_FARRAY`.
- *
- * On error the `py_object` is empty and a Python exception is set.
- *
- * @note If moving from an `arma::Row<T>` or an `arma::Col<T>` the resulting
- *  NumPy array is still 2D but one dimension will be 1.
- *
- * @todo May consider creating a `make_ndarray(T&&)` template with the same
- *  logic that delegates to `make_ndarray_from_capsule<T>`. Documentation will
- *  instead be moved to the relevant `ndarray_capsule_builder` functions.
- *
- * @tparam T Element type
- *
- * @param mat Matrix to consume
- */
-template <typename T>
-py_object make_ndarray(arma::Mat<T>&& mat) noexcept
-{
-  using M = arma::Mat<T>;
-  // create capsule
-  auto capsule = py_object::create(std::move(mat));
-  if (!capsule)
-    return {};
-  // capsule view (should not error)
-  cc_capsule_view view{capsule};
-  if (!view)
-    return {};
-  // create Armadillo matrix from capsule
-  return make_ndarray_from_capsule<M>(std::move(capsule), view.as<M>());
-}
-
-/**
- * Create a 3D NumPy array backed by an Armadillo cube object.
- *
- * @note Due to how the memory is laid out in an Armadillo cube the resulting
- *  shape of the NumPy array is `(n_rows, n_cols, n_slices)`. This is not a
- *  true 3D array or tensor; the Armadillo docs call the cube a pseudo-tensor.
- *
- * The backing Python object is a `PyCapsule` following the `cc_capsule_view`
- * protocol that manages a moved `arma::Cube<T>` object. Upon creation of the
- * NumPy array its flags will have `NPY_ARRAY_FARRAY`.
- *
- * On error the `py_object` is empty and a Python exception is set.
- *
- * @todo May consider creating a `make_ndarray(T&&)` template with the same
- *  logic that delegates to `make_ndarray_from_capsule<T>`. Documentation will
- *  instead be moved to the relevant `ndarray_capsule_builder` functions.
- *
- * @tparam T Element type
- *
- * @param cube Cube to consume
- */
-template <typename T>
-py_object make_ndarray(arma::Cube<T>&& cube) noexcept
-{
-  using C = arma::Cube<T>;
-  // create capsule
-  auto capsule = py_object::create(std::move(cube));
-  if (!capsule)
-    return {};
-  // capsule view (should not error)
-  cc_capsule_view view{capsule};
-  if (!view)
-    return {};
-  // create Armadillo cube from capsule
-  return make_ndarray_from_capsule<C>(std::move(capsule), view.as<C>());
-}
-#endif  // NPYGL_HAS_ARMADILLO && !defined(NPYGL_NO_ARMADILLO)
 
 /**
  * Lightweight flat view of a NumPy array.
