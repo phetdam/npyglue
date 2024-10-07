@@ -431,7 +431,7 @@ struct ndarray_capsule_builder_base {
 };
 
 /**
- * NumPy array builder for building from a capsule holding a C++ vector.
+ * NumPy array builder for a capsule holding a C++ vector.
  *
  * @tparam T Element type
  * @tparam A Allocator type
@@ -474,7 +474,7 @@ struct ndarray_capsule_builder<std::vector<T, A>>
 // enable if we have Eigen 3 unless NPYGL_NO_EIGEN3 is defined
 #if NPYGL_HAS_EIGEN3 && !defined(NPYGL_NO_EIGEN3)
 /**
- * NumPy array builder for building from a capsule holding an Eigen matrix.
+ * NumPy array builder a capsule holding an Eigen matrix.
  *
  * @tparam T Element type
  * @tparam R Number of rows
@@ -543,7 +543,7 @@ struct ndarray_capsule_builder<Eigen::Matrix<T, R, C, O, RMax, RMin>>
 // enable if we have Armadillo unless NPYGL_NO_ARMADILLO is defined
 #if NPYGL_HAS_ARMADILLO && !defined(NPYGL_NO_ARMADILLO)
 /**
- * NumPy array builder for building from a capsule holding an Armadillo matrix.
+ * NumPy array builder for a capsule holding an Armadillo matrix.
  *
  * @tparam T Element type
  */
@@ -598,7 +598,36 @@ struct ndarray_capsule_builder<arma::Mat<T>>
 };
 
 /**
- * NumPy array builder for building from a capsule holding an Armadillo cube.
+ * NumPy array builder for a capsule holding an Armadillo column vector.
+ *
+ * We simply subclass because the `arma::Col<T>` is a subclass of the
+ * `arma::Mat<T>` and so `ndarray_capsule_builder<arma::Mat<T>>::operator()`
+ * logic can be applied to the `arma::Col<T>` to produce a NumPy column vector.
+ *
+ * @tparam T Element type
+ */
+template <typename T>
+struct ndarray_capsule_builder<arma::Col<T>>
+  : ndarray_capsule_builder<arma::Mat<T>> {};
+
+/**
+ * NumPy array builder for a capsule holding an Armadillo column vector.
+ *
+ * @todo Consider special logic for the `arma::Row<T>` so the created NumPy
+ *  array is a row vector, e.g. shape is `(n,)`, not `(1, n)`.
+ *
+ * We simply subclass because the `arma::Row<T>` is a subclass of the
+ * `arma::Mat<T>` and so `ndarray_capsule_builder<arma::Mat<T>>::operator()`
+ * logic can be applied to the `arma::Row<T>` to produce a NumPy vector.
+ *
+ * @tparam T Element type
+ */
+template <typename T>
+struct ndarray_capsule_builder<arma::Row<T>>
+  : ndarray_capsule_builder<arma::Mat<T>> {};
+
+/**
+ * NumPy array builder for a capsule holding an Armadillo cube.
  *
  * @tparam T Element type
  */

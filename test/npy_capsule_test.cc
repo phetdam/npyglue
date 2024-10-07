@@ -16,6 +16,8 @@
 #include "npygl/ndarray.hh"
 #include "npygl/python.hh"
 
+// TODO: consider having this not be a giant main() function
+
 int main()
 {
   // initialize Python + import NumPy API
@@ -78,6 +80,12 @@ int main()
   };
   auto ac_ar = npygl::make_ndarray(std::move(cube));
   npygl::py_error_exit();
+  // create a NumPy array backed by an Armadillo float column vector
+  auto av_ar = npygl::make_ndarray(arma::fvec{1.f, 3.4f, 4.23f, 3.54f, 5.223f});
+  npygl::py_error_exit();
+  // create a NumPy array backed by an Armadillo double row vector
+  auto arv_ar = npygl::make_ndarray(arma::rowvec{5., 4.33, 2.433, 1.22, 4.34});
+  npygl::py_error_exit();
 #endif  // NPYGL_HAS_ARMADILLO
   // create a "normal" NumPy array
   auto ar_init = Py_BuildValue("ddddd", 3.4, 1.222, 6.745, 5.2, 5.66, 7.333);
@@ -98,6 +106,8 @@ int main()
 #if NPYGL_HAS_ARMADILLO
     "-- arma::cx_mat\n" << a_ar << '\n' <<
     "-- arma::cx_cube\n" << ac_ar << '\n' <<
+    "-- arma::fvec\n" << av_ar << '\n' <<
+    "-- arma::rowvec\n" << arv_ar << '\n' <<
 #endif  // NPYGL_HAS_ARMADILLO
     "-- tuple[double]\n" << ar << '\n' << std::endl;
   npygl::py_error_exit();
@@ -111,6 +121,8 @@ int main()
 #if NPYGL_HAS_ARMADILLO
   auto a_base = PyArray_BASE(a_ar.as<PyArrayObject>());
   auto ac_base = PyArray_BASE(ac_ar.as<PyArrayObject>());
+  auto av_base = PyArray_BASE(av_ar.as<PyArrayObject>());
+  auto arv_base = PyArray_BASE(arv_ar.as<PyArrayObject>());
 #endif  // NPYGL_HAS_ARMADILLO
   auto base = PyArray_BASE(ar.as<PyArrayObject>());
   // print base objects for each array
@@ -127,6 +139,8 @@ int main()
 #if NPYGL_HAS_ARMADILLO
     "-- arma::cx_mat\n" << a_base << '\n' <<
     "-- arma::cx_cube\n" << ac_base << '\n' <<
+    "-- arma::fvec\n" << av_base << '\n' <<
+    "-- arma::rowvec\n" << arv_base << '\n' <<
 #endif  // NPYGL_HAS_ARMADILLO
     "-- tuple[double]\n" << base << std::endl;
   npygl::py_error_exit();
