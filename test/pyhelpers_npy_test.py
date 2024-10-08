@@ -23,6 +23,12 @@ from npygl_utils import HelpFormatter
 import pyhelpers as ph  # type: ignore
 from pyhelpers_test import _with_arma, _with_eigen
 
+# unittest skip decorators for Eigen3 and Armadillo
+_no_eigen3 = "pyhelpers not built with Eigen3"
+_skip_if_no_eigen3 = unittest.skipUnless(_with_eigen, _no_eigen3)
+_no_arma = "pyhelpers not built with Armadillo"
+_skip_if_no_arma = unittest.skipUnless(_with_arma, _no_arma)
+
 
 class TestArrayFromCapsule(unittest.TestCase):
     """Test suite for array_from_capsule."""
@@ -41,7 +47,7 @@ class TestArrayFromCapsule(unittest.TestCase):
         cap = ph.make_capsule(ph.CAPSULE_STD_VECTOR)
         assert_allclose(ar, ph.array_from_capsule(cap))
 
-    @unittest.skipUnless(_with_eigen, "pyhelpers not built with Eigen3")
+    @_skip_if_no_eigen3
     def test_eigen3_matrix(self):
         """Test creating a 2D NumPy array from a Eigen::MatrixXf."""
         ar = np.array(
@@ -55,7 +61,7 @@ class TestArrayFromCapsule(unittest.TestCase):
         cap = ph.make_capsule(ph.CAPSULE_EIGEN3_MATRIX)
         assert_allclose(ph.array_from_capsule(cap), ar)
 
-    @unittest.skipUnless(_with_arma, "pyhelpers not built with Armadillo")
+    @_skip_if_no_arma
     def test_arma_matrix(self):
         """Test creating a 2D NumPy array from an arma::fmat."""
         ar = np.array(
@@ -69,7 +75,7 @@ class TestArrayFromCapsule(unittest.TestCase):
         cap = ph.make_capsule(ph.CAPSULE_ARMADILLO_MATRIX)
         assert_allclose(ph.array_from_capsule(cap), ar)
 
-    @unittest.skipUnless(_with_arma, "pyhelpers not built with Armadillo")
+    @_skip_if_no_arma
     def test_arma_cube(self):
         """Test creating a 3D NumPy array from an arma::cx_cube."""
         # (n_rows, n_cols, n_slices) as Armadillo cube is not a tensor
@@ -92,6 +98,13 @@ class TestArrayFromCapsule(unittest.TestCase):
             ]
         )
         cap = ph.make_capsule(ph.CAPSULE_ARMADILLO_CUBE)
+        assert_allclose(ph.array_from_capsule(cap), ar)
+
+    @_skip_if_no_arma
+    def test_arma_rowvec(self):
+        """Test created a 1D NumPy array from an arma::rowvec."""
+        ar = np.array([4., 2.333, 1.23, 6.45, 28.77, 4.23, 1.115, 12.4])
+        cap = ph.make_capsule(ph.CAPSULE_ARMADILLO_ROWVEC)
         assert_allclose(ph.array_from_capsule(cap), ar)
 
 
