@@ -136,6 +136,59 @@ inline auto type_name(const std::type_info& info)
   return demangle(info.name());
 }
 
+/**
+ * Functor to return a comma-separated list of type names.
+ *
+ * @tparam Ts... types
+ */
+template <typename... Ts>
+struct type_name_lister {};
+
+/**
+ * Partial specialization for a single type.
+ *
+ * @tparam T type
+ */
+template <typename T>
+struct type_name_lister<T> {
+  std::string operator()() const
+  {
+    return type_name(typeid(T));
+  }
+};
+
+/**
+ * Partial specialization for more than one type.
+ *
+ * @tparam T type
+ * @tparam Ts... Other types
+ */
+template <typename T, typename... Ts>
+struct type_name_lister<T, Ts...> {
+  auto operator()() const
+  {
+    return type_name_lister<T>{}() + ", " + type_name_lister<Ts...>{}();
+  }
+};
+
+/**
+ * Partial specialization for a tuple of types.
+ *
+ * @tparam Ts... types
+ */
+template <typename... Ts>
+struct type_name_lister<std::tuple<Ts...>> : type_name_lister<Ts...> {};
+
+/**
+ * Global functor to provide a comma-separated list of type names.
+ *
+ * This provides a functional interface to the `type_name_lister<Ts...>`.
+ *
+ * @tparam Ts... types
+ */
+template <typename... Ts>
+inline constexpr type_name_lister<Ts...> type_name_list;
+
 }  // namespace npygl
 
 #endif  // NPYGL_DEMANGLE_HH_
