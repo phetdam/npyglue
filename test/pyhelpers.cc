@@ -11,6 +11,7 @@
 #include <cstdint>
 #include <map>
 #include <ostream>
+#include <tuple>
 #include <utility>
 #include <vector>
 
@@ -381,6 +382,92 @@ template <typename... Ts>
 inline constexpr capsule_view_formatter<Ts...> capsule_view_format;
 
 /**
+ * Supported types for capsule creation.
+ */
+using capsule_types = std::tuple<
+  capsule_map_type,
+  std::vector<double>,
+#if NPYGL_HAS_EIGEN3
+  Eigen::MatrixXf,
+#endif  // NPYGL_HAS_EIGEN3
+#if NPYGL_HAS_ARMADILLO
+  arma::fmat,
+  arma::cx_cube,
+  arma::rowvec,
+#endif  // NPYGL_HAS_ARMADILLO
+  std::vector<capsule_map_type>
+>;
+
+#if NPYGL_HAS_NUMPY
+/**
+ * Helper type to filter the types `make_ndarray()` accepts into a tuple.
+ *
+ * @tparam Ts... types
+ */
+template <typename... Ts>
+struct ndarray_convertible_filter {};
+
+/**
+ * Partial specialization for a single type.
+ *
+ * If a NumPy array cannot be created from the types, the type tuple is empty.
+ *
+ * @tparam T type
+ */
+template <typename T>
+struct ndarray_convertible_filter<T> {
+  using types = std::conditional_t<
+    npygl::can_make_ndarray_v<T>, std::tuple<T>, std::tuple<>
+  >;
+};
+
+/**
+ * Partial specialization for more than one type.
+ *
+ * @tparam T type
+ * @tparam Ts... types
+ */
+template <typename T, typename... Ts>
+struct ndarray_convertible_filter<T, Ts...> {
+  using types = std::conditional_t<
+    npygl::can_make_ndarray_v<T>,
+    // type of the T and Ts... tuples concatenated
+    decltype(
+      std::tuple_cat(
+        std::declval<std::tuple<T>>(),
+        std::declval<typename ndarray_convertible_filter<Ts...>::types>()
+      )
+    ),
+    // plain recursion to Ts...
+    typename ndarray_convertible_filter<Ts...>::types
+  >;
+};
+
+/**
+ * Partial specialization for a tuple of types.
+ *
+ * @tparam Ts... types
+ */
+template <typename... Ts>
+struct ndarray_convertible_filter<std::tuple<Ts...>>
+  : ndarray_convertible_filter<Ts...> {};
+
+/**
+ * Get the tuple of the types that `make_ndarray()` accepts.
+ *
+ * @tparam Ts... types
+ */
+template <typename... Ts>
+using ndarray_convertible_filter_t = typename ndarray_convertible_filter<Ts...>::
+  types;
+
+/**
+ * Supported types for NumPy array creation.
+ */
+using ndarray_capsule_types = ndarray_convertible_filter_t<capsule_types>;
+#endif  // NPYGL_HAS_NUMPY
+
+/**
  * Test function that takes a C++ object capsule and returns it as a string.
  */
 NPYGL_PY_FUNC_DECLARE(
@@ -400,26 +487,12 @@ NPYGL_PY_FUNC_DECLARE(
   "    String representation of the owned C++ object",
   self, obj) noexcept
 {
-  // supported types
-  using supported_types = std::tuple<
-    capsule_map_type,
-    std::vector<double>,
-#if NPYGL_HAS_EIGEN3
-    Eigen::MatrixXf,
-#endif  // NPYGL_HAS_EIGEN3
-#if NPYGL_HAS_ARMADILLO
-    arma::fmat,
-    arma::cx_cube,
-    arma::rowvec,
-#endif  // NPYGL_HAS_ARMADILLO
-    std::vector<capsule_map_type>
-  >;
   // get capsule view
   npygl::cc_capsule_view view{obj};
   if (!view)
     return nullptr;
   // check type and return string representation if possible
-  return capsule_view_format<supported_types>(view).release();
+  return capsule_view_format<capsule_types>(view).release();
 }
 
 NPYGL_PY_FUNC_DECLARE(
@@ -461,20 +534,8 @@ NPYGL_PY_FUNC_DECLARE(
 {
   // get reference-incremented Python object
   npygl::py_object cap{obj, npygl::py_object::incref};
-  // supported types
-  using supported_types = std::tuple<
-#if NPYGL_HAS_EIGEN3
-    Eigen::MatrixXf,
-#endif  // NPYGL_HAS_EIGEN3
-#if NPYGL_HAS_ARMADILLO
-    arma::fmat,
-    arma::cx_cube,
-    arma::rowvec,
-#endif  // NPYGL_HAS_ARMADILLO
-    std::vector<double>  // note: std::vector<float> would be supported too
-  >;
   // return new NumPy array if a supported cc_capsule_view capsule
-  return npygl::make_ndarray_from_capsule<supported_types>(std::move(cap))
+  return npygl::make_ndarray_from_capsule<ndarray_capsule_types>(std::move(cap))
     .release();
 }
 #endif  // NPYGL_HAS_NUMPY
