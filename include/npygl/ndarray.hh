@@ -281,6 +281,8 @@ inline bool is_type(PyArrayObject* arr) noexcept
 /**
  * Check if a Python object is a NumPy array of the desired type.
  *
+ * @deprecated This function may be removed due to its low utility.
+ *
  * @note If calling other NumPy array checking functions then it is more
  *  efficient to call the non-templated `is_ndarray()` by itself.
  *
@@ -297,6 +299,8 @@ inline bool is_ndarray(PyObject* obj) noexcept
 /**
  * Check if a NumPy array is aligned and is of the desired type.
  *
+ * @deprecated This function may be removed due to its low utility.
+ *
  * @tparam T Desired data type
  *
  * @param arr NumPy array
@@ -310,6 +314,8 @@ inline bool is_aligned(PyArrayObject* arr) noexcept
 /**
  * Check if a NumPy array is writeable and is of the desired type.
  *
+ * @deprecated This function may be removed due to its low utility.
+ *
  * @tparam T Desired data type
  *
  * @param arr NumPy array
@@ -322,6 +328,8 @@ inline bool is_writeable(PyArrayObject* arr) noexcept
 
 /**
  * Check if a NumPy array is aligned, writeable, and of the desired type.
+ *
+ * @deprecated This function may be removed due to its low utility.
  *
  * @tparam T Desired data type
  *
