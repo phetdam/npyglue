@@ -613,18 +613,54 @@ struct ndarray_capsule_builder<arma::Col<T>>
 /**
  * NumPy array builder for a capsule holding an Armadillo column vector.
  *
- * @todo Consider special logic for the `arma::Row<T>` so the created NumPy
- *  array is a row vector, e.g. shape is `(n,)`, not `(1, n)`.
- *
- * We simply subclass because the `arma::Row<T>` is a subclass of the
- * `arma::Mat<T>` and so `ndarray_capsule_builder<arma::Mat<T>>::operator()`
- * logic can be applied to the `arma::Row<T>` to produce a NumPy vector.
+ * We have a specific partial specialization for the `arma::Row<T>` so that the
+ * created NumPy array is a row vector, e.g. shape is `(n,)`, not `(1, n)`.
  *
  * @tparam T Element type
  */
 template <typename T>
 struct ndarray_capsule_builder<arma::Row<T>>
-  : ndarray_capsule_builder<arma::Mat<T>> {};
+  : ndarray_capsule_builder_base<ndarray_capsule_builder<arma::Row<T>>> {
+  using object_type = arma::Row<T>;
+
+  /**
+   * Create a 1D NumPy array backed by an Armadillo row vector.
+   *
+   * The capsule-backed NumPy array will have flags `NPY_ARRAY_FARRAY`.
+   *
+   * On error the `py_object` is empty and a Python exception is set.
+   *
+   * @note This overload does not validate the capsule or the object pointer.
+   *
+   * @param cap Python capsule following `cc_capsule_view` protocol
+   * @param cap_mat Pointer to C++ Armadillo row vector retrieved from capsule
+   */
+  py_object operator()(py_object&& cap, object_type* cap_vec) const noexcept
+  {
+    // only one dimension + cast to silence C4365 warning
+    auto dims = static_cast<npy_intp>(cap_vec->n_cols);
+    // create new 1D NumPy array from the data buffer
+    py_object ar{
+      PyArray_New(
+        &PyArray_Type,               // subtype
+        1,                           // nd
+        &dims,                       // dims
+        npy_typenum<T>,              // type_num
+        nullptr,                     // strides
+        cap_vec->memptr(),           // data
+        0,                           // itemsize (ignored)
+        NPY_ARRAY_FARRAY,            // flags (Armadillo buffers are aligned)
+        nullptr                      // obj (ignored)
+      )
+    };
+    if (!ar)
+      return {};
+    // set base object so NumPy array owns the capsule
+    if (PyArray_SetBaseObject(ar.as<PyArrayObject>(), cap.release()) < 0)
+      return {};
+    return ar;
+  }
+};
 
 /**
  * NumPy array builder for a capsule holding an Armadillo cube.
