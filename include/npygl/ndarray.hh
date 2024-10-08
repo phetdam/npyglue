@@ -159,21 +159,57 @@ template <typename T>
 inline constexpr bool has_npy_type_traits_v = has_npy_type_traits<T>::value;
 
 /**
- * Helper to get a comma-separated list of NumPy type names from C/C++ types.
+ * Functor to return a comma-separated NumPy type name list from C/C++ types.
+ *
+ * @tparam Ts... C/C++ types to get NumPy type names for
+ */
+template <typename... Ts>
+struct npy_typename_lister {};
+
+/**
+ * Partial specialization when there is only one type.
+ *
+ * @tparam T C/C++ type to get NumPy type name for
+ */
+template <typename T>
+struct npy_typename_lister<T> {
+  std::string operator()() const
+  {
+    return npy_typename<T>;
+  }
+};
+
+/**
+ * Partial specialization for multiple types.
  *
  * @tparam T C/C++ type to get NumPy type name for
  * @tparam Ts... Other C/C++ types to get NumPy type names for
  */
 template <typename T, typename... Ts>
-auto npy_typename_list()
-{
-  // no other types
-  if constexpr (!sizeof...(Ts))
-    return npy_typename<T>;
-  // else we need separator and to recurse
-  else
-    return npy_typename<T> + std::string{", "} + npy_typename_list<Ts...>();
-}
+struct npy_typename_lister<T, Ts...> {
+  auto operator()() const
+  {
+    return npy_typename<T> + std::string{", "} + npy_typename_lister<Ts...>{}();
+  }
+};
+
+/**
+ * Partial specialization for a tuple of types.
+ *
+ * @tparam Ts... C/C++ types to get NumPy type names for
+ */
+template <typename... Ts>
+struct npy_typename_lister<std::tuple<Ts...>> : npy_typename_lister<Ts...> {};
+
+/**
+ * Global lister to get the NumPy type name list from C/C++ types.
+ *
+ * This provides a functional interface to the `npy_typename_lister<Ts...>`.
+ *
+ * @tparam Ts... C/C++ types to get NumPy type names for
+ */
+template <typename... Ts>
+inline constexpr npy_typename_lister<Ts...> npy_typename_list;
 
 #if NPYGL_HAS_CC_20
 /**
@@ -802,7 +838,7 @@ struct ndarray_capsule_builder<std::tuple<Ts...>>
 /**
  * Global builder for creating a NumPy array from a Python capsule.
  *
- * This provides a functional interface to the `ndarray_capsule_builder`.
+ * This provides a functional interface to the `ndarray_capsule_builder<Ts...>`.
  *
  * @tparam Ts... Target C++ types
  */
