@@ -148,7 +148,9 @@ struct has_npy_type_traits : std::false_type {};
  */
 template <typename T>
 struct has_npy_type_traits<
-  T, std::void_t<npy_type_traits<std::remove_cv_t<T>>> > : std::true_type {};
+  T,
+  std::void_t<typename npy_type_traits<std::remove_cv_t<T>>::type> >
+  : std::true_type {};
 
 /**
  * Boolean helper for checking if a type has NumPy type traits.
@@ -395,9 +397,11 @@ inline auto make_ndarray(PyObject* obj) noexcept
  *
  * This builder class is intended to facilitate creation of NumPy arrays from
  * existing Python capsule objects via the `cc_capsule_view`.
+ *
+ * @tparam T type
  */
-template <typename... Ts>
-struct ndarray_capsule_builder;
+template <typename T, typename = void>
+struct ndarray_capsule_builder {};
 
 /**
  * Traits class for the NumPy array capsule builder.
@@ -481,7 +485,8 @@ struct ndarray_capsule_builder_base {
  * @tparam A Allocator type
  */
 template <typename T, typename A>
-struct ndarray_capsule_builder<std::vector<T, A>>
+struct ndarray_capsule_builder<
+  std::vector<T, A>, std::enable_if_t<has_npy_type_traits_v<T>> >
   : ndarray_capsule_builder_base<ndarray_capsule_builder<std::vector<T, A>>> {
   using object_type = std::vector<T, A>;
 
@@ -528,7 +533,9 @@ struct ndarray_capsule_builder<std::vector<T, A>>
  * @tparam CMax max number of columns
  */
 template <typename T, int R, int C, int O, int RMax, int RMin>
-struct ndarray_capsule_builder<Eigen::Matrix<T, R, C, O, RMax, RMin>>
+struct ndarray_capsule_builder<
+  Eigen::Matrix<T, R, C, O, RMax, RMin>,
+  std::enable_if_t<has_npy_type_traits_v<T>> >
   : ndarray_capsule_builder_base<
       ndarray_capsule_builder<Eigen::Matrix<T, R, C, O, RMax, RMin>> > {
   using object_type = Eigen::Matrix<T, R, C, O, RMax, RMin>;
@@ -592,7 +599,8 @@ struct ndarray_capsule_builder<Eigen::Matrix<T, R, C, O, RMax, RMin>>
  * @tparam T Element type
  */
 template <typename T>
-struct ndarray_capsule_builder<arma::Mat<T>>
+struct ndarray_capsule_builder<
+  arma::Mat<T>, std::enable_if_t<has_npy_type_traits_v<T>> >
   : ndarray_capsule_builder_base<ndarray_capsule_builder<arma::Mat<T>>> {
   using object_type = arma::Mat<T>;
 
@@ -663,7 +671,8 @@ struct ndarray_capsule_builder<arma::Col<T>>
  * @tparam T Element type
  */
 template <typename T>
-struct ndarray_capsule_builder<arma::Row<T>>
+struct ndarray_capsule_builder<
+  arma::Row<T>, std::enable_if_t<has_npy_type_traits_v<T>> >
   : ndarray_capsule_builder_base<ndarray_capsule_builder<arma::Row<T>>> {
   using object_type = arma::Row<T>;
 
@@ -712,7 +721,8 @@ struct ndarray_capsule_builder<arma::Row<T>>
  * @tparam T Element type
  */
 template <typename T>
-struct ndarray_capsule_builder<arma::Cube<T>>
+struct ndarray_capsule_builder<
+  arma::Cube<T>, std::enable_if_t<has_npy_type_traits_v<T>> >
   : ndarray_capsule_builder_base<ndarray_capsule_builder<arma::Cube<T>>> {
   using object_type = arma::Cube<T>;
 
@@ -883,6 +893,39 @@ py_object make_ndarray(T&& obj) noexcept
   // create NumPy array from capsule using builder
   return make_ndarray_from_capsule<T>(std::move(capsule), view.as<T>());
 }
+
+/**
+ * Traits type to indicate if a NumPy array can be created from a C++ type.
+ *
+ * @tparam T type
+ */
+template <typename T, typename = void>
+struct can_make_ndarray : std::false_type {};
+
+/**
+ * True specialization for C++ types `make_ndarray(T&&)` accepts.
+ *
+ * @note Since `make_ndarray(T&&)` does not restrict the template type we rely
+ *  on the invokability of the builder specialization.
+ *
+ * @tparam T type
+ */
+template <typename T>
+struct can_make_ndarray<
+  T,
+  std::void_t<
+    decltype(
+      make_ndarray_from_capsule<T>(std::declval<py_object>(), std::declval<T*>())
+    )> >
+  : std::true_type {};
+
+/**
+ * Helper to indicate if a NumPy arary can be created from a C++ type.
+ *
+ * @tparam T type
+ */
+template <typename T>
+inline constexpr bool can_make_ndarray_v = can_make_ndarray<T>::value;
 
 /**
  * Lightweight flat view of a NumPy array.
