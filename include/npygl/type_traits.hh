@@ -9,6 +9,7 @@
 #define NPYGL_TYPE_TRAITS_HH_
 
 #include <type_traits>
+#include <utility>
 
 namespace npygl {
 
@@ -150,6 +151,83 @@ struct is_same_type : has_type_member<same_type<Ts...>> {};
  */
 template <typename... Ts>
 inline constexpr bool is_same_type_v = is_same_type<Ts...>::value;
+
+/**
+ * Traits type that always has a `true` value.
+ *
+ * @tparam Ts... types
+ */
+template <typename... Ts>
+struct always_true : std::true_type {};
+
+/**
+ * Helper to get the booleam truth of `always_true`.
+ *
+ * @tparam Ts... types
+ */
+template <typename... Ts>
+inline constexpr bool always_true_v = always_true<Ts...>::value;
+
+/**
+ * Helper type to conditionally filter a parameter pack into a tuple.
+ *
+ * @tparam Filter Traits type with boolean `value` member indicating inclusion
+ * @tparam Ts... types
+ */
+template <template <typename> typename Filter, typename... Ts>
+struct type_filter {};
+
+/**
+ * Partial specialization for a single type.
+ *
+ * @tparam Filter Traits type with boolean `value` member indicating inclusion
+ * @tparam T type
+ */
+template <template <typename> typename Filter, typename T>
+struct type_filter<Filter, T> {
+  using type = std::conditional_t<Filter<T>::value, std::tuple<T>, std::tuple<>>;
+};
+
+/**
+ * Partial specialization for more than one type.
+ *
+ * @tparam Filter Traits type with boolean `value` member indicating inclusion
+ * @tparam T type
+ * @tparam Ts... Subsequent types
+ */
+template <template <typename> typename Filter, typename T, typename... Ts>
+struct type_filter<Filter, T, Ts...> {
+  using type = std::conditional_t<
+    Filter<T>::value,
+    // type of the T and Ts... tuples concatenated
+    decltype(
+      std::tuple_cat(
+        std::declval<std::tuple<T>>(),
+        std::declval<typename type_filter<Filter, Ts...>::type>()
+      )
+    ),
+    // plain recursion to Ts...
+    typename type_filter<Filter, Ts...>::type
+  >;
+};
+
+/**
+ * Partial specialization for a tuple of types.
+ *
+ * @tparam Filter Traits type with boolean `value` member indicating inclusion
+ * @tparam Ts.. types
+ */
+template <template <typename> typename Filter, typename... Ts>
+struct type_filter<Filter, std::tuple<Ts...>> : type_filter<Filter, Ts...> {};
+
+/**
+ * Type alias for the tuple type created from the filtered types.
+ *
+ * @tparam Filter Traits type with boolean `value` member indicating inclusion
+ * @tparam Ts... types
+ */
+template <template <typename> typename Filter, typename... Ts>
+using type_filter_t = typename type_filter<Filter, Ts...>::type;
 
 }  // namespace npygl
 

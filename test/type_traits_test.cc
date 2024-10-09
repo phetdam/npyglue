@@ -42,8 +42,13 @@ using driver_type = npygl::testing::traits_checker_driver<
       std::pair<std::map<std::string, std::vector<double>>, std::false_type>
     >
   >,
+  // always_true
+  npygl::testing::traits_checker<
+    npygl::always_true,
+    std::tuple<double, std::string, unsigned, char, std::map<unsigned, int>>
+  >,
   // has_type_member
-  // note: also indirectly tests same_type
+  // note: also indirectly tests same_type + type_filter
   npygl::testing::traits_checker<
     npygl::has_type_member,
     std::tuple<
@@ -53,7 +58,25 @@ using driver_type = npygl::testing::traits_checker_driver<
       std::pair<std::tuple<std::pair<int, int>, std::string>, std::false_type>,
       std::remove_pointer<const char*>,
       npygl::same_type<char, char, char, char, char, char>,
-      std::add_pointer<std::string>
+      std::add_pointer<std::string>,
+      npygl::same_type<
+        npygl::type_filter_t<
+          npygl::has_type_member,
+          int,
+          std::enable_if<true>,
+          std::remove_reference<const std::vector<unsigned>&>,
+          double,
+          std::string
+        >,
+        std::tuple<
+          std::enable_if<true>,
+          std::remove_reference<const std::vector<unsigned>&>
+        >
+      >,
+      npygl::same_type<
+        npygl::type_filter_t<npygl::always_true, double, int, unsigned, char>,
+        std::tuple<double, int, unsigned, char>
+      >
     >
   >
 >;
