@@ -34,10 +34,12 @@ struct traits_checker {
   /**
    * Provides the tuple of failing input cases.
    *
-   * Each case is a `std::pair<T, std::true_type>`.
+   * Each case is a `std::pair<Traits<T>, std::true_type>`.
    */
   using failed_cases = std::conditional_t<
-    Traits<T>::value, std::tuple<>, std::tuple<std::pair<T, std::true_type>>
+    Traits<T>::value,
+    std::tuple<>,
+    std::tuple<std::pair<Traits<T>, std::true_type>>
   >;
 
   /**
@@ -82,12 +84,12 @@ struct traits_checker<Traits, std::pair<T, std::bool_constant<B>>> {
   /**
    * Provides the tuple of failing input cases.
    *
-   * Each case is a `std::pair<T, std::bool_constant<B>>`.
+   * Each case is a `std::pair<Traits<T>, std::bool_constant<B>>`.
    */
   using failed_cases = std::conditional_t<
     B == Traits<T>::value,
     std::tuple<>,
-    std::tuple<std::pair<T, std::bool_constant<B>>>
+    std::tuple<std::pair<Traits<T>, std::bool_constant<B>>>
   >;
 
   /**
@@ -156,7 +158,7 @@ public:
   /**
    * Provides the tuple of failing input cases.
    *
-   * Each case is a `std::pair<T, std::bool_constant<B>>`.
+   * Each case is a `std::pair<Traits<T>, std::bool_constant<B>>`.
    */
   using failed_cases = decltype(
     std::tuple_cat(std::declval<typename wrapped_checker<Ts>::failed_cases>()...)
@@ -228,7 +230,7 @@ struct failed_cases_formatter<std::tuple<T, Ts...>> {
    */
   void operator()(std::ostream& out) const
   {
-    // first type
+    // input case
     out << std::string(left_pad, ' ') << "* " <<
       type_name(typeid(typename T::first_type)) << " == " <<
       // compile-time determination of expected truth
@@ -309,7 +311,7 @@ struct traits_checker_driver {
   /**
    * Provides the tuple of failing input cases.
    *
-   * Each case is a `std::pair<T, std::bool_constant<B>>`.
+   * Each case is a `std::pair<Traits<T>, std::bool_constant<B>>`.
    */
   using failed_cases = decltype(
     std::tuple_cat(
@@ -361,7 +363,7 @@ struct traits_checker_driver<traits_checker<Traits, T>> {
   /**
    * Provides the tuple of failing input cases.
    *
-   * Each case is a `std::pair<T, std::bool_constant<B>>`.
+   * Each case is a `std::pair<Traits<T>, std::bool_constant<B>>`.
    */
   using failed_cases = typename traits_checker<Traits, T>::failed_cases;
 
