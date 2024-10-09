@@ -1186,7 +1186,10 @@ public:
     static const auto name_set = []
     {
       // VIRTUAL_ENV has path to venv virtual env root directory
+NPYGL_MSVC_WARNING_PUSH()
+NPYGL_MSVC_WARNING_DISABLE(4996)
       auto venv = std::getenv("VIRTUAL_ENV");
+NPYGL_MSVC_WARNING_POP()
       // not in virtual environment
       if (!venv)
         return true;

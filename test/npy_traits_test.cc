@@ -183,6 +183,6 @@ int main()
   // CTest-like output
   std::cout << '\n' <<
     100 * (1 - n_fail / static_cast<double>(n_total)) << "% tests passed, " <<
-    n_fail << " failed out of " << n_total << '\n' << std::endl;
+    n_fail << " failed out of " << n_total << std::endl;
   return (!n_fail) ? EXIT_SUCCESS : EXIT_FAILURE;
 }
