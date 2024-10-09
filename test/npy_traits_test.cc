@@ -6,6 +6,7 @@
  */
 
 #include <complex>
+#include <cstdint>
 #include <cstdlib>
 #include <iostream>
 #include <ostream>
@@ -30,23 +31,40 @@ namespace {
 /**
  * Check if a type satisfies the given traits.
  *
+ * This class knows at compile-time the number of failed and total tests.
+ *
  * @tparam Traits Traits template type with a boolean `value` member
  * @tparam T type
  */
 template <template <typename> typename Traits, typename T>
 struct traits_checker {
   /**
-   * Check the type against the traits and return number of failures.
+   * Return total number of tests (always 1).
+   */
+  static constexpr std::size_t n_tests() noexcept
+  {
+    return 1u;
+  }
+
+  /**
+   * Return number of failed tests, either 1 or 0.
+   */
+  static constexpr std::size_t n_failed() noexcept
+  {
+    return !Traits<T>::value;
+  }
+
+  /**
+   * Check the type against the traits and indicate if test succeeded.
    *
    * @param out Stream to write messages to
-   * @return 0 on success, 1 on failure
+   * @return `true` on success, `false` on failure
    */
-  unsigned operator()(std::ostream& out = std::cout) const
+  bool operator()(std::ostream& out = std::cout) const
   {
-    constexpr bool match = Traits<T>::value;
     out << "Test: " << npygl::type_name(typeid(Traits<T>)) <<
-      "::value == true\n  " << ((match) ? "PASS" : "FAIL") << std::endl;
-    return !match;
+      "::value == true\n  " << (!n_failed() ? "Passed" : "Failed") << std::endl;
+    return !n_failed();
   }
 };
 
@@ -60,18 +78,33 @@ struct traits_checker {
 template <template <typename> typename Traits, typename T, bool B>
 struct traits_checker<Traits, std::pair<T, std::bool_constant<B>>> {
   /**
-   * Check the type against the traits and return number of failures.
+   * Return total number of tests (always 1)
+   */
+  static constexpr std::size_t n_tests() noexcept
+  {
+    return 1u;
+  }
+
+  /**
+   * Return number of failed tests, either 1 or 0.
+   */
+  static constexpr std::size_t n_failed() noexcept
+  {
+    return !(B == Traits<T>::value);
+  }
+
+  /**
+   * Check the type against the traits and indicate if test succeeded.
    *
    * @param out Stream to write messages to
-   * @return 0 on success, 1 on failure
+   * @return `true` on success, `false` on failure
    */
-  unsigned operator()(std::ostream& out = std::cout) const
+  bool operator()(std::ostream& out = std::cout) const
   {
-    constexpr bool match = (B == Traits<T>::value);
     out << "Test: " << npygl::type_name(typeid(Traits<T>)) << "::value == " <<
       (B ? "true" : "false") << "\n  " <<
-      (match ? "PASS" : "FAIL") << std::endl;
-    return !match;
+      (!n_failed() ? "Passed" : "Failed") << std::endl;
+    return !n_failed();
   }
 };
 
@@ -107,16 +140,32 @@ private:
 
 public:
   /**
-   * Check each type with the traits and return failures.
+   * Return total number of tests.
+   */
+  static constexpr std::size_t n_tests() noexcept
+  {
+    return sizeof...(Ts);
+  }
+
+  /**
+   * Return number of failed tests.
+   */
+  static constexpr std::size_t n_failed() noexcept
+  {
+    return (traits_checker<Traits, tuple_wrap<Ts>>::n_failed() + ...);
+  }
+
+  /**
+   * Check each type with the traits and indicate success or failure.
    *
    * @param out Stream to write messages to
-   * @returns Number of failed types
+   * @return `true` on success, `false` on failure
    */
-  auto operator()(std::ostream& out = std::cout) const
+  bool operator()(std::ostream& out = std::cout) const
   {
-    out << "Running " << sizeof...(Ts) << " tests on " <<
+    out << "Running " << n_tests() << " tests on " <<
       npygl::type_name(typeid(Traits<placeholder>)) << "..." << std::endl;
-    return (traits_checker<Traits, tuple_wrap<Ts>>{}(out) + ...);
+    return (traits_checker<Traits, tuple_wrap<Ts>>{}(out) && ...);
   }
 };
 
@@ -129,7 +178,119 @@ public:
 template <template <typename> typename Traits, typename T>
 inline constexpr traits_checker<Traits, T> traits_check;
 
-// has_npy_type_traits test
+/**
+ * Print a CTest-like summary for the traits checker test driver.
+ *
+ * @tparam Driver Traits checker driver type
+ *
+ * @param out Stream to write output to
+ * @param driver Traits checker driver
+ * @returns `true` if all tests passed, `false` otherwise
+ */
+template <typename Driver>
+bool print_summary(std::ostream& out = std::cout)
+{
+  // failed and total tests
+  constexpr auto n_fail = Driver::n_failed();
+  constexpr auto n_total = Driver::n_tests();
+  // print CTest-like output
+  out << '\n' <<
+    100 * (1 - n_fail / static_cast<double>(n_total)) << "% tests passed, " <<
+    n_fail << " failed out of " << n_total << std::endl;
+  return !n_fail;
+}
+
+/**
+ * Main traits checker test driver.
+ *
+ * @tparam Ts... `traits_checker` specializations
+ */
+template <typename... Ts>
+struct traits_checker_driver {
+  /**
+   * Get total number of tests registered.
+   */
+  static constexpr std::size_t n_tests() noexcept
+  {
+    return (traits_checker_driver<Ts>::n_tests() + ...);
+  }
+
+  /**
+   * Get number of failed tests.
+   */
+  static constexpr std::size_t n_failed() noexcept
+  {
+    return (traits_checker_driver<Ts>::n_failed() + ...);
+  }
+
+  /**
+   * Run the traits checker test suites and indicate success or failure.
+   *
+   * @param out Stream to write messages to
+   * @return `true` on success, `false` on failure
+   */
+  bool operator()(std::ostream& out = std::cout) const
+  {
+    out << "Running " << n_tests() << " tests from " << sizeof...(Ts) <<
+      " test suites..." << std::endl;
+    // print messages for all test suites
+    // note: can discard result since pass/fail known at compile time
+    (Ts{}(out), ...);
+    // print summary
+    return print_summary<traits_checker_driver<Ts...>>(out);
+  }
+};
+
+/**
+ * Partial specialization for a single `traits_checker` specialization.
+ *
+ * @tparam Traits Traits template type with a boolean `value` member
+ * @tparam T Type, either a `std::tuple<Ts...>` or single type
+ */
+template <template <typename> typename Traits, typename T>
+struct traits_checker_driver<traits_checker<Traits, T>> {
+  /**
+   * Get total number of tests registered.
+   */
+  static constexpr std::size_t n_tests() noexcept
+  {
+    return traits_checker<Traits, T>::n_tests();
+  };
+
+  /**
+   * Get number of failed tests.
+   */
+  static constexpr std::size_t n_failed() noexcept
+  {
+    return traits_checker<Traits, T>::n_failed();
+  }
+
+  /**
+   * Run the traits checker test suite and indicate success or failure.
+   *
+   * @param out Stream to write messages to
+   * @return `true` on success, `false` on failure
+   */
+  bool operator()(std::ostream& out = std::cout) const
+  {
+    out << "Running " << n_tests() << " tests from 1 test suite..." << std::endl;
+    // print messages for test suite
+    // note: can discard result since pass/fail known at compile time
+    traits_checker<Traits, T>{}(out);
+    // print summary
+    return print_summary<traits_checker_driver<traits_checker<Traits, T>>>(out);
+  }
+};
+
+/**
+ * Partial specialization for a tuple of `traits_checker` specializations.
+ *
+ * @tparam Ts... `traits_checker` specializations
+ */
+template <typename... Ts>
+struct traits_checker_driver<std::tuple<Ts...>> : traits_checker_driver<Ts...> {};
+
+// has_npy_type_traits test inputs
 using input_types_1 = std::tuple<
   double,
   float,
@@ -143,7 +304,7 @@ using input_types_1 = std::tuple<
   std::pair<std::map<std::string, double>, std::false_type>,
   std::pair<std::pair<std::pair<int, int>, std::string>, std::false_type>
 >;
-// can_make_ndarray test
+// can_make_ndarray test inputs
 using input_types_2 = std::tuple<
   std::vector<double>,
   std::pair<std::vector<float>, std::true_type>,
@@ -168,21 +329,16 @@ using input_types_2 = std::tuple<
     std::false_type
   >
 >;
+// test driver type
+using test_driver_type = traits_checker_driver<
+  traits_checker<npygl::has_npy_type_traits, input_types_1>,
+  traits_checker<npygl::can_make_ndarray, input_types_2>
+>;
 
 }  // namespace
 
 int main()
 {
-  // total failed
-  unsigned n_fail = 0u;
-  n_fail += traits_check<npygl::has_npy_type_traits, input_types_1>();
-  n_fail += traits_check<npygl::can_make_ndarray, input_types_2>();
-  // summary
-  constexpr auto n_total = std::tuple_size_v<input_types_1> +
-    std::tuple_size_v<input_types_2>;
-  // CTest-like output
-  std::cout << '\n' <<
-    100 * (1 - n_fail / static_cast<double>(n_total)) << "% tests passed, " <<
-    n_fail << " failed out of " << n_total << std::endl;
-  return (!n_fail) ? EXIT_SUCCESS : EXIT_FAILURE;
+  test_driver_type driver;
+  return driver() ? EXIT_SUCCESS : EXIT_FAILURE;
 }
