@@ -32,6 +32,15 @@ namespace testing {
 template <template <typename> typename Traits, typename T>
 struct traits_checker {
   /**
+   * Provides the tuple of failing input cases.
+   *
+   * Each case is a `std::pair<T, std::true_type>`.
+   */
+  using failed_cases = std::conditional_t<
+    Traits<T>::value, std::tuple<>, std::tuple<std::pair<T, std::true_type>>
+  >;
+
+  /**
    * Return total number of tests (always 1).
    */
   static constexpr std::size_t n_tests() noexcept
@@ -44,7 +53,7 @@ struct traits_checker {
    */
   static constexpr std::size_t n_failed() noexcept
   {
-    return !Traits<T>::value;
+    return std::tuple_size_v<failed_cases>;
   }
 
   /**
@@ -71,6 +80,17 @@ struct traits_checker {
 template <template <typename> typename Traits, typename T, bool B>
 struct traits_checker<Traits, std::pair<T, std::bool_constant<B>>> {
   /**
+   * Provides the tuple of failing input cases.
+   *
+   * Each case is a `std::pair<T, std::bool_constant<B>>`.
+   */
+  using failed_cases = std::conditional_t<
+    B == Traits<T>::value,
+    std::tuple<>,
+    std::tuple<std::pair<T, std::bool_constant<B>>>
+  >;
+
+  /**
    * Return total number of tests (always 1)
    */
   static constexpr std::size_t n_tests() noexcept
@@ -83,7 +103,7 @@ struct traits_checker<Traits, std::pair<T, std::bool_constant<B>>> {
    */
   static constexpr std::size_t n_failed() noexcept
   {
-    return !(B == Traits<T>::value);
+    return std::tuple_size_v<failed_cases>;
   }
 
   /**
@@ -119,7 +139,7 @@ template <template <typename> typename Traits, typename... Ts>
 struct traits_checker<Traits, std::tuple<Ts...>> {
 private:
   /**
-   * Conditionally wrap a tuple to prevent recursion into this specialization.
+   * Wrapped traits checker that will not recurse into this specialization.
    *
    * Without this, if a `Ts` is a `std::tuple` specialization, the compiler
    * will recurse into this partial specialization, which is not what we want.
@@ -127,11 +147,21 @@ private:
    * @tparam T type
    */
   template <typename T>
-  using tuple_wrap = std::conditional_t<
-    npygl::is_tuple_v<T>, std::pair<T, std::true_type>, T
+  using wrapped_checker = traits_checker<
+    Traits,
+    std::conditional_t<npygl::is_tuple_v<T>, std::pair<T, std::true_type>, T>
   >;
 
 public:
+  /**
+   * Provides the tuple of failing input cases.
+   *
+   * Each case is a `std::pair<T, std::bool_constant<B>>`.
+   */
+  using failed_cases = decltype(
+    std::tuple_cat(std::declval<typename wrapped_checker<Ts>::failed_cases>()...)
+  );
+
   /**
    * Return total number of tests.
    */
@@ -145,7 +175,7 @@ public:
    */
   static constexpr std::size_t n_failed() noexcept
   {
-    return (traits_checker<Traits, tuple_wrap<Ts>>::n_failed() + ...);
+    return std::tuple_size_v<failed_cases>;
   }
 
   /**
@@ -158,9 +188,93 @@ public:
   {
     out << "Running " << n_tests() << " tests on " <<
       npygl::type_name(typeid(Traits<placeholder>)) << "..." << std::endl;
-    return (traits_checker<Traits, tuple_wrap<Ts>>{}(out) && ...);
+    // to prevent short-circuiting we check that there are no failed
+    return !(static_cast<unsigned>(!wrapped_checker<Ts>{}(out)) + ...);
   }
 };
+
+namespace detail {
+
+/**
+ * Format failed test cases into a printable format for `display_failed`.
+ *
+ * @tparam Ts... types
+ */
+template <typename... Ts>
+struct failed_cases_formatter {};
+
+/**
+ * Partial specialization for the tuple of failed cases.
+ *
+ * @note The tuple must contain at least one failed case.
+ *
+ * @tparam T First `std::pair<T, std:bool_constant<B>>`
+ * @tparam Ts... Pack of `std::pair<T, std:bool_constant<B>>`
+ */
+template <typename T, typename... Ts>
+struct failed_cases_formatter<std::tuple<T, Ts...>> {
+  using failed_cases = std::tuple<T, Ts...>;
+
+  // left padding + delimiter
+  unsigned int left_pad = 4u;
+  char delim = '\n';
+
+  /**
+   * Stream the failed cases to the given output stream.
+   *
+   * No delimiter will trail the last input case streamed.
+   *
+   * @param out Stream to write output to
+   */
+  void operator()(std::ostream& out) const
+  {
+    // first type
+    out << std::string(left_pad, ' ') << "* " <<
+      type_name(typeid(typename T::first_type)) << " == " <<
+      // compile-time determination of expected truth
+      []() -> const char*
+      {
+        using truth_type = typename T::second_type;
+        if constexpr (truth_type::value)
+          return "true";
+        else
+          return "false";
+      }();
+    // recurse if more types
+    if constexpr (sizeof...(Ts)) {
+      out << delim;
+      failed_cases_formatter<std::tuple<Ts...>>{left_pad, delim}(out);
+    }
+  }
+};
+
+/**
+ * Global failed test case formatter for `display_failed`.
+ *
+ * @tparam Ts... types
+ */
+template <typename... Ts>
+inline constexpr failed_cases_formatter<Ts...> format_failed;
+
+}  // namespace detail
+
+/**
+ * Display the list of the traits checker test driver's failed test cases.
+ *
+ * @tparam Driver Traits checker driver type
+ *
+ * @param out Stream to write output to
+ */
+template <typename Driver>
+void display_failed(std::ostream& out = std::cout)
+{
+  // no-op if no failed
+  if constexpr (Driver::n_failed()) {
+    out << "\nThe following tests FAILED:\n";
+    detail::format_failed<typename Driver::failed_cases>(out);
+    out << std::endl;
+  }
+}
 
 /**
  * Print a CTest-like summary for the traits checker test driver.
@@ -168,7 +282,6 @@ public:
  * @tparam Driver Traits checker driver type
  *
  * @param out Stream to write output to
- * @param driver Traits checker driver
  * @returns `true` if all tests passed, `false` otherwise
  */
 template <typename Driver>
@@ -181,6 +294,8 @@ bool print_summary(std::ostream& out = std::cout)
   out << '\n' <<
     100 * (1 - n_fail / static_cast<double>(n_total)) << "% tests passed, " <<
     n_fail << " failed out of " << n_total << std::endl;
+  // display failed test cases if any
+  display_failed<Driver>(out);
   return !n_fail;
 }
 
@@ -191,6 +306,16 @@ bool print_summary(std::ostream& out = std::cout)
  */
 template <typename... Ts>
 struct traits_checker_driver {
+  /**
+   * Provides the tuple of failing input cases.
+   *
+   * Each case is a `std::pair<T, std::bool_constant<B>>`.
+   */
+  using failed_cases = decltype(
+    std::tuple_cat(
+      std::declval<typename traits_checker_driver<Ts>::failed_cases>()...)
+  );
+
   /**
    * Get total number of tests registered.
    */
@@ -204,7 +329,7 @@ struct traits_checker_driver {
    */
   static constexpr std::size_t n_failed() noexcept
   {
-    return (traits_checker_driver<Ts>::n_failed() + ...);
+    return std::tuple_size_v<failed_cases>;
   }
 
   /**
@@ -234,6 +359,13 @@ struct traits_checker_driver {
 template <template <typename> typename Traits, typename T>
 struct traits_checker_driver<traits_checker<Traits, T>> {
   /**
+   * Provides the tuple of failing input cases.
+   *
+   * Each case is a `std::pair<T, std::bool_constant<B>>`.
+   */
+  using failed_cases = typename traits_checker<Traits, T>::failed_cases;
+
+  /**
    * Get total number of tests registered.
    */
   static constexpr std::size_t n_tests() noexcept
@@ -246,7 +378,7 @@ struct traits_checker_driver<traits_checker<Traits, T>> {
    */
   static constexpr std::size_t n_failed() noexcept
   {
-    return traits_checker<Traits, T>::n_failed();
+    return std::tuple_size_v<failed_cases>;
   }
 
   /**
