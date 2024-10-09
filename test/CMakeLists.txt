@@ -86,6 +86,20 @@ if(Python3_Development_FOUND AND Python3_NumPy_FOUND)
     add_test(NAME npy_capsule_test COMMAND npy_capsule_test)
 endif()
 
+# npy_traits_test: NumPy traits class tests
+if(Python3_Development_FOUND AND Python3_NumPy_FOUND)
+    npygl_add_py3_executable(
+        TARGET npy_traits_test
+        SOURCES npy_traits_test.cc
+        LIBRARIES Python3::NumPy
+        USE_RELEASE_CRT ${PY_MSVC_ALWAYS_RELEASE}
+    )
+    if(Eigen3_FOUND)
+        target_link_libraries(npy_traits_test PRIVATE Eigen3::Eigen)
+    endif()
+    add_test(NAME npy_traits_test COMMAND npy_traits_test)
+endif()
+
 # npy_views_test: testing views with NumPy
 if(Python3_Development_FOUND AND Python3_NumPy_FOUND)
     npygl_add_py3_executable(
