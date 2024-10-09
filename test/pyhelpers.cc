@@ -19,6 +19,7 @@
 #include "npygl/demangle.hh"
 #include "npygl/features.h"
 #include "npygl/python.hh"
+#include "npygl/type_traits.hh"
 
 #if NPYGL_HAS_EIGEN3
 #include <Eigen/Core>
@@ -400,71 +401,10 @@ using capsule_types = std::tuple<
 
 #if NPYGL_HAS_NUMPY
 /**
- * Helper type to filter the types `make_ndarray()` accepts into a tuple.
- *
- * @tparam Ts... types
- */
-template <typename... Ts>
-struct ndarray_convertible_filter {};
-
-/**
- * Partial specialization for a single type.
- *
- * If a NumPy array cannot be created from the types, the type tuple is empty.
- *
- * @tparam T type
- */
-template <typename T>
-struct ndarray_convertible_filter<T> {
-  using types = std::conditional_t<
-    npygl::can_make_ndarray_v<T>, std::tuple<T>, std::tuple<>
-  >;
-};
-
-/**
- * Partial specialization for more than one type.
- *
- * @tparam T type
- * @tparam Ts... types
- */
-template <typename T, typename... Ts>
-struct ndarray_convertible_filter<T, Ts...> {
-  using types = std::conditional_t<
-    npygl::can_make_ndarray_v<T>,
-    // type of the T and Ts... tuples concatenated
-    decltype(
-      std::tuple_cat(
-        std::declval<std::tuple<T>>(),
-        std::declval<typename ndarray_convertible_filter<Ts...>::types>()
-      )
-    ),
-    // plain recursion to Ts...
-    typename ndarray_convertible_filter<Ts...>::types
-  >;
-};
-
-/**
- * Partial specialization for a tuple of types.
- *
- * @tparam Ts... types
- */
-template <typename... Ts>
-struct ndarray_convertible_filter<std::tuple<Ts...>>
-  : ndarray_convertible_filter<Ts...> {};
-
-/**
- * Get the tuple of the types that `make_ndarray()` accepts.
- *
- * @tparam Ts... types
- */
-template <typename... Ts>
-using ndarray_convertible_filter_t = typename ndarray_convertible_filter<Ts...>::
-  types;
-
-/**
  * Supported types for NumPy array creation.
  */
-using ndarray_capsule_types = ndarray_convertible_filter_t<capsule_types>;
+using npy_capsule_types = npygl::
+  type_filter_t<npygl::can_make_ndarray, capsule_types>;
 #endif  // NPYGL_HAS_NUMPY
 
 /**
@@ -535,7 +475,7 @@ NPYGL_PY_FUNC_DECLARE(
   // get reference-incremented Python object
   npygl::py_object cap{obj, npygl::py_object::incref};
   // return new NumPy array if a supported cc_capsule_view capsule
-  return npygl::make_ndarray_from_capsule<ndarray_capsule_types>(std::move(cap))
+  return npygl::make_ndarray_from_capsule<npy_capsule_types>(std::move(cap))
     .release();
 }
 #endif  // NPYGL_HAS_NUMPY
