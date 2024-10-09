@@ -237,3 +237,7 @@ if(SWIG_FOUND AND Python3_Development_FOUND AND Python3_NumPy_FOUND)
         )
     endif()
 endif()
+
+# type_traits_test: C++ type traits test
+add_executable(type_traits_test type_traits_test.cc)
+add_test(NAME type_traits_test COMMAND type_traits_test)

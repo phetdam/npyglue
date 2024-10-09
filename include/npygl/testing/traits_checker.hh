@@ -216,7 +216,7 @@ struct traits_checker_driver {
   bool operator()(std::ostream& out = std::cout) const
   {
     out << "Running " << n_tests() << " tests from " << sizeof...(Ts) <<
-      " test suites..." << std::endl;
+      " test suites." << std::endl;
     // print messages for all test suites
     // note: can discard result since pass/fail known at compile time
     (Ts{}(out), ...);
@@ -257,7 +257,7 @@ struct traits_checker_driver<traits_checker<Traits, T>> {
    */
   bool operator()(std::ostream& out = std::cout) const
   {
-    out << "Running " << n_tests() << " tests from 1 test suite..." << std::endl;
+    out << "Running " << n_tests() << " tests from 1 test suite." << std::endl;
     // print messages for test suite
     // note: can discard result since pass/fail known at compile time
     traits_checker<Traits, T>{}(out);
