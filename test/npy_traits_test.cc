@@ -65,11 +65,11 @@ using driver_type = npygl::testing::traits_checker_driver<
       arma::rowvec,
       arma::fvec,
 #endif  // NPYGL_HAS_ARMADILLO
-      std::pair<std::vector<std::vector<double>>, std::false_type>,
       std::pair<
         std::tuple<std::pair<unsigned, std::true_type>, std::pair<double, int>>,
         std::false_type
-      >
+      >,
+      std::pair<std::vector<std::vector<double>>, std::false_type>
     >
   >
 >;
