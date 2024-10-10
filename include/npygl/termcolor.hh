@@ -144,13 +144,18 @@ inline auto& operator<<(std::ostream& out, sgr_value_ext<val_> value)
   return out << sgr_prefix << val_ << ";5;" << value.color() << sgr_suffix;
 }
 
-namespace vts {
-
 /**
  * Global `constexpr` objects for stream manipulation.
  *
- * @todo Very much incomplete as missing even the basic fg/bg colors.
+ * Some objects provide alias for the same SGR values. See the Microsoft
+ * documentation on virtual terminal sequences and the ANSI escape codes
+ * Wikipedia page for more SGR values that may not be listed here.
  */
+namespace vts {
+
+////////////////////////////////////////////////////////////////////////////////
+// text formatting
+////////////////////////////////////////////////////////////////////////////////
 constexpr sgr_value normal{0};
 constexpr sgr_value bright{1};
 constexpr sgr_value dimmed{2};
@@ -159,13 +164,64 @@ constexpr sgr_value underline{4};
 constexpr sgr_value slow_blink{5};
 constexpr sgr_value fast_blink{6};
 constexpr sgr_value invert{7};
+// note: alias provided for convenience
 constexpr sgr_value hide{8};
+constexpr sgr_value conceal{8};
 // note: alias provided for convenience
 constexpr sgr_value strikeout{9};
 constexpr sgr_value strikethrough{9};
-constexpr sgr_value primary_font{10};
+constexpr sgr_value no_bright{22};
+constexpr sgr_value no_underline{24};
+constexpr sgr_value no_blink{24};
+constexpr sgr_value no_invert{27};
+// note: alias provided for convenience
+constexpr sgr_value unhide{28};
+constexpr sgr_value reveal{28};
+// note: alias provided for convenience
+constexpr sgr_value no_strikeout{29};
+constexpr sgr_value no_strikethrough{29};
 
+////////////////////////////////////////////////////////////////////////////////
+// basic colors
+////////////////////////////////////////////////////////////////////////////////
+constexpr sgr_value fg_black{30};
+constexpr sgr_value fg_red{31};
 constexpr sgr_value fg_green{32};
+constexpr sgr_value fg_yellow{33};
+constexpr sgr_value fg_blue{34};
+constexpr sgr_value fg_magenta{35};
+constexpr sgr_value fg_cyan{36};
+constexpr sgr_value fg_white{37};
+constexpr sgr_value fg_normal{39};
+constexpr sgr_value bg_black{40};
+constexpr sgr_value bg_red{41};
+constexpr sgr_value bg_green{42};
+constexpr sgr_value bg_yellow{43};
+constexpr sgr_value bg_blue{44};
+constexpr sgr_value bg_magenta{45};
+constexpr sgr_value bg_cyan{46};
+constexpr sgr_value bg_white{47};
+constexpr sgr_value bg_normal{49};
+
+////////////////////////////////////////////////////////////////////////////////
+// bright basic colors
+////////////////////////////////////////////////////////////////////////////////
+constexpr sgr_value fg_black_bright{90};
+constexpr sgr_value fg_red_bright{91};
+constexpr sgr_value fg_green_bright{92};
+constexpr sgr_value fg_yellow_bright{93};
+constexpr sgr_value fg_blue_bright{94};
+constexpr sgr_value fg_magenta_bright{95};
+constexpr sgr_value fg_cyan_bright{96};
+constexpr sgr_value fg_white_bright{97};
+constexpr sgr_value bg_black_bright{100};
+constexpr sgr_value bg_red_bright{101};
+constexpr sgr_value bg_green_bright{102};
+constexpr sgr_value bg_yellow_bright{103};
+constexpr sgr_value bg_blue_bright{104};
+constexpr sgr_value bg_magenta_bright{105};
+constexpr sgr_value bg_cyan_bright{106};
+constexpr sgr_value bg_white_bright{107};
 
 /**
  * Return an extended SGR value to set the foreground color.
