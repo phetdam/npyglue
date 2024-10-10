@@ -1,39 +1,34 @@
 /**
- * @file colorgrid.cc
+ * @file termcolor.hh
  * @author Derek Huang
- * @brief C++ program that prints a 16x16 color grid
+ * @brief C++ header for output stream formatting via ANSI control sequences
  * @copyright MIT License
  *
- * This is a highly modified C++ version of the original C code from
- * https://en.wikipedia.org/wiki/ANSI_escape_code#In_C that prints:
- *
- * 1. All 108 SGR values
- * 2. All 256 8-bit foreground colors
- * 2. All 256 8-bit background colors
- *
- * This program also works on Windows by ensuring virtual terminal sequences
- * are enabled via a RAII context before any escape sequences are used.
+ * @note On Windows linking against `kernel32` is required.
  */
 
+#ifndef NPYGL_TERMCOLOR_HH_
+#define NPYGL_TERMCOLOR_HH_
+
 #ifdef _WIN32
+// reduce Windows.h include size
+#ifndef WIN32_LEAN_AND_MEAN
 #define WIN32_LEAN_AND_MEAN
+#endif  // WIN32_LEAN_AND_MEAN
 #include <Windows.h>
 #endif  // _WIN32
 
-#include <cstdio>
-#include <cstdlib>
-#include <iomanip>
-#include <iostream>
 #include <ostream>
 #include <type_traits>
 
 #include "npygl/features.h"
 
+// for STDOUT_FILENO
 #if NPYGL_HAS_UNISTD_H
 #include <unistd.h>
 #endif  // NPYGL_HAS_UNISTD_H
 
-namespace {
+namespace npygl {
 
 /**
  * The sequence prefix used for SGR in-band terminal settings.
@@ -267,82 +262,6 @@ private:
 #endif  // !defined(_WIN32)
 };
 
-// some examples of how we would like to use the terminal color library:
-//
-// std::cout << npygl::vts::bright << "hello world" << npygl::vts::normal;
-// std::cout << npygl::vts::fg_green << "bar" << npygl::vts::normal;
-// std::cout << npygl::vts::fg_color(128) << "foo" << npygl::vts::normal;
+}  // namespace npygl
 
-/**
- * Write the 108 basic SGR values, with applied formatting, to the stream.
- *
- * @param out Output stream
- */
-void sgr_print(std::ostream& out = std::cout)
-{
-  // row/column width + print field width
-  // note: fwidth is int since std::setw takes an int
-  constexpr auto width = 10u;
-  constexpr auto fwidth = 4;
-  // print first 100 SGR values
-  for (unsigned i = 0; i < width; i++) {
-    for (unsigned j = 0; j < width; j++) {
-      // SGR value to print
-      // note: even if all the operands were short, arithmetic must be done on
-      // int so we would still have to narrow the type back
-      auto v = static_cast<unsigned short>(width * i + j);
-      // print numerical value with formatting applied
-      out << sgr_value{v} << std::setw(fwidth) << v << vts::normal;
-    }
-    out << std::endl;
-  }
-  // print last 8 SGR values
-  for (unsigned short i = 0; i < 8; i++) {
-    auto v = static_cast<unsigned short>(width * width + i);
-    out << sgr_value{v} << std::setw(fwidth) << v << vts::normal;
-  }
-  out << std::endl;
-}
-
-/**
- * Write the 256 8-bit color values with applied formatting.
- *
- * @tparam S Extended SGR type
- *
- * @param out Output stream
- */
-template <typename S, typename = std::enable_if_t<is_sgr_value_ext_v<S>>>
-void sgr_ext_print(std::ostream& out = std::cout)
-{
-  // row/column width + print field width
-  // note: fwidth is int since std::setw takes an int
-  constexpr auto width = 16u;
-  constexpr auto fwidth = 4;
-  // print the 8-bit colors
-  for (unsigned i = 0; i < width; i++) {
-    for (unsigned j = 0; j < width; j++) {
-      // extended SGR value to print
-      auto v = static_cast<unsigned short>(width * i + j);
-      // print numberical value with formatting
-      out << S{v} << std::setw(fwidth) << v << vts::normal;
-    }
-    out << std::endl;
-  }
-}
-
-}  // namespace
-
-int main()
-{
-  vts_stdout_context ctx;
-  // print SGR values
-  std::cout << "SGR values:\n";
-  sgr_print();
-  // print 8-bit foreground colors
-  std::cout << "\nForeground colors:\n";
-  sgr_ext_print<sgr_fg_color>();
-  // print 8-bit background colors
-  std::cout << "\nBackground colors:\n";
-  sgr_ext_print<sgr_bg_color>();
-  return EXIT_SUCCESS;
-}
+#endif  // NPYGL_TERMCOLOR_HH_
