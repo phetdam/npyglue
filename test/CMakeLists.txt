@@ -7,6 +7,18 @@ add_subdirectory(npygl_test)
 # use from needing a debug and release C runtime version of the wrapper
 add_compile_definitions(ARMA_DONT_USE_WRAPPER)
 
+# colorgrid: program to print the SGR values and 8-bit fg/bg colors
+add_executable(colorgrid colorgrid.cc)
+if(WIN32)
+    target_link_libraries(colorgrid PRIVATE kernel32)
+endif()
+# silence MSVC warning about unused const variables
+if(MSVC)
+    target_compile_options(colorgrid PRIVATE /wd5264)
+endif()
+# smoke test. not super useful as we need to visually inspect for correctness
+add_test(NAME colorgrid COMMAND colorgrid)
+
 # py_helpers_test: Python helpers tests
 if(Python3_Development_FOUND)
     npygl_add_py3_executable(
