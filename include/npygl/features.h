@@ -53,7 +53,53 @@
 #define NPYGL_WIN32 0
 #endif  // !defined(_WIN32)
 
-// TODO: add C standards support
+// indicate POSIX support
+#ifdef _POSIX_C_SOURCE
+// POSIX.1-1990 support
+#if _POSIX_C_SOURCE >= 1
+#define NPYGL_HAS_POSIX_1 1
+#endif  // _POSIX_C_SOURCE >= 1
+// POSIX.2-1992 support
+#if _POSIX_C_SOURCE >= 2
+#define NPYGL_HAS_POSIX_2 1
+#endif  // _POSIX_C_SOURCE >= 2
+// POSIX.1b real-time extensions
+#if _POSIX_C_SOURCE >= 199309L
+#define NPYGL_HAS_POSIX_1B 1
+#endif  // _POSIX_C_SOURCE >= 199309L
+// POSIX.1c threads
+#if _POSIX_C_SOURCE >= 199506L
+#define NPYGL_HAS_POSIX_1C 1
+#endif  // _POSIX_C_SOURCE >= 199506L
+// POSXI.1-2001 support
+#if _POSIX_C_SOURCE >= 200112L
+#define NPYGL_HAS_POSIX_2001 1
+#endif  // _POSIX_C_SOURCE >= 200112L
+// POSIX.1-2008 support
+#if _POSIX_C_SOURCE >= 200809L
+#define NPYGL_HAS_POSIX_2008 1
+#endif  // _POSIX_C_SOURCE >= 200809L
+#endif  // _POSIX_C_SOURCE
+
+// no POSIX support
+#ifndef NPYGL_HAS_POSIX_1
+#define NPYGL_HAS_POSIX_1 0
+#endif  // NPYGL_HAS_POSIX_1
+#ifndef NPYGL_HAS_POSIX_2
+#define NPYGL_HAS_POSIX_2 0
+#endif  // NPYGL_HAS_POSIX_2
+#ifndef NPYGL_HAS_POSIX_1B
+#define NPYGL_HAS_POSIX_1B 0
+#endif  // NPYGL_HAS_POSIX_1B
+#ifndef NPYGL_HAS_POSIX_1C
+#define NPYGL_HAS_POSIX_1C 0
+#endif  // NPYGL_HAS_POSIX_1C
+#ifndef NPYGL_HAS_POSIX_2001
+#define NPYGL_HAS_POSIX_2001 0
+#endif  // NPYGL_HAS_POSIX_2001
+#ifndef NPYGL_HAS_POSIX_2008
+#define NPYGL_HAS_POSIX_2008 0
+#endif  // NPYGL_HAS_POSIX_2008
 
 // compiling with RTTI or not
 // TODO: C++ capsule functionality requires RTTI; should we enforce?
@@ -69,6 +115,17 @@
 #else
 #define NPYGL_HAS_INCLUDE_CHECK 0
 #endif  // !defined(__has_include)
+
+// check for unistd.h
+#if NPYGL_HAS_INCLUDE_CHECK
+#if __has_include(<unistd.h>)
+#define NPYGL_HAS_UNISTD_H 1
+#endif  // __has_include(<unistd.h>)
+#endif  // NPYGL_HAS_INCLUDE_CHECK
+
+#ifndef NPYGL_HAS_UNISTD_H
+#define NPYGL_HAS_UNISTD_H 0
+#endif  // NPYGL_HAS_UNISTD_H
 
 // check if the main NumPy array object header is available
 #if NPYGL_HAS_INCLUDE_CHECK
