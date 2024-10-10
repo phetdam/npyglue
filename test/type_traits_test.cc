@@ -79,10 +79,10 @@ using driver_type = npygl::testing::traits_checker_driver<
       >
     >
   >,
-  // is_monomorphic_tuple_type
-  // note: indirectly tests monomorphic_tuple_type, type_filter, has_type_member
+  // is_monomorphic_tuple
+  // note: also tests monomorphic_tuple_type, type_filter, has_type_member
   npygl::testing::traits_checker<
-    npygl::is_monomorphic_tuple_type,
+    npygl::is_monomorphic_tuple,
     std::tuple<
       std::tuple<int, int>,
       std::pair<std::tuple<double, int, double>, std::false_type>,

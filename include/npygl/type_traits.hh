@@ -209,7 +209,7 @@ using monomorphic_tuple_type_t = typename monomorphic_tuple_type<T>::type;
  * @tparam T type
  */
 template <typename T>
-struct is_monomorphic_tuple_type : has_type_member<monomorphic_tuple_type<T>> {};
+struct is_monomorphic_tuple : has_type_member<monomorphic_tuple_type<T>> {};
 
 /**
  * Helper to indicate if a type is a monomorphic tuple.
@@ -217,8 +217,7 @@ struct is_monomorphic_tuple_type : has_type_member<monomorphic_tuple_type<T>> {}
  * @tparam T type
  */
 template <typename T>
-inline constexpr bool
-is_monomorphic_tuple_type_v = is_monomorphic_tuple_type<T>::value;
+inline constexpr bool is_monomorphic_tuple_v = is_monomorphic_tuple<T>::value;
 
 /**
  * Traits type that always has a `true` value.
