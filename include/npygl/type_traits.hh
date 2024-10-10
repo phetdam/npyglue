@@ -112,9 +112,7 @@ struct same_type<T> {
  * @tparam T type
  */
 template <typename T>
-struct same_type<T, T> {
-  using type = T;
-};
+struct same_type<T, T> : same_type<T> {};
 
 /**
  * Partial specialization for more than two types.
@@ -151,6 +149,76 @@ struct is_same_type : has_type_member<same_type<Ts...>> {};
  */
 template <typename... Ts>
 inline constexpr bool is_same_type_v = is_same_type<Ts...>::value;
+
+/**
+ * Traits type to ensure that all the types in a tuple are the same.
+ *
+ * We cannot create a `std::tuple<Ts...>` partial specialization for
+ * `same_type<Ts...>` because any tuple that does not have all same types will
+ * fall back to the partial specialization for a single type.
+ *
+ * @tparam T type
+ */
+template <typename T>
+struct monomorphic_tuple_type {};
+
+/**
+ * Partial specialization for a tuple with a single type.
+ *
+ * @tparam T type
+ */
+template <typename T>
+struct monomorphic_tuple_type<std::tuple<T>> {
+  using type = T;
+};
+
+/**
+ * Partial specialization for a tuple with two types that are the same.
+ *
+ * @tparam T type
+ */
+template <typename T>
+struct monomorphic_tuple_type<std::tuple<T, T>> {
+  using type = T;
+};
+
+/**
+ * Partial specialization for a tuple with more than two types.
+ *
+ * @tparam T First type
+ * @tparam Ts... Subsequent types
+ */
+template <typename T, typename... Ts>
+struct monomorphic_tuple_type<std::tuple<T, T, Ts...>>
+  : monomorphic_tuple_type<std::tuple<T, Ts...>> {};
+
+/**
+ * Helper to get the type member of `monomorphic_tuple_type<Ts...>`.
+ *
+ * This can be used as a convenient type alias or as a specialized version of
+ * `std::enable_if_t<...>` for ensuring a `std::tuple<Ts...>` is monomorphic.
+ *
+ * @tparam T type
+ */
+template <typename T>
+using monomorphic_tuple_type_t = typename monomorphic_tuple_type<T>::type;
+
+/**
+ * Traits class to indicate if a type is a monomorphic tuple.
+ *
+ * @tparam T type
+ */
+template <typename T>
+struct is_monomorphic_tuple_type : has_type_member<monomorphic_tuple_type<T>> {};
+
+/**
+ * Helper to indicate if a type is a monomorphic tuple.
+ *
+ * @tparam T type
+ */
+template <typename T>
+inline constexpr bool
+is_monomorphic_tuple_type_v = is_monomorphic_tuple_type<T>::value;
 
 /**
  * Traits type that always has a `true` value.

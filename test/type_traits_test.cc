@@ -78,6 +78,44 @@ using driver_type = npygl::testing::traits_checker_driver<
         std::tuple<double, int, unsigned, char>
       >
     >
+  >,
+  // is_monomorphic_tuple_type
+  // note: indirectly tests monomorphic_tuple_type, type_filter, has_type_member
+  npygl::testing::traits_checker<
+    npygl::is_monomorphic_tuple_type,
+    std::tuple<
+      std::tuple<int, int>,
+      std::pair<std::tuple<double, int, double>, std::false_type>,
+      std::pair<std::tuple<std::string, std::string>, std::true_type>,
+      std::tuple<unsigned, unsigned, unsigned, unsigned>,
+      std::pair<
+        std::tuple<std::string, std::string, int, std::string, std::string>,
+        std::false_type
+      >,
+      std::tuple<std::vector<unsigned>, std::vector<unsigned>>,
+      std::tuple<void*, void*, void*, void*>,
+      std::pair<std::tuple<std::map<unsigned, int>, char>, std::false_type>,
+      std::tuple<
+        npygl::type_filter_t<npygl::always_true, int, double, int, unsigned>,
+        std::tuple<int, double, int, unsigned>
+      >,
+      std::tuple<
+        npygl::type_filter_t<
+          npygl::always_true,
+          std::enable_if<true>,
+          std::decay<const volatile void*>
+        >,
+        std::tuple<std::enable_if<true>, std::decay<const volatile void*>>,
+        npygl::type_filter_t<
+          npygl::has_type_member,
+          std::enable_if<true>,
+          std::decay<const volatile void*>,
+          std::enable_if<false>,
+          std::enable_if<false>
+        >
+      >,
+      std::pair<std::tuple<unsigned, int>, std::false_type>
+    >
   >
 >;
 
