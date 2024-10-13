@@ -16,10 +16,24 @@
 #include <utility>
 
 #include "npygl/demangle.hh"
+#include "npygl/termcolor.hh"
 #include "npygl/type_traits.hh"
 
 namespace npygl {
 namespace testing {
+
+/**
+ * Formatting traits for a compile-time traits test pass/fail.
+ *
+ * @tparam passed Pass/fail result for the traits test
+ * @tparam truth Expected truth result for the traits test
+ */
+template <bool passed, bool truth = true>
+struct traits_checker_formatter {
+  static constexpr auto status_text = passed ? "PASS" : "FAIL";
+  static constexpr auto status_color = passed ? vts::fg_green : vts::fg_red;
+  static constexpr auto truth_text = truth ? "true" : "false";
+};
 
 /**
  * Check if a type satisfies the given traits.
@@ -66,8 +80,11 @@ struct traits_checker {
    */
   bool operator()(std::ostream& out = std::cout) const
   {
-    out << "Test: " << npygl::type_name(typeid(Traits<T>)) <<
-      "::value == true\n  " << (!n_failed() ? "Passed" : "Failed") << std::endl;
+    using formatter = traits_checker_formatter<!n_failed()>;
+    // print formatted output
+    out << formatter::status_color << "[ " << formatter::status_text <<
+      " ] " << vts::fg_normal << npygl::type_name(typeid(Traits<T>)) <<
+      "::value == " << formatter::truth_text << std::endl;
     return !n_failed();
   }
 };
@@ -111,14 +128,19 @@ struct traits_checker<Traits, std::pair<T, std::bool_constant<B>>> {
   /**
    * Check the type against the traits and indicate if test succeeded.
    *
+   * @todo Duplicates `operator()` of the `traits_checker<Traits, T>`. We
+   *  should have a common CRTP base for these two specializations.
+   *
    * @param out Stream to write messages to
    * @return `true` on success, `false` on failure
    */
   bool operator()(std::ostream& out = std::cout) const
   {
-    out << "Test: " << npygl::type_name(typeid(Traits<T>)) << "::value == " <<
-      (B ? "true" : "false") << "\n  " <<
-      (!n_failed() ? "Passed" : "Failed") << std::endl;
+    using formatter = traits_checker_formatter<!n_failed(), B>;
+    // print formatted output
+    out << formatter::status_color << "[ " << formatter::status_text << " ] " <<
+      vts::fg_normal << npygl::type_name(typeid(Traits<T>)) << "::value == " <<
+      formatter::truth_text << std::endl;
     return !n_failed();
   }
 };
@@ -130,6 +152,8 @@ struct placeholder {};
 
 /**
  * Partial specialization for a tuple of types.
+ *
+ * This represents a single test suite that is run by the testing driver.
  *
  * @tparam Traits Traits template type with a boolean `value` member
  * @tparam Ts... Type pack where types can be `std::pair<U, V>`, `V` either
@@ -188,8 +212,8 @@ public:
    */
   bool operator()(std::ostream& out = std::cout) const
   {
-    out << "Running " << n_tests() << " tests on " <<
-      npygl::type_name(typeid(Traits<placeholder>)) << "..." << std::endl;
+    out << "Ran " << n_tests() << " tests on " <<
+      npygl::type_name(typeid(Traits<placeholder>)) << "." << std::endl;
     // to prevent short-circuiting we check that there are no failed
     return !(static_cast<unsigned>(!wrapped_checker<Ts>{}(out)) + ...);
   }
@@ -218,7 +242,9 @@ struct failed_cases_formatter<std::tuple<T, Ts...>> {
   using failed_cases = std::tuple<T, Ts...>;
 
   // left padding + delimiter
-  unsigned int left_pad = 4u;
+  // note: odd padding number is to ensure printed failed inputs are aligned in
+  // the same column as the inputs printed under each test suite
+  unsigned int left_pad = 9u;
   char delim = '\n';
 
   /**
@@ -231,7 +257,7 @@ struct failed_cases_formatter<std::tuple<T, Ts...>> {
   void operator()(std::ostream& out) const
   {
     // input case
-    out << std::string(left_pad, ' ') << "* " <<
+    out << std::string(left_pad, ' ') << vts::fg_red <<
       type_name(typeid(typename T::first_type)) << " == " <<
       // compile-time determination of expected truth
       []() -> const char*
@@ -241,7 +267,7 @@ struct failed_cases_formatter<std::tuple<T, Ts...>> {
           return "true";
         else
           return "false";
-      }();
+      }() << vts::fg_normal;
     // recurse if more types
     if constexpr (sizeof...(Ts)) {
       out << delim;
@@ -292,10 +318,14 @@ bool print_summary(std::ostream& out = std::cout)
   // failed and total tests
   constexpr auto n_fail = Driver::n_failed();
   constexpr auto n_total = Driver::n_tests();
+  // percent passed + tests failed colors
+  constexpr auto pass_color = (!n_fail) ? vts::fg_green : vts::fg_normal;
+  constexpr auto fail_color = (!n_fail) ? vts::fg_normal : vts::fg_red;
   // print CTest-like output
-  out << '\n' <<
-    100 * (1 - n_fail / static_cast<double>(n_total)) << "% tests passed, " <<
-    n_fail << " failed out of " << n_total << std::endl;
+  out << '\n' << pass_color <<
+    100 * (1 - n_fail / static_cast<double>(n_total)) << "% tests passed" <<
+    vts::fg_normal << ", " << fail_color << n_fail << " failed " <<
+    vts::fg_normal << "out of " << n_total << std::endl;
   // display failed test cases if any
   display_failed<Driver>(out);
   return !n_fail;
@@ -342,7 +372,7 @@ struct traits_checker_driver {
    */
   bool operator()(std::ostream& out = std::cout) const
   {
-    out << "Running " << n_tests() << " tests from " << sizeof...(Ts) <<
+    out << "Ran " << n_tests() << " tests from " << sizeof...(Ts) <<
       " test suites." << std::endl;
     // print messages for all test suites
     // note: can discard result since pass/fail known at compile time
@@ -391,7 +421,7 @@ struct traits_checker_driver<traits_checker<Traits, T>> {
    */
   bool operator()(std::ostream& out = std::cout) const
   {
-    out << "Running " << n_tests() << " tests from 1 test suite." << std::endl;
+    out << "Ran " << n_tests() << " tests from 1 test suite." << std::endl;
     // print messages for test suite
     // note: can discard result since pass/fail known at compile time
     traits_checker<Traits, T>{}(out);
