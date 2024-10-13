@@ -94,8 +94,13 @@ inline const char* demangle(const char* mangled_name)
       break;
     case -1:
       throw std::runtime_error{"memory allocation failure"};
+    // note: if the mangled name is very long, e.g. more than 1024 (?) chars,
+    // this can cause __cxa_demangle to fail (noted on GCC 11.3). apparently
+    // this has been fixed in later version of GCC
     case -2:
-      throw std::runtime_error{"mangled_name is not a valid mangled type name"};
+      throw std::runtime_error{
+        std::string{mangled_name} + " is not a valid mangled type name"
+      };
     case -3:
       throw std::runtime_error{"__cxa_demangle provided an invalid argument"};
     default:
