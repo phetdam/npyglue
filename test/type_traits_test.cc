@@ -45,7 +45,32 @@ using driver_type = npygl::testing::traits_checker_driver<
   // always_true
   npygl::testing::traits_checker<
     npygl::always_true,
-    std::tuple<double, std::string, unsigned, char, std::map<unsigned, int>>
+    std::tuple<
+      double,
+      std::string,
+      unsigned,
+      char,
+      std::map<unsigned, int>,
+      // test skipped<>
+      //
+      // note:
+      //
+      // when any more skipped<> are added after skipped<double> on WSL1 Ubuntu
+      // 22.04 we are seeing c++filt, abi::__cxa_demangle, nm become unable to
+      // demangle the mangled type name. GCC 11.3.0 is used here. it appears
+      // that once the type name gets long enough, e.g. more than 4151 chars
+      // demangled or 1019 chars mangled (1024 may be the limit), the standard
+      // demangling facilities stop working. have not cross-checked against
+      // llvm-cxxfilt (some people report this as working when c++filt fails).
+      //
+      // for now, if intending to demangle driver_type and type_name() throws
+      // an exception due to abi::__cxa_demangle being unable to demangle the
+      // type name, ensure that the overall driver_type is not too long.
+      //
+      npygl::testing::skipped<double>,
+      npygl::testing::skipped<std::pair<std::pair<int, char>, std::false_type>>,
+      npygl::testing::skipped<std::pair<double, std::false_type>>
+    >
   >,
   // has_type_member
   // note: also indirectly tests same_type + type_filter

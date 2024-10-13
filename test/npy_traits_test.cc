@@ -73,11 +73,13 @@ using driver_type = npygl::testing::traits_checker_driver<
     >
   >
 >;
+// driver instance
+constexpr driver_type driver;
 
 }  // namespace
 
 int main()
 {
-  driver_type driver;
+  npygl::vts_stdout_context ctx;
   return driver() ? EXIT_SUCCESS : EXIT_FAILURE;
 }
