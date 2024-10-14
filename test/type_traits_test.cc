@@ -104,6 +104,18 @@ using driver_type = npygl::testing::traits_checker_driver<
       >
     >
   >,
+  // test partially_fixed with fix_first_types
+  npygl::testing::traits_checker<
+    npygl::partially_fixed<npygl::is_same_type, npygl::fix_first_types, int>::
+      type,
+    std::tuple<int, std::pair<double, std::false_type>>
+  >,
+  // test partially_fixed with fix_last_types
+  npygl::testing::traits_checker<
+    npygl::partially_fixed<npygl::is_same_type, npygl::fix_last_types, int>::
+      type,
+    std::tuple<int, std::pair<std::string, std::false_type>>
+  >,
   // is_monomorphic_tuple
   // note: also tests monomorphic_tuple_type, type_filter, has_type_member
   npygl::testing::traits_checker<

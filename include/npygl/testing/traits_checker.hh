@@ -366,7 +366,8 @@ public:
    */
   bool operator()(std::ostream& out = std::cout) const
   {
-    out << "Ran " << n_tests() << " tests on " <<
+    out << vts::fg_green << "[======] " << vts::fg_normal <<
+      "Ran " << n_tests() << " tests on " <<
       npygl::type_name(typeid(Traits<placeholder>)) << "." << std::endl;
     // to prevent short-circuiting we check that there are no failed
     return !(static_cast<unsigned>(!wrapped_checker<Ts>{}(out)) + ...);
@@ -570,7 +571,8 @@ struct traits_checker_driver {
    */
   bool operator()(std::ostream& out = std::cout) const
   {
-    out << "Ran " << n_tests() << " tests from " << sizeof...(Ts) <<
+    out << vts::fg_green << "[======] " << vts::fg_normal <<
+      "Ran " << n_tests() << " tests from " << sizeof...(Ts) <<
       " test suites." << std::endl;
     // print messages for all test suites
     // note: can discard result since pass/fail known at compile time
@@ -632,7 +634,8 @@ struct traits_checker_driver<traits_checker<Traits, T>> {
    */
   bool operator()(std::ostream& out = std::cout) const
   {
-    out << "Ran " << n_tests() << " tests from 1 test suite." << std::endl;
+    out << vts::fg_green << "[======] " << vts::fg_normal <<
+      "Ran " << n_tests() << " tests from 1 test suite." << std::endl;
     // print messages for test suite
     // note: can discard result since pass/fail known at compile time
     traits_checker<Traits, T>{}(out);

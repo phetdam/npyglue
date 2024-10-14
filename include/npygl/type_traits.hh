@@ -296,6 +296,56 @@ struct type_filter<Filter, std::tuple<Ts...>> : type_filter<Filter, Ts...> {};
 template <template <typename> typename Filter, typename... Ts>
 using type_filter_t = typename type_filter<Filter, Ts...>::type;
 
+/**
+ * Indicate that the first few types of a variadic template should be fixed.
+ */
+struct fix_first_types {};
+
+/**
+ * Indicate that the last few types of a variadic template should be fixed.
+ */
+struct fix_last_types {};
+
+/**
+ * Allow fixing the first/last few types of a variadic template.
+ *
+ * This is different from a `template <typename... Ts>` using-declaration
+ * because we can package the template template in an actual type and then
+ * choose to "evaluate" (instantiate) the actual type at some later point.
+ *
+ * @tparam T Template template type
+ * @tparam F Fix type, either `fix_first_type` or `fix_last_type`
+ * @tparam Ts... types
+ */
+template <template <typename...> typename T, typename F, typename... Ts>
+struct partially_fixed {
+  static_assert(
+    std::is_same_v<F, fix_first_types> ||
+    std::is_same_v<F, fix_last_types>,
+    "F must be either fix_first_types or fix_last_types"
+  );
+
+  /**
+   * Indicate whether the first few or last few types are fixed.
+   */
+  using fix_type = F;
+
+  /**
+   * Tuple of the types fixed in the `T<...>` specialization.
+   */
+  using fixed_types = std::tuple<Ts...>;
+
+  /**
+   * Template type alias to instantiate the partially fixed template template.
+   *
+   * @tparam Us... types
+   */
+  template <typename... Us>
+  using type = std::conditional_t<
+    std::is_same_v<F, fix_first_types>, T<Ts..., Us...>, T<Us..., Ts...>
+  >;
+};
+
 }  // namespace npygl
 
 #endif  // NPYGL_TYPE_TRAITS_HH_
