@@ -104,6 +104,11 @@ using driver_type = npygl::testing::traits_checker_driver<
       >
     >
   >,
+  // test partially_fixed base specialization
+  npygl::testing::traits_checker<
+    npygl::partially_fixed<npygl::is_same_type, char, char, char, char>::type,
+    std::tuple<char, std::pair<int, std::false_type>>
+  >,
   // test partially_fixed with fix_first_types
   npygl::testing::traits_checker<
     npygl::partially_fixed<npygl::is_same_type, npygl::fix_first_types, int>::

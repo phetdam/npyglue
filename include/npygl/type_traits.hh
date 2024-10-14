@@ -307,28 +307,23 @@ struct fix_first_types {};
 struct fix_last_types {};
 
 /**
- * Allow fixing the first/last few types of a variadic template.
+ * Allow fixing the first few types of a variadic template.
  *
  * This is different from a `template <typename... Ts>` using-declaration
  * because we can package the template template in an actual type and then
  * choose to "evaluate" (instantiate) the actual type at some later point.
  *
  * @tparam T Template template type
- * @tparam F Fix type, either `fix_first_type` or `fix_last_type`
  * @tparam Ts... types
  */
-template <template <typename...> typename T, typename F, typename... Ts>
+template <template <typename...> typename T, typename... Ts>
 struct partially_fixed {
-  static_assert(
-    std::is_same_v<F, fix_first_types> ||
-    std::is_same_v<F, fix_last_types>,
-    "F must be either fix_first_types or fix_last_types"
-  );
-
   /**
    * Indicate whether the first few or last few types are fixed.
+   *
+   * For the base specialization it is always `fix_first_types`.
    */
-  using fix_type = F;
+  using fix_type = fix_first_types;
 
   /**
    * Tuple of the types fixed in the `T<...>` specialization.
@@ -340,10 +335,29 @@ struct partially_fixed {
    *
    * @tparam Us... types
    */
-  template <typename... Us>
-  using type = std::conditional_t<
-    std::is_same_v<F, fix_first_types>, T<Ts..., Us...>, T<Us..., Ts...>
-  >;
+  template <typename... Us> using type = T<Ts..., Us...>;
+};
+
+/**
+ * Partial specialization when explicitly indicating first types are fixed.
+ *
+ * @tparam T Template template type
+ * @tparam Ts... types
+ */
+template <template <typename...> typename T, typename... Ts>
+struct partially_fixed<T, fix_first_types, Ts...> : partially_fixed<T, Ts...> {};
+
+/**
+ * Partial specialization when explicitly indicating last types are fixed.
+ *
+ * @tparam T Template template type
+ * @tparam Ts... types
+ */
+template <template <typename...> typename T, typename... Ts>
+struct partially_fixed<T, fix_last_types, Ts...> {
+  using fix_type = fix_last_types;
+  using fixed_types = std::tuple<Ts...>;
+  template <typename... Us> using type = T<Us..., Ts...>;
 };
 
 }  // namespace npygl
