@@ -47,6 +47,10 @@ using unique_malloc_ptr = std::unique_ptr<T, malloc_deleter>;
 /**
  * Demangle the mangled type name.
  *
+ * On failure the buffer will simply be `nullptr`.
+ *
+ * @note This is only useful if you really want a `noexcept` guarantee.
+ *
  * @param name Unique pointer with the null-terminated demangled name buffer
  * @param mangled_name The mangled type name
  * @returns 0 on success, <0 on error (see `abi::__cxa_demangle` docs)
@@ -61,6 +65,8 @@ inline auto demangle(
 
 /**
  * Get the type name of the `std::type_info` into a heap-allocated buffer.
+ *
+ * On failure the buffer will simply be `nullptr`.
  *
  * @note This is only useful if you really want a `noexcept` guarantee.
  *
@@ -81,6 +87,10 @@ inline auto demangle(
  * The return value points to a null-terminated string that resides in
  * thread-local storage and therefore should not be deallocated.
  *
+ * @note For compilers that follow the Itanium ABI demangling can fail for very
+ *  long mangled type names. In that case the mangled name is returned verbatim
+ *  to emulate the behavior of `boost::core::demangle`.
+ *
  * @param mangled_name The mangled type name
  */
 inline const char* demangle(const char* mangled_name)
@@ -96,11 +106,10 @@ inline const char* demangle(const char* mangled_name)
       throw std::runtime_error{"memory allocation failure"};
     // note: if the mangled name is very long, e.g. more than 1024 (?) chars,
     // this can cause __cxa_demangle to fail (noted on GCC 11.3). apparently
-    // this has been fixed in later version of GCC
+    // this has been fixed in later version of GCC, but for now, we just allow
+    // the demangled name to be returned if demangling fails
     case -2:
-      throw std::runtime_error{
-        std::string{mangled_name} + " is not a valid mangled type name"
-      };
+      return mangled_name;
     case -3:
       throw std::runtime_error{"__cxa_demangle provided an invalid argument"};
     default:
