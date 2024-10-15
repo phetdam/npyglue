@@ -63,9 +63,9 @@ using driver_type = npygl::testing::traits_checker_driver<
       // demangling facilities stop working. have not cross-checked against
       // llvm-cxxfilt (some people report this as working when c++filt fails).
       //
-      // for now, if intending to demangle driver_type and type_name() throws
-      // an exception due to abi::__cxa_demangle being unable to demangle the
-      // type name, ensure that the overall driver_type is not too long.
+      // type_name() has been updated to act like boost::core::demangle() and
+      // return the mangled name if demangling fails, so if demangling of the
+      // driver_type is desired, the mangled name cannot be too long.
       //
       npygl::testing::skipped<double>,
       npygl::testing::skipped<std::pair<std::pair<int, char>, std::false_type>>,
