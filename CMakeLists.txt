@@ -181,6 +181,22 @@ else()
     message(STATUS "Armadillo version: None")
 endif()
 
+# find LLVM. we can use the demangler since some older (even with GCC 11.3)
+# versions of abi::__cxa_demangle chokes on long type identifiers. the issue is
+# that typically LLVM code is compiled with -fno-exceptions
+find_package(LLVM 14.0.0)
+# note: LLVM_FOUND works but not documented in the actual LLVM CMake docs at
+# https://llvm.org/docs/CMake.html#embedding-llvm-in-your-project
+if(LLVM_FOUND)
+    # note: for LLVM 14.0.0, LLVM_VERSION should also work
+    message(STATUS "LLVM version: ${LLVM_PACKAGE_VERSION}")
+    # add LLVM include directories + resolve LLVM demangle library
+    include_directories(SYSTEM ${LLVM_INCLUDE_DIRS})
+    llvm_map_components_to_libnames(NPYGL_LLVM_DEMANGLE_LIB demangle)
+else()
+    message(STATUS "LLVM version: None")
+endif()
+
 # compile flags. we do this after any FetchContent calls so that we don't
 # interfere with any compile flags that dependency targets require
 if(MSVC)

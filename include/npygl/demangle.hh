@@ -18,6 +18,11 @@
 
 #if NPYGL_HAS_ITANIUM_ABI
 #include <cxxabi.h>
+// require opt-in since usage requires linking against LLVMDemangle. note that
+// since MSVC type names are not mangled we only use this for Itanium ABI
+#ifdef NPYGL_USE_LLVM_DEMANGLE
+#include <llvm/Demangle/Demangle.h>
+#endif  // NPYGL_USE_LLVM_DEMANGLE
 #endif  // NPYGL_HAS_ITANIUM_ABI
 
 namespace npygl {
@@ -59,7 +64,11 @@ inline auto demangle(
   unique_malloc_ptr<char[]>& name, const char* mangled_name) noexcept
 {
   int status;
+#if defined(NPYGL_USE_LLVM_DEMANGLE)
+  name.reset(llvm::itaniumDemangle(mangled_name, nullptr, nullptr, &status));
+#else
   name.reset(abi::__cxa_demangle(mangled_name, nullptr, nullptr, &status));
+#endif  // !defined(NPYGL_USE_LLVM_DEMANGLE)
   return status;
 }
 
@@ -95,8 +104,8 @@ inline auto demangle(
  */
 inline const char* demangle(const char* mangled_name)
 {
-  // note: thread local storage is very convenient here
 #if NPYGL_HAS_ITANIUM_ABI
+  // note: thread local storage is very convenient here
   thread_local unique_malloc_ptr<char[]> buf;
   // switch on status
   switch (demangle(buf, mangled_name)) {

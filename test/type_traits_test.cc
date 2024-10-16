@@ -16,6 +16,17 @@
 #include "npygl/testing/traits_checker.hh"
 #include "npygl/type_traits.hh"
 
+// repurpose this preprocessor definition so we can compile this source file as
+// a smoke test for using llvm::itaniumDemangle on driver_type. we have noted
+// that for GCC 11.3.0, abi::__cxa_demangle can't demangle driver_type, likely
+// because driver_type produces a mangled name that is "too long". at the very
+// least, the generated mangled name exceeds 1024 characters.
+#if defined(NPYGL_USE_LLVM_DEMANGLE)
+// not strictly necessary but we do it for correctness
+#include <iostream>
+#include "npygl/demangle.hh"
+#endif  // defined(NPYGL_USE_LLVM_DEMANGLE)
+
 namespace {
 
 // test driver type
@@ -66,6 +77,8 @@ using driver_type = npygl::testing::traits_checker_driver<
       // type_name() has been updated to act like boost::core::demangle() and
       // return the mangled name if demangling fails, so if demangling of the
       // driver_type is desired, the mangled name cannot be too long.
+      //
+      // fortunately, llvm::itaniumDemangle works properly in this case.
       //
       npygl::testing::skipped<double>,
       npygl::testing::skipped<std::pair<std::pair<int, char>, std::false_type>>,
@@ -160,13 +173,21 @@ using driver_type = npygl::testing::traits_checker_driver<
     >
   >
 >;
-// test driver instance
+// test driver instance. but if testing LLVM demangling we won't be needing it
+#ifndef NPYGL_USE_LLVM_DEMANGLE
 constexpr driver_type driver;
+#endif  // NPYGL_USE_LLVM_DEMANGLE
 
 }  // namespace
 
 int main()
 {
+// smoke test for llvm::itaniumDemangle
+#if defined(NPYGL_USE_LLVM_DEMANGLE)
+  std::cout << npygl::type_name(typeid(driver_type)) << std::endl;
+// standard traits checker driver main
+#else
   npygl::vts_stdout_context ctx;
   return (driver()) ? EXIT_SUCCESS : EXIT_FAILURE;
+#endif  // !defined(NPYGL_USE_LLVM_DEMANGLE)
 }

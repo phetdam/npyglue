@@ -249,3 +249,14 @@ if(WIN32)
 endif()
 # smoke test. not super useful as we need to visually inspect for correctness
 add_test(NAME termcolors COMMAND termcolors)
+
+# llvm_demangle_test: test demangling of driver_type using LLVM
+# note: only built when not on Windows since std::type_info::name() is not
+# mangled in the MSVC ABI. checking compiler ABI is the direct solution
+if(NOT WIN32 AND LLVM_FOUND)
+    add_executable(llvm_demangle_test type_traits_test.cc)
+    # opt-in is required since we need to link against LLVMDemangle
+    target_compile_definitions(llvm_demangle_test PRIVATE NPYGL_USE_LLVM_DEMANGLE)
+    target_link_libraries(llvm_demangle_test PRIVATE ${NPYGL_LLVM_DEMANGLE_LIB})
+    add_test(NAME llvm_demangle_test COMMAND llvm_demangle_test)
+endif()
