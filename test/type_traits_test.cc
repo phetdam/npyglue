@@ -126,7 +126,7 @@ using driver_type = npygl::testing::traits_checker_driver<
   npygl::testing::traits_checker<
     npygl::partially_fixed<npygl::is_same_type, npygl::fix_first_types, int>::
       type,
-    std::tuple<int, std::pair<double, std::false_type>>
+    std::tuple<std::pair<int, std::true_type>, std::pair<double, std::false_type>>
   >,
   // test partially_fixed with fix_last_types
   npygl::testing::traits_checker<
