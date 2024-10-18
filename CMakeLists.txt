@@ -103,9 +103,9 @@ if(SAND_PYTORCH_FOUND)
     endif()
     # turn string output into list
     string(REGEX REPLACE "\n" ";" SAND_TORCH_INFO_OUTPUT ${SAND_TORCH_INFO_OUTPUT})
-    # get version, CMake module path, if CUDA is available
+    # get version, CMake prefix path, if CUDA is available
     list(GET SAND_TORCH_INFO_OUTPUT 0 SAND_PYTORCH_VERSION)
-    list(GET SAND_TORCH_INFO_OUTPUT 1 SAND_PYTORCH_CMAKE_MODULE_PATH)
+    list(GET SAND_TORCH_INFO_OUTPUT 1 SAND_PYTORCH_CMAKE_PREFIX_PATH)
     list(GET SAND_TORCH_INFO_OUTPUT 2 SAND_PYTORCH_CUDA_VERSION)
     # PyTorch does not have CUDA
     if(SAND_PYTORCH_CUDA_VERSION STREQUAL "None")
@@ -115,8 +115,8 @@ if(SAND_PYTORCH_FOUND)
     else()
         set(SAND_PYTORCH_HAS_CUDA ON)
     endif()
-    # update CMake module path
-    set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${SAND_PYTORCH_CMAKE_MODULE_PATH})
+    # update CMake prefix path
+    set(CMAKE_PREFIX_PATH ${SAND_PYTORCH_CMAKE_PREFIX_PATH} ${CMAKE_PREFIX_PATH})
     # clean up
     unset(SAND_TORCH_INFO_RESULT)
     unset(SAND_TORCH_INFO_OUTPUT)
@@ -131,6 +131,16 @@ if(SAND_PYTORCH_HAS_CUDA)
     message(STATUS "PyTorch CUDA version: ${SAND_PYTORCH_CUDA_VERSION}")
 else()
     message(STATUS "PyTorch CUDA version: None")
+endif()
+
+# find Torch C++ libraries (CMake module path already updated)
+if(SAND_PYTORCH_FOUND)
+    find_package(Torch CONFIG)
+endif()
+if(TORCH_FOUND)
+    message(STATUS "PyTorch C++: Yes")
+else()
+    message(STATUS "PyTorch C++: No")
 endif()
 
 # find Google Test
