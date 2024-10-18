@@ -171,4 +171,15 @@
 #define NPYGL_HAS_ARMADILLO 0
 #endif  // NPYGL_HAS_ARMADILLO
 
+// check if we have PyTorch C++ headers available
+#if NPYGL_HAS_INCLUDE_CHECK
+#if __has_include(<torch/torch.h>)
+#define NPYGL_HAS_PYTORCH 1
+#endif  // __has_include(<torch/torch.h>)
+#endif  // NPYGL_HAS_INCLUDE_CHECK
+
+#ifndef NPYGL_HAS_PYTORCH
+#define NPYGL_HAS_PYTORCH 0
+#endif  // NPYGL_HAS_PYTORCH
+
 #endif  // NPYGL_FEATURES_H_
