@@ -106,13 +106,21 @@ if(SAND_PYTORCH_FOUND)
     # get version, CMake module path, if CUDA is available
     list(GET SAND_TORCH_INFO_OUTPUT 0 SAND_PYTORCH_VERSION)
     list(GET SAND_TORCH_INFO_OUTPUT 1 SAND_PYTORCH_CMAKE_MODULE_PATH)
-    list(GET SAND_TORCH_INFO_OUTPUT 2 SAND_PYTORCH_HAS_CUDA)
+    list(GET SAND_TORCH_INFO_OUTPUT 2 SAND_PYTORCH_CUDA_VERSION)
+    # PyTorch does not have CUDA
+    if(SAND_PYTORCH_CUDA_VERSION STREQUAL "None")
+        set(SAND_PYTORCH_HAS_CUDA OFF)
+        unset(SAND_PYTORCH_CUDA_VERSION)
+    # PyTorch has CUDA
+    else()
+        set(SAND_PYTORCH_HAS_CUDA ON)
+    endif()
     # update CMake module path
     set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${SAND_PYTORCH_CMAKE_MODULE_PATH})
     # clean up
     unset(SAND_TORCH_INFO_RESULT)
     unset(SAND_TORCH_INFO_OUTPUT)
-    # print version
+    # print version info
     message(STATUS "PyTorch version: ${SAND_PYTORCH_VERSION}")
 else()
     message(STATUS "PyTorch version: None")
@@ -120,9 +128,9 @@ endif()
 
 # does PyTorch have CUDA?
 if(SAND_PYTORCH_HAS_CUDA)
-    message(STATUS "PyTorch CUDA: Yes")
+    message(STATUS "PyTorch CUDA version: ${SAND_PYTORCH_CUDA_VERSION}")
 else()
-    message(STATUS "PyTorch CUDA: No")
+    message(STATUS "PyTorch CUDA version: None")
 endif()
 
 # find Google Test

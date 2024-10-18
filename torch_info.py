@@ -6,10 +6,10 @@ not acceleration via CUDA is available, and the path to the CMake modules.
 .. codeauthor:: Derek Huang <djh458@stern.nyu.edu>
 """
 
-from torch import __version__, cuda, utils
+from torch import utils, version
 
 
 if __name__ == "__main__":
-    print(__version__)
+    print(version.__version__)
     print(utils.cmake_prefix_path)
-    print(cuda.is_available())
+    print(version.cuda)
