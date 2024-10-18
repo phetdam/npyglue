@@ -71,6 +71,60 @@ else()
     message(STATUS "NumPy version: None")
 endif()
 
+# find PyTorch if Python was found
+if(Python3_FOUND)
+    # check if PyTorch is installed
+    execute_process(
+        COMMAND pip show torch
+        RESULT_VARIABLE SAND_SHOW_TORCH
+        OUTPUT_QUIET ERROR_QUIET
+    )
+    # failed, no PyTorch
+    if(SAND_SHOW_TORCH)
+        set(SAND_PYTORCH_FOUND OFF)
+    else()
+        set(SAND_PYTORCH_FOUND ON)
+    endif()
+    # clean up
+    unset(SAND_SHOW_TORCH)
+endif()
+
+# if PyTorch available, get some info
+if(SAND_PYTORCH_FOUND)
+    # get PyTorch config info
+    execute_process(
+        COMMAND python torch_info.py
+        RESULT_VARIABLE SAND_TORCH_INFO_RESULT
+        OUTPUT_VARIABLE SAND_TORCH_INFO_OUTPUT
+    )
+    # failed
+    if(SAND_TORCH_INFO_RESULT)
+        message(FATAL_ERROR "Failed to get PyTorch configuration info")
+    endif()
+    # turn string output into list
+    string(REGEX REPLACE "\n" ";" SAND_TORCH_INFO_OUTPUT ${SAND_TORCH_INFO_OUTPUT})
+    # get version, CMake module path, if CUDA is available
+    list(GET SAND_TORCH_INFO_OUTPUT 0 SAND_PYTORCH_VERSION)
+    list(GET SAND_TORCH_INFO_OUTPUT 1 SAND_PYTORCH_CMAKE_MODULE_PATH)
+    list(GET SAND_TORCH_INFO_OUTPUT 2 SAND_PYTORCH_HAS_CUDA)
+    # update CMake module path
+    set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${SAND_PYTORCH_CMAKE_MODULE_PATH})
+    # clean up
+    unset(SAND_TORCH_INFO_RESULT)
+    unset(SAND_TORCH_INFO_OUTPUT)
+    # print version
+    message(STATUS "PyTorch version: ${SAND_PYTORCH_VERSION}")
+else()
+    message(STATUS "PyTorch version: None")
+endif()
+
+# does PyTorch have CUDA?
+if(SAND_PYTORCH_HAS_CUDA)
+    message(STATUS "PyTorch CUDA: Yes")
+else()
+    message(STATUS "PyTorch CUDA: No")
+endif()
+
 # find Google Test
 find_package(GTest 1.10)
 if(GTest_FOUND)
