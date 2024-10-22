@@ -28,6 +28,11 @@ if(Python3_Development_FOUND)
     if(Eigen3_FOUND)
         target_link_libraries(py_capsule_test PRIVATE Eigen3::Eigen)
     endif()
+    # enable PyTorch tests if available
+    # note: still uses -D_GLIBCXX_USE_CXX11_ABI=0 for manylinux wheels in 2024
+    if(TORCH_FOUND)
+        target_link_libraries(py_capsule_test PRIVATE ${TORCH_LIBRARIES})
+    endif()
     add_test(NAME py_capsule_test COMMAND py_capsule_test)
 endif()
 

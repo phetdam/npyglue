@@ -27,6 +27,9 @@
 #if NPYGL_HAS_ARMADILLO
 #include <armadillo>
 #endif  // NPYGL_HAS_ARMADILLO
+#if NPYGL_HAS_LIBTORCH
+#include <torch/torch.h>
+#endif  // NPYGL_HAS_LIBTORCH
 
 namespace {
 
@@ -202,5 +205,18 @@ int main()
     std::cout << mat << std::endl;
   }
 #endif  // NPYGL_HAS_ARMADILLO
+#if NPYGL_HAS_LIBTORCH
+  // create a PyTorch float tensor and pass it into a capsule
+  {
+    auto capsule = npygl::py_object::create(torch::randn({2, 3, 4}));
+    npygl::py_error_exit();
+    npygl::cc_capsule_view view{capsule};
+    npygl::py_error_exit();
+    // print the type name + tensor contents
+    const auto& ten = *view.as<torch::Tensor>();
+    std::cout << "-- " << npygl::type_name(view.info()) << std::endl;
+    std::cout << ten << std::endl;
+  }
+#endif  // NPYGL_HAS_LIBTORCH
   return EXIT_SUCCESS;
 }

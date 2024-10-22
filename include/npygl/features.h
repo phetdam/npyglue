@@ -171,15 +171,16 @@
 #define NPYGL_HAS_ARMADILLO 0
 #endif  // NPYGL_HAS_ARMADILLO
 
-// check if we have PyTorch C++ headers available
+// check if we have PyTorch C++ headers available. the PyTorch project refers
+// to the native C++ API libraries as "LibTorch"
 #if NPYGL_HAS_INCLUDE_CHECK
 #if __has_include(<torch/torch.h>)
-#define NPYGL_HAS_PYTORCH 1
+#define NPYGL_HAS_LIBTORCH 1
 #endif  // __has_include(<torch/torch.h>)
 #endif  // NPYGL_HAS_INCLUDE_CHECK
 
-#ifndef NPYGL_HAS_PYTORCH
-#define NPYGL_HAS_PYTORCH 0
-#endif  // NPYGL_HAS_PYTORCH
+#ifndef NPYGL_HAS_LIBTORCH
+#define NPYGL_HAS_LIBTORCH 0
+#endif  // NPYGL_HAS_LIBTORCH
 
 #endif  // NPYGL_FEATURES_H_
