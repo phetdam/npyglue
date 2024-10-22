@@ -282,3 +282,29 @@ function(npygl_add_swig_py3_module)
         )
     endif()
 endfunction()
+
+##
+# Copy the PyTorch runtime DLLs to the target build directory.
+#
+# When not on Windows this is a no-op, but this is necessary on Windows instead
+# of using `$<TARGET_RUNTIME_DLLS:target>` because some PyTorch DLLs seem to be
+# loaded at runtime so the link-time dependency specification is incomplete.
+#
+# Arguments:
+#   target
+#       Name of the target being linked that requires PyTorch DLLs
+#
+function(npygl_copy_torch_dlls target)
+    # on Windows we need to copy the DLLs since some are dynamically loaded at
+    # runtime so TARGET_RUNTIME_DLLS is not sufficient
+    if(MSVC)
+        file(GLOB TORCH_DLLS "${TORCH_INSTALL_PREFIX}/lib/*.dll")
+        add_custom_command(
+            TARGET ${ARGV0}
+            POST_BUILD
+                COMMAND ${CMAKE_COMMAND} -E copy_if_different ${TORCH_DLLS}
+                    $<TARGET_FILE_DIR:${ARGV0}>
+            COMMENT "Copying Torch DLLs for ${ARGV0}"
+        )
+    endif()
+endfunction()

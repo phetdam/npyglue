@@ -10,6 +10,7 @@ from torch import utils, version
 
 
 if __name__ == "__main__":
-    print(version.__version__)
+    # remove any CPU/GPU version info suffix
+    print(version.__version__.split("+")[0])
     print(utils.cmake_prefix_path)
     print(version.cuda)

@@ -51,6 +51,14 @@ else()
     message(STATUS "C++20 support: No")
 endif()
 
+# check if CUDA is available
+find_package(CUDAToolkit)
+if(CUDAToolkit_FOUND)
+    message(STATUS "CUDA version: ${CUDAToolkit_VERSION}")
+else()
+    message(STATUS "CUDA version: None")
+endif()
+
 # find Python 3. not tested with Python 2
 find_package(Python3 COMPONENTS Development Interpreter NumPy)
 if(Python3_Interpreter_FOUND)
@@ -127,6 +135,7 @@ else()
 endif()
 
 # does PyTorch have CUDA?
+# note: may not be the same as FindCUDAToolkit value
 if(SAND_PYTORCH_HAS_CUDA)
     message(STATUS "PyTorch CUDA version: ${SAND_PYTORCH_CUDA_VERSION}")
 else()
@@ -135,6 +144,28 @@ endif()
 
 # find Torch C++ libraries (CMake module path already updated)
 if(SAND_PYTORCH_FOUND)
+    # for PyTorch 2.5.0 torch/share/cmake/Caffe2/public/cuda.cmake hardcodes a
+    # search location for NVTX, which became a header-only library and for CUDA
+    # 12+ no longer ships the library binary. therefore, CUDA::nvToolsExt is
+    # not defined, so for PyTorch 2.5.0 GPU versions using CUDA 12+ NVTX is not
+    # properly located and using Torch C++ will cause CMake configuration to
+    # fail. our workaround is to manually define CUDA::nvToolsExt as a library
+    # target that use the NVTX include directories if possible
+    if(
+        SAND_PYTORCH_VERSION VERSION_GREATER_EQUAL 2.5.0 AND
+        SAND_PYTORCH_CUDA_VERSION VERSION_GREATER_EQUAL 12
+    )
+        message(STATUS "PyTorch NVTX headers workaround: Yes")
+        # only do this if nvToolsExt is not defined and CUDA::nvtx3 exists
+        if(NOT TARGET CUDA::nvToolsExt AND TARGET CUDA::nvtx3)
+            add_library(CUDA::nvToolsExt INTERFACE IMPORTED)
+            # ensure that PyTorch is told to use NVTX3 headers
+            target_compile_definitions(CUDA::nvToolsExt INTERFACE TORCH_CUDA_USE_NVTX3)
+            target_link_libraries(CUDA::nvToolsExt INTERFACE CUDA::nvtx3)
+        endif()
+    else()
+        message(STATUS "PyTorch NVTX headers workaround: No")
+    endif()
     find_package(Torch CONFIG)
 endif()
 if(TORCH_FOUND)
