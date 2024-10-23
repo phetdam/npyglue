@@ -32,6 +32,8 @@ if(Python3_Development_FOUND)
     # note: still uses -D_GLIBCXX_USE_CXX11_ABI=0 for manylinux wheels in 2024
     if(TORCH_FOUND)
         target_link_libraries(py_capsule_test PRIVATE ${TORCH_LIBRARIES})
+        # TODO: consider if using PCH is worth it for Torch headers
+        # target_precompile_headers(py_capsule_test PRIVATE <torch/torch.h>)
         npygl_copy_torch_dlls(py_capsule_test)
     endif()
     add_test(NAME py_capsule_test COMMAND py_capsule_test)
@@ -265,4 +267,17 @@ if(NOT WIN32 AND LLVM_FOUND)
     target_compile_definitions(llvm_demangle_test PRIVATE NPYGL_USE_LLVM_DEMANGLE)
     target_link_libraries(llvm_demangle_test PRIVATE ${NPYGL_LLVM_DEMANGLE_LIB})
     add_test(NAME llvm_demangle_test COMMAND llvm_demangle_test)
+endif()
+
+# torch_test: test torch.hh LibTorch helpers
+if(TORCH_FOUND)
+    add_executable(torch_test torch_test.cc)
+    target_link_libraries(torch_test PRIVATE ${TORCH_LIBRARIES})
+    if(Eigen3_FOUND)
+        target_link_libraries(torch_test PRIVATE Eigen3::Eigen)
+    endif()
+    # TODO: post-build copy is kind of slow (and runs more often than expected)
+    # so maybe it's better to have a pre-build target that does the copy
+    npygl_copy_torch_dlls(torch_test)
+    add_test(NAME torch_test COMMAND torch_test)
 endif()

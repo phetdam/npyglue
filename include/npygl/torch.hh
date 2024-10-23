@@ -8,6 +8,7 @@
 #ifndef NPYGL_TORCH_HH_
 #define NPYGL_TORCH_HH_
 
+#include <cstdint>
 #include <memory>
 #include <type_traits>
 #include <vector>
@@ -41,9 +42,9 @@ auto make_tensor(std::vector<T, A>&& vec, const torch::TensorOptions& opts = {})
   auto buf_vec = new(buf.get()) V{std::move(vec)};
   // create new 1D tensor
   auto ten = torch::from_blob(
-    // data and shape
+    // data + shape (cast required to silence warning)
     buf_vec->data(),
-    {buf_vec->size()},
+    {static_cast<std::int64_t>(buf_vec->size())},
     // deleter calls ~V() explicitly
     [buf_vec](void*)
     {
@@ -84,7 +85,7 @@ auto make_tensor(
   auto buf_mat = new(buf.get()) M{std::move(mat)};
   // create new 2D tensor
   auto ten = torch::from_blob(
-    // data and shape
+    // data + shape
     buf_mat->data(),
     {buf_mat->rows(), buf_mat->cols()},
     // column-major by default but may be row-major
@@ -110,13 +111,15 @@ auto make_tensor(
       // buffer deleted on scope exit
       std::unique_ptr<unsigned char[]> buf{(unsigned char*) buf_mat};
       buf_mat->~M();
-    }
+    },
+    // use c10 traits specializations to map C++ type to tensor type value
+    opts.dtype(torch::CppTypeToScalarType<T>::value)
   );
   // again, release buf in case of exception throw
   buf.release();
   return ten;
 }
-#endif  // NPYGL_HAS_EIGEN3
+#endif  // NPYGL_HAS_EIGEN3 && !defined(NPYGL_NO_EIGEN3)
 
 }  // namespace npygl
 
