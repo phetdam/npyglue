@@ -25,7 +25,7 @@
 namespace npygl {
 
 /**
- * Create a 1D PyTorch tensor from a `std::vector<T>`.
+ * Create a 1D PyTorch tensor from a `std::vector<T, A>`.
  *
  * @tparam T Element type
  * @tparam A Allocator type
