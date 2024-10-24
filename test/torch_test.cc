@@ -64,13 +64,28 @@ int main()
     // note: operator<< of a complex tensor only prints the real part
     tensor_summary<decltype(vec)>(std::cout, ten);
   }
-  // create float PyTorch tensor from an Eigen matrix
 #if NPYGL_HAS_EIGEN3
+  // create float PyTorch tensor from an Eigen matrix
   {
     Eigen::MatrixXf mat{
       {1.f, 2.3f, 4.34f, 1.222f, 2.12f},
       {5.44f, 12.f, 2.11f, 3.43f, 3.14159f},
       {7.66f, 5.99f, 2.122f, 6.51f, 1.23f}
+    };
+    auto ten = npygl::make_tensor(std::move(mat));
+    tensor_summary<decltype(mat)>(std::cout, ten);
+  }
+  // create double PyTorch tensor from a row-major Eigen matrix
+  {
+    Eigen::Matrix<
+      double,
+      Eigen::Dynamic,
+      Eigen::Dynamic,
+      Eigen::StorageOptions::RowMajor
+    > mat{
+      {1.3, 4.22, 4.13, 1.766},
+      {6.5, 3.33, 6.46, 1.8},
+      {6.65, 1.23, 14.11, 6.21}
     };
     auto ten = npygl::make_tensor(std::move(mat));
     tensor_summary<decltype(mat)>(std::cout, ten);
