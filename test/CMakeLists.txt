@@ -32,8 +32,6 @@ if(Python3_Development_FOUND)
     # note: still uses -D_GLIBCXX_USE_CXX11_ABI=0 for manylinux wheels in 2024
     if(TORCH_FOUND)
         target_link_libraries(py_capsule_test PRIVATE npygl::external::torch)
-        # TODO: consider if using PCH is worth it for Torch headers
-        # target_precompile_headers(py_capsule_test PRIVATE <torch/torch.h>)
         npygl_copy_torch_dlls(py_capsule_test)
     endif()
     add_test(NAME py_capsule_test COMMAND py_capsule_test)
@@ -272,6 +270,8 @@ endif()
 # torch_test: test torch.hh LibTorch helpers
 if(TORCH_FOUND)
     add_executable(torch_test torch_test.cc)
+    # Torch C++ DLLs are linked against release C runtime
+    npygl_use_release_crt(torch_test ON)
     target_link_libraries(torch_test PRIVATE npygl::external::torch)
     if(Eigen3_FOUND)
         target_link_libraries(torch_test PRIVATE Eigen3::Eigen)
