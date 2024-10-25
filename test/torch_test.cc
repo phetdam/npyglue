@@ -67,6 +67,13 @@ int main()
     // note: operator<< of a complex tensor only prints the real part
     tensor_summary<decltype(vec)>(std::cout, ten);
   }
+  // create double PyTorch tensor from a vector
+  {
+    // note: roughly powers of 1.05 but with some truncation
+    std::vector<double> vec{1., 1.05, 1.1025, 1.157625, 1.21550625, 1.2762815625};
+    auto ten = npygl::experimental::make_tensor(std::move(vec));
+    tensor_summary<decltype(vec)>(std::cout, ten);
+  }
 #if NPYGL_HAS_EIGEN3
   // create float PyTorch tensor from an Eigen matrix
   {
