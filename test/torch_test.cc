@@ -18,6 +18,9 @@
 #include "npygl/features.h"
 #include "npygl/torch.hh"
 
+#if NPYGL_HAS_ARMADILLO
+#include <armadillo>
+#endif  // NPYL_HAS_ARMADILLO
 #if NPYGL_HAS_EIGEN3
 #include <Eigen/Core>
 #endif  // NPYGL_HAS_EIGEN3
@@ -91,5 +94,24 @@ int main()
     tensor_summary<decltype(mat)>(std::cout, ten);
   }
 #endif  /// NPYGL_HAS_EIGEN3
+#if NPYGL_HAS_ARMADILLO && !defined(NPYGL_NO_ARMADILLO)
+  // create float PyTorch tensor from an Armadillo matrix
+  {
+    arma::fmat mat{
+      {1.f, 3.f},
+      {1.44f, 5.4f},
+      {3.44f, 2.1f},
+      {3.23f, 4.2f}
+    };
+    auto ten = npygl::make_tensor(std::move(mat));
+    tensor_summary<decltype(mat)>(std::cout, ten);
+  }
+  // create double PyTorch tensor from an Armadillo dolumn vector
+  {
+    arma::vec vec{3., 2.3, 1.222, 3.51, 7.34, 4.12, 31.22, 5.33};
+    auto ten = npygl::make_tensor(std::move(vec));
+    tensor_summary<decltype(vec)>(std::cout, ten);
+  }
+#endif  // NPYGL_HAS_ARMADILLO && !defined(NPYGL_NO_ARMADILLO)
   return EXIT_SUCCESS;
 }
