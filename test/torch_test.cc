@@ -60,7 +60,7 @@ int main()
       },
       &res
     };
-    auto ten = npygl::make_tensor(std::move(vec), at::kComplexDouble);
+    auto ten = npygl::make_tensor(std::move(vec));
     // note: operator<< of a complex tensor only prints the real part
     tensor_summary<decltype(vec)>(std::cout, ten);
   }
