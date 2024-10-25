@@ -17,6 +17,10 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 # options
 option(BUILD_TESTS "Build ${PROJECT_NAME} tests" ON)
 option(PY_MSVC_ALWAYS_RELEASE "MSVC: Python targets use release runtimes" ON)
+option(
+    NPYGL_TORCH_PRECOMPILE
+    "Precompile torch/torch.h for faster incremental builds" OFF
+)
 
 # check if generator is multi-config
 get_property(NPYGL_MULTI_CONFIG_GENERATOR GLOBAL PROPERTY GENERATOR_IS_MULTI_CONFIG)
@@ -186,6 +190,12 @@ if(SAND_PYTORCH_FOUND)
         npygl::external::torch
         SYSTEM INTERFACE ${TORCH_INCLUDE_DIRS}
     )
+    # precompile the torch/torch.h header (decrease in incremental build time
+    # by nearly half for targets that include torch/torch.h but the initial PCH
+    # generation will double this build time just once)
+    if(NPYGL_TORCH_PRECOMPILE)
+        target_precompile_headers(npygl::external::torch INTERFACE <torch/torch.h>)
+    endif()
     target_link_libraries(npygl::external::torch INTERFACE ${TORCH_LIBRARIES})
 endif()
 if(TORCH_FOUND)
