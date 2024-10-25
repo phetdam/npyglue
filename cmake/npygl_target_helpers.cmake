@@ -22,6 +22,32 @@ function(npygl_require_cc_std)
 endfunction()
 
 ##
+# Ensure that a target is linked against the VC++ dynamic release C runtime.
+#
+# This is commonly required when compiling on Windows and linking against
+# third-party libraries that provide only release builds linked against the
+# release C runtime. See the Microsoft documentation on issues that can occur
+# when passing objects across DLL boundaries and/or when different C runtimes
+# are mixed together in the same application.
+#
+# When not compiling with MSVC this function is a no-op.
+#
+# Arguments:
+#   target
+#       Name of the target
+#   cond (ON|OFF)
+#       Indicate whether or not dynamic release C runtime should be used
+#
+function(npygl_use_release_crt target cond)
+    if(MSVC AND ${ARGV1})
+        set_target_properties(
+            ${ARGV0} PROPERTIES
+            MSVC_RUNTIME_LIBRARY MultiThreadedDLL
+        )
+    endif()
+endfunction()
+
+##
 # Add a C/C++ executable that embeds the Python 3 interpreter.
 #
 # This function provides some convenience logic, e.g. ensuring that we are
@@ -57,12 +83,7 @@ function(npygl_add_py3_executable)
         Python3::Python ${HOST_LIBRARIES}
     )
     # usually no Python debug runtime library
-    if(MSVC AND HOST_USE_RELEASE_CRT)
-        set_target_properties(
-            ${HOST_TARGET} PROPERTIES
-            MSVC_RUNTIME_LIBRARY MultiThreadedDLL
-        )
-    endif()
+    npygl_use_release_crt(${HOST_TARGET} ${HOST_USE_RELEASE_CRT})
 endfunction()
 
 ##
@@ -103,12 +124,7 @@ function(npygl_add_py3_extension)
         Python3::Python ${HOST_LIBRARIES}
     )
     # usually no Python debug runtime library
-    if(MSVC AND HOST_USE_RELEASE_CRT)
-        set_target_properties(
-            ${HOST_TARGET} PROPERTIES
-            MSVC_RUNTIME_LIBRARY MultiThreadedDLL
-        )
-    endif()
+    npygl_use_release_crt(${HOST_TARGET} ${HOST_USE_RELEASE_CRT})
 endfunction()
 
 ##
@@ -275,12 +291,7 @@ function(npygl_add_swig_py3_module)
         )
     endif()
     # use release VC++ C runtime if specified
-    if(MSVC AND HOST_USE_RELEASE_CRT)
-        set_target_properties(
-            ${HOST_TARGET} PROPERTIES
-            MSVC_RUNTIME_LIBRARY MultiThreadedDLL
-        )
-    endif()
+    npygl_use_release_crt(${HOST_TARGET} ${HOST_USE_RELEASE_CRT})
 endfunction()
 
 ##
