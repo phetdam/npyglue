@@ -208,7 +208,16 @@ int main()
 #if NPYGL_HAS_LIBTORCH
   // create a PyTorch float tensor and pass it into a capsule
   {
-    auto capsule = npygl::py_object::create(torch::randn({2, 3, 4}));
+    // for reproducibility, create a Generator
+    // note: ATen/core/Generator.h says that you should acquire the generator
+    // mutex before calling any read-only (??) methods. this is because each
+    // Generator is a view of a reference-counted generator implementation, so
+    // in a multi-threaded context different Generator instances might actually
+    // refer to the same generator implementation (and therefore state). in
+    // a single-threaded case where we know the instances are separate we can
+    // call whatever methods we would like without fear.
+    auto gen = at::make_generator<at::CPUGeneratorImpl>();
+    auto capsule = npygl::py_object::create(torch::randn({2, 3, 4}, gen));
     npygl::py_error_exit();
     npygl::cc_capsule_view view{capsule};
     npygl::py_error_exit();
