@@ -328,6 +328,33 @@ private:
 namespace experimental {
 
 /**
+ * Constraint for `make_tensor` for a given type.
+ *
+ * This evaluates to `true` for a non-reference type that has a valid
+ * `tensor_info_context<T>` specialization.
+ *
+ * @tparam T type
+ */
+template <typename T>
+constexpr bool convertible_to_tensor = (
+  !std::is_reference_v<T> &&
+  is_valid_tensor_info_context_v<tensor_info_context<T>>
+);
+
+#if NPYGL_HAS_CC_20
+/**
+ * Concept for a C++ type that `make_tensor` can convert to a PyTorch tensor.
+ *
+ * This evaluates to `true` for a non-reference type that has a valid
+ * `tensor_info_context<T>` specialization.
+ *
+ * @tparam T type
+ */
+template <typename T>
+concept tensor_convertible = convertible_to_tensor<T>;
+#endif  // !NPYGL_HAS_CC_20
+
+/**
  * Create a PyTorch tensor from a C++ object.
  *
  * This function can create a PyTorch tensor from any appropriate C++ object
@@ -340,11 +367,7 @@ namespace experimental {
  * @param obj C++ object to consume
  * @param opts Tensor creation options
  */
-template <
-  typename T,
-  typename = std::enable_if_t<
-    !std::is_reference_v<T> &&
-    is_valid_tensor_info_context_v<tensor_info_context<T>>> >
+template <typename T, typename = std::enable_if_t<convertible_to_tensor<T>>>
 auto make_tensor(T&& obj, const torch::TensorOptions& opts = {})
 {
   // placement new into buffer
