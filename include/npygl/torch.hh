@@ -116,7 +116,8 @@ struct is_tensor_info_context_with_data : std::false_type {};
  * True specialization for a `tensor_info_context<T>` with a `data()` member.
  *
  * @note `data()` must be implicitly convertible to `void*` and must also have
- *  a valid `CppTypeToScalarType<decltype(data())>` specialization
+ *  a valid `CppTypeToScalarType<U>` specialization where `U` is the type
+ * yielded by `std::remove_cv_t(decltype(*data()))`
  *
  * @tparam T Parent type
  */
@@ -325,6 +326,80 @@ private:
   std::array<std::int64_t, 1> strides_;
 };
 
+#if NPYGL_HAS_EIGEN3 && !defined(NPYGL_NO_EIGEN3)
+/**
+ * `tensor_info_context<T>` specialization for an Eigen matrix.
+ *
+ * @tparam T Element type
+ * @tparam R Number of compile-time rows
+ * @tparam C Number of compile-time columns
+ * @tparam O Matrix options
+ * @tparam RMax Max number of rows
+ * @tparam CMax Max number of columns
+ */
+template <typename T, int R, int C, int O, int RMax, int CMax>
+class tensor_info_context<Eigen::Matrix<T, R, C, O, RMax, CMax>> {
+public:
+  using parent_type = Eigen::Matrix<T, R, C, O, RMax, CMax>;
+
+  /**
+   * Ctor.
+   *
+   * @param parent Parent object
+   */
+  tensor_info_context(parent_type* parent) noexcept
+    : parent_{parent},
+      shape_{parent_->rows(), parent_->cols()},
+      // column-major by default but may be row-major
+      strides_{
+        [this]() -> Eigen::Index
+        {
+          if constexpr (O & Eigen::StorageOptions::RowMajor)
+            return parent_->cols();
+          else
+            return 1;
+        }(),
+        [this]() -> Eigen::Index
+        {
+          if constexpr (O & Eigen::StorageOptions::RowMajor)
+            return 1;
+          else
+            return parent_->rows();
+        }()
+      }
+  {}
+
+  /**
+   * Return pointer to the data buffer.
+   */
+  auto data() const noexcept
+  {
+    return parent_->data();
+  }
+
+  /**
+   * Return the desired tensor shape.
+   */
+  const auto& shape() const noexcept
+  {
+    return shape_;
+  }
+
+  /**
+   * Return the tensor strides.
+   */
+  const auto& strides() const noexcept
+  {
+    return strides_;
+  }
+
+private:
+  parent_type* parent_;
+  std::array<std::int64_t, 2> shape_;
+  std::array<std::int64_t, 2> strides_;
+};
+#endif  // NPYGL_HAS_EIGEN3 && !defined(NPYGL_NO_EIGEN3)
+
 namespace experimental {
 
 /**
@@ -414,28 +489,8 @@ auto make_tensor(T&& obj, const torch::TensorOptions& opts = {})
 template <typename T, typename A>
 auto make_tensor(std::vector<T, A>&& vec, const torch::TensorOptions& opts = {})
 {
-  using Vec = std::remove_reference_t<decltype(vec)>;
-  // placement new into buffer
-  auto buf = std::make_unique<unsigned char[]>(sizeof(Vec));
-  auto buf_vec = new(buf.get()) Vec{std::move(vec)};
-  // create new 1D tensor
-  auto ten = torch::from_blob(
-    // data + shape (cast required to silence warning)
-    buf_vec->data(),
-    {static_cast<std::int64_t>(buf_vec->size())},
-    // deleter calls ~V() explicitly
-    [buf_vec](void*)
-    {
-      // buffer is deleted on scope exit
-      std::unique_ptr<unsigned char[]> buf{(unsigned char*) buf_vec};
-      buf_vec->~Vec();
-    },
-    // use c10 traits specializations to map C++ type to tensor type value
-    opts.dtype(torch::CppTypeToScalarType<T>::value)
-  );
-  // release after from_blob in case exception is thrown
-  buf.release();
-  return ten;
+  // TODO: remove from experimental:: when ready
+  return experimental::make_tensor(std::move(vec), opts);
 }
 
 #if NPYGL_HAS_EIGEN3 && !defined(NPYGL_NO_EIGEN3)
@@ -457,45 +512,8 @@ auto make_tensor(
   Eigen::Matrix<T, R, C, O, RMax, CMax>&& mat,
   const torch::TensorOptions& opts = {})
 {
-  using Mat = std::remove_reference_t<decltype(mat)>;
-  // placement new into buffer
-  auto buf = std::make_unique<unsigned char[]>(sizeof(Mat));
-  auto buf_mat = new(buf.get()) Mat{std::move(mat)};
-  // create new 2D tensor
-  auto ten = torch::from_blob(
-    // data + shape
-    buf_mat->data(),
-    {buf_mat->rows(), buf_mat->cols()},
-    // column-major by default but may be row-major
-    {
-      [buf_mat]() -> Eigen::Index
-      {
-        if constexpr (O & Eigen::StorageOptions::RowMajor)
-          return buf_mat->cols();
-        else
-          return 1;
-      }(),
-      [buf_mat]() -> Eigen::Index
-      {
-        if constexpr (O & Eigen::StorageOptions::RowMajor)
-          return 1;
-        else
-          return buf_mat->rows();
-      }()
-    },
-    // deleter
-    [buf_mat](void*)
-    {
-      // buffer deleted on scope exit
-      std::unique_ptr<unsigned char[]> buf{(unsigned char*) buf_mat};
-      buf_mat->~Mat();
-    },
-    // use c10 traits specializations to map C++ type to tensor type value
-    opts.dtype(torch::CppTypeToScalarType<T>::value)
-  );
-  // again, release buf in case of exception throw
-  buf.release();
-  return ten;
+  // TODO: remove from experimental:: when ready
+  return experimental::make_tensor(std::move(mat), opts);
 }
 #endif  // NPYGL_HAS_EIGEN3 && !defined(NPYGL_NO_EIGEN3)
 
