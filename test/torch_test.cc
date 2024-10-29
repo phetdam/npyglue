@@ -119,6 +119,16 @@ int main()
     auto ten = npygl::make_tensor(std::move(vec));
     tensor_summary<decltype(vec)>(std::cout, ten);
   }
+  // create float PyTorch tensor from an Armadillo row vector
+  {
+    // sequence created by computing log2(5i) for i = 1, ... 6 and truncating
+    // to 5 decimal places from the original double values
+    // note: with Visual Studio 2022 the halfway values with 5 as least
+    // significant decimal are rounded down instead of up for some reason
+    arma::frowvec vec{2.80735f, 3.80735f, 4.39231f, 4.80735f, 5.12928f, 5.39231f};
+    auto ten = npygl::experimental::make_tensor(std::move(vec));
+    tensor_summary<decltype(vec)>(std::cout, ten);
+  }
 #endif  // NPYGL_HAS_ARMADILLO && !defined(NPYGL_NO_ARMADILLO)
   return EXIT_SUCCESS;
 }
