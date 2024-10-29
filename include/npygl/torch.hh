@@ -484,6 +484,28 @@ private:
 };
 
 /**
+ * `tensor_info_context<T>` specialization for an Armadillo column vector.
+ *
+ * @tparam T Element type
+ */
+template <typename T>
+class tensor_info_context<arma::Col<T>>
+  : public tensor_info_context<arma::Mat<T>> {
+public:
+  using parent_type = arma::Col<T>;
+  using base_type = tensor_info_context<arma::Mat<T>>;
+
+   /**
+   * Ctor.
+   *
+   * This delegates to the base class ctor.
+   *
+   * @param parent Parent object
+   */
+  tensor_info_context(parent_type* parent) noexcept : base_type{parent} {}
+};
+
+/**
  * `tensor_info_context<T>` specialization for an Armadillo row vector.
  *
  * @tparam T Element type
@@ -539,8 +561,6 @@ private:
   std::array<std::int64_t, 1> strides_;
 };
 #endif  // NPYGL_HAS_ARMADILLO && !defined(NPYGL_NO_ARMADILLO)
-
-namespace experimental {
 
 /**
  * Constraint for `make_tensor` for a given type.
@@ -614,72 +634,6 @@ auto make_tensor(T&& obj, const torch::TensorOptions& opts = {})
   buf.release();
   return ten;
 }
-
-}  // namespace experimental
-
-/**
- * Create a 1D PyTorch tensor from a `std::vector<T, A>`.
- *
- * @tparam T Element type
- * @tparam A Allocator type
- *
- * @param vec Vector to consume
- * @param opts Tensor creation options
- */
-template <typename T, typename A>
-auto make_tensor(std::vector<T, A>&& vec, const torch::TensorOptions& opts = {})
-{
-  // TODO: remove from experimental:: when ready
-  return experimental::make_tensor(std::move(vec), opts);
-}
-
-#if NPYGL_HAS_EIGEN3 && !defined(NPYGL_NO_EIGEN3)
-/**
- * Create a 2D PyTorch tensor from a `Eigen::Matrix`.
- *
- * @tparam T Element type
- * @tparam R Number of compile-time rows
- * @tparam C Number of compile-time columns
- * @tparam O Matrix options
- * @tparam RMax Max number of rows
- * @tparam CMax Max number of columns
- *
- * @param mat Dense matrix to consume
- * @param opts Tensor creation options
- */
-template <typename T, int R, int C, int O, int RMax, int CMax>
-auto make_tensor(
-  Eigen::Matrix<T, R, C, O, RMax, CMax>&& mat,
-  const torch::TensorOptions& opts = {})
-{
-  // TODO: remove from experimental:: when ready
-  return experimental::make_tensor(std::move(mat), opts);
-}
-#endif  // NPYGL_HAS_EIGEN3 && !defined(NPYGL_NO_EIGEN3)
-
-#if NPYGL_HAS_ARMADILLO && !defined(NPYGL_NO_ARMADILLO)
-/**
- * Create a 2D PyTorch tensor from an Armadillo matrix.
- *
- * @note `arma::Row<T>` or `arma::Col<T>` objects will be sliced on the
- *  placement new. Although they do not provide any extra members or virtual
- *  functions compared to the standard `arma::Mat<T>`, in general you probably
- *  don't want to slice an object on placement new.
- *
- * @todo Provide `arma::Row<T>` overloads for PyTorch row tensor.
- *
- * @tparam T Element type
- *
- * @param mat Dense matrix to consume
- * @param opts Tensor creation options
- */
-template <typename T>
-auto make_tensor(arma::Mat<T>&& mat, const torch::TensorOptions& opts = {})
-{
-  // TODO: remove from experimental:: when ready
-  return experimental::make_tensor(std::move(mat), opts);
-}
-#endif  // NPYGL_HAS_ARMADILLO && !defined(NPYGL_NO_ARMADILLO)
 
 }  // namespace npygl
 

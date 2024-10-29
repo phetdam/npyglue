@@ -71,7 +71,7 @@ int main()
   {
     // note: roughly powers of 1.05 but with some truncation
     std::vector<double> vec{1., 1.05, 1.1025, 1.157625, 1.21550625, 1.2762815625};
-    auto ten = npygl::experimental::make_tensor(std::move(vec));
+    auto ten = npygl::make_tensor(std::move(vec));
     tensor_summary<decltype(vec)>(std::cout, ten);
   }
 #if NPYGL_HAS_EIGEN3
@@ -125,8 +125,10 @@ int main()
     // to 5 decimal places from the original double values
     // note: with Visual Studio 2022 the halfway values with 5 as least
     // significant decimal are rounded down instead of up for some reason
+    // note: WSL1 Ubuntu 22.04 GCC 11.3 also exhibiting same behavior when it
+    // did not exhibit that behavior previously for some odd reason
     arma::frowvec vec{2.80735f, 3.80735f, 4.39231f, 4.80735f, 5.12928f, 5.39231f};
-    auto ten = npygl::experimental::make_tensor(std::move(vec));
+    auto ten = npygl::make_tensor(std::move(vec));
     tensor_summary<decltype(vec)>(std::cout, ten);
   }
 #endif  // NPYGL_HAS_ARMADILLO && !defined(NPYGL_NO_ARMADILLO)
