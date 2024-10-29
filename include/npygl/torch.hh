@@ -39,6 +39,11 @@ namespace npygl {
  * 3. `shape()` member to yield tensor shape (convertible to `IntArrayRef`)
  * 4. `strides()` member to yield tensor strides (optional, default `shape()`)
  *
+ * The shape and strides member functions *must* return lvalues as they are
+ * converted to `at::IntArrayRef` *views*. If a prvalue is returned one will
+ * get a dangling reference after conversion! Also, the data pointer is assumed
+ * to live until the dtor of the `T*` parent object is called.
+ *
  * @tparam T type
  */
 template <typename T>
@@ -117,7 +122,7 @@ struct is_tensor_info_context_with_data : std::false_type {};
  *
  * @note `data()` must be implicitly convertible to `void*` and must also have
  *  a valid `CppTypeToScalarType<U>` specialization where `U` is the type
- * yielded by `std::remove_cv_t(decltype(*data()))`
+ *  yielded by `std::remove_cv_t(decltype(*data()))`.
  *
  * @tparam T Parent type
  */
@@ -158,12 +163,13 @@ struct is_tensor_info_context_with_shape : std::false_type {};
 /**
  * True specialization of a `tensor_info_context<T>` with a `shape()` member.
  *
- * @note `shape()` must be implicitly convertible to `IntArrayRef`.
+ * @note `shape()` must be an lvalue implicitly convertible to `IntArrayRef`.
  */
 template <typename T>
 struct is_tensor_info_context_with_shape<
   tensor_info_context<T>,
   std::enable_if_t<
+    std::is_lvalue_reference_v<tensor_info_context_shape_t<T>> &&
     std::is_convertible_v<tensor_info_context_shape_t<T>, at::IntArrayRef>>
 > : std::true_type {};
 
@@ -189,7 +195,7 @@ struct is_tensor_info_context_with_strides : std::false_type {};
 /**
  * True specialization of a `tensor_info_context<T>` with a `strides()` member.
  *
- * @note `strides()` must be implicitly convertible to `IntArrayRef`.
+ * @note `strides()` must be an lvalue implicitly convertible to `IntArrayRef`.
  *
  * @tparam T Parent type
  */
@@ -197,6 +203,7 @@ template <typename T>
 struct is_tensor_info_context_with_strides<
   tensor_info_context<T>,
   std::enable_if_t<
+    std::is_lvalue_reference_v<tensor_info_context_strides_t<T>> &&
     std::is_convertible_v<tensor_info_context_strides_t<T>, at::IntArrayRef>
   > > : std::true_type {};
 
