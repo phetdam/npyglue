@@ -17,6 +17,7 @@
 #include <torch/torch.h>
 
 #include "npygl/features.h"
+#include "npygl/warnings.h"
 
 // enable Armadillo LibTorch helpers if desired
 #if NPYGL_HAS_ARMADILLO && !defined(NPYGL_NO_ARMADILLO)
@@ -296,11 +297,14 @@ public:
    */
   tensor_info_context(parent_type* parent) noexcept
     : parent_{parent},
-      // note: cast is needed to appease compiler
-      // note: braces no longer necessary C++14 and later but MSVC still
-      // complains with C5246. see https://stackoverflow.com/a/70127399/14227825
-      shape_{{static_cast<std::int64_t>(parent->size())}},
-      strides_{{1}}
+// braces no longer necessary C++14 and later but MSVC still complains with
+// C5246 so disable. see https://stackoverflow.com/a/70127399/14227825
+NPYGL_MSVC_WARNING_PUSH()
+NPYGL_MSVC_WARNING_DISABLE(5246)
+      // cast required to silence narrowing warnings
+      shape_{static_cast<std::int64_t>(parent->size())},
+      strides_{1}
+NPYGL_MSVC_WARNING_POP()
   {}
 
   /**
@@ -356,7 +360,12 @@ public:
    */
   tensor_info_context(parent_type* parent) noexcept
     : parent_{parent},
+// disable C5246 warning about aggregate init requiring more braces
+NPYGL_MSVC_WARNING_PUSH()
+NPYGL_MSVC_WARNING_DISABLE(5246)
       shape_{parent_->rows(), parent_->cols()},
+// disable C4355 complaint about using this
+NPYGL_MSVC_WARNING_DISABLE(4355)
       // column-major by default but may be row-major
       strides_{
         [this]() -> Eigen::Index
@@ -374,6 +383,7 @@ public:
             return parent_->rows();
         }()
       }
+NPYGL_MSVC_WARNING_POP()
   {}
 
   /**
@@ -406,6 +416,129 @@ private:
   std::array<std::int64_t, 2> strides_;
 };
 #endif  // NPYGL_HAS_EIGEN3 && !defined(NPYGL_NO_EIGEN3)
+
+#if NPYGL_HAS_ARMADILLO && !defined(NPYGL_NO_ARMADILLO)
+/**
+ * `tensor_info_context<T>` specialization for an Armadillo matrix.
+ *
+ * This also handles `arma::Col<T>` which derives from `arma::Mat<T>`.
+ *
+ * @note Object slicing will be done on placement new but the binary layout of
+ *  the `arma::Col<T>` and `arma::Mat<T>` are the same.
+ *
+ * @tparam T Element type
+ */
+template <typename T>
+class tensor_info_context<arma::Mat<T>> {
+public:
+  using parent_type = arma::Mat<T>;
+
+  /**
+   * Ctor.
+   *
+   * @param parent Parent object
+   */
+  tensor_info_context(parent_type* parent) noexcept
+    : parent_{parent},
+// disable C5246 warning about aggregate init requiring more braces
+NPYGL_MSVC_WARNING_PUSH()
+NPYGL_MSVC_WARNING_DISABLE(5246)
+      // cast required to silence narrowing warnings
+      shape_{
+        static_cast<std::int64_t>(parent_->n_rows),
+        static_cast<std::int64_t>(parent_->n_cols)
+      },
+      // Armadillo matrices are in column-major order (leading varies fastest)
+      strides_{1, shape_[0]}
+NPYGL_MSVC_WARNING_POP()
+  {}
+
+  /**
+   * Return pointer to the data buffer.
+   */
+  auto data() const noexcept
+  {
+    return parent_->memptr();
+  }
+
+  /**
+   * Return the desired tensor shape.
+   */
+  const auto& shape() const noexcept
+  {
+    return shape_;
+  }
+
+  /**
+   * Return the tensor strides.
+   */
+  const auto& strides() const noexcept
+  {
+    return strides_;
+  }
+
+private:
+  parent_type* parent_;
+  std::array<std::int64_t, 2> shape_;
+  std::array<std::int64_t, 2> strides_;
+};
+
+/**
+ * `tensor_info_context<T>` specialization for an Armadillo row vector.
+ *
+ * @tparam T Element type
+ */
+template <typename T>
+class tensor_info_context<arma::Row<T>> {
+public:
+  using parent_type = arma::Row<T>;
+
+  /**
+   * Ctor.
+   *
+   * @param parent Parent object
+   */
+  tensor_info_context(parent_type* parent) noexcept
+    : parent_{parent},
+// disable C5246 warning about aggregate init requiring more braces
+NPYGL_MSVC_WARNING_PUSH()
+NPYGL_MSVC_WARNING_DISABLE(5246)
+      // cast required to silence narrowing warnings
+      shape_{static_cast<std::int64_t>(parent_->n_cols)},
+      strides_{1}
+NPYGL_MSVC_WARNING_POP()
+  {}
+
+  /**
+   * Return pointer to the data buffer.
+   */
+  auto data() const noexcept
+  {
+    return parent_->memptr();
+  }
+
+  /**
+   * Return the desired tensor shape.
+   */
+  const auto& shape() const noexcept
+  {
+    return shape_;
+  }
+
+  /**
+   * Return the tensor strides.
+   */
+  const auto& strides() const noexcept
+  {
+    return strides_;
+  }
+
+private:
+  parent_type* parent_;
+  std::array<std::int64_t, 1> shape_;
+  std::array<std::int64_t, 1> strides_;
+};
+#endif  // NPYGL_HAS_ARMADILLO && !defined(NPYGL_NO_ARMADILLO)
 
 namespace experimental {
 
@@ -543,31 +676,8 @@ auto make_tensor(
 template <typename T>
 auto make_tensor(arma::Mat<T>&& mat, const torch::TensorOptions& opts = {})
 {
-  using Mat = std::remove_reference_t<decltype(mat)>;
-  // placement new into buffer
-  auto buf = std::make_unique<unsigned char[]>(sizeof(Mat));
-  auto buf_mat = new(buf.get()) Mat{std::move(mat)};
-  // create new 2D tensor
-  auto ten = torch::from_blob(
-    // data + shape (cast required to silence narrowing warnings)
-    buf_mat->memptr(),
-    {
-      static_cast<std::int64_t>(buf_mat->n_rows),
-      static_cast<std::int64_t>(buf_mat->n_cols)
-    },
-    // deleter
-    [buf_mat](void*)
-    {
-      // buffer deleted on scope exit
-      std::unique_ptr<unsigned char[]> buf{(unsigned char*) buf_mat};
-      buf_mat->~Mat();
-    },
-    // use c10 traits specializations to map C++ type to tensor type value
-    opts.dtype(torch::CppTypeToScalarType<T>::value)
-  );
-  // again, release buf in case of exception throw
-  buf.release();
-  return ten;
+  // TODO: remove from experimental:: when ready
+  return experimental::make_tensor(std::move(mat), opts);
 }
 #endif  // NPYGL_HAS_ARMADILLO && !defined(NPYGL_NO_ARMADILLO)
 

@@ -113,7 +113,7 @@ int main()
     auto ten = npygl::make_tensor(std::move(mat));
     tensor_summary<decltype(mat)>(std::cout, ten);
   }
-  // create double PyTorch tensor from an Armadillo dolumn vector
+  // create double PyTorch tensor from an Armadillo column vector
   {
     arma::vec vec{3., 2.3, 1.222, 3.51, 7.34, 4.12, 31.22, 5.33};
     auto ten = npygl::make_tensor(std::move(vec));
