@@ -5,8 +5,13 @@
  * @copyright MIT License
  */
 
+#include <complex>
 #include <cstdlib>
 #include <deque>
+// note: libstdc++ requires explicit include for std::pmr::vector. when using
+// std::pmr::vector<float> and std::pmr::vector<std::complex<float>> GCC 11.3
+// was giving errors about incomplete types without this included
+#include <memory_resource>
 #include <tuple>
 #include <utility>
 #include <vector>
@@ -49,8 +54,23 @@ using driver_type = npygl::testing::traits_checker_driver<
       std::pair<npygl::tensor_info_context<int>, std::false_type>,
       std::pair<npygl::tensor_info_context<std::deque<int>>, std::false_type>
     >
+  >,
+  // is_tensor_info_context_with_data
+  npygl::testing::traits_checker<
+    npygl::is_tensor_info_context_with_data,
+    std::tuple<
+      std::pair<npygl::tensor_info_context<int>, std::false_type>,
+      npygl::tensor_info_context<std::pmr::vector<float>>,
+      std::pair<std::vector<std::complex<float>>, std::false_type>,
+      // note: must use c10::complex instead of std::complex
+      std::pair<
+        npygl::tensor_info_context<std::pmr::vector<std::complex<double>>>,
+        std::false_type
+      >,
+      // PyTorch C++ types work just fine
+      npygl::tensor_info_context<std::pmr::vector<c10::complex<c10::Half>>>
+    >
   >
-  // TODO: test other tensor_info_context traits
 >;
 constexpr driver_type driver;
 
