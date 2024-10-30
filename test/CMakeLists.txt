@@ -281,3 +281,17 @@ if(TORCH_FOUND)
     npygl_copy_torch_dlls(torch_test)
     add_test(NAME torch_test COMMAND torch_test)
 endif()
+
+# torch_traits_test: test LibTorch type traits
+if(TORCH_FOUND)
+    add_executable(torch_traits_test torch_traits_test.cc)
+    # NOMINMAX must be defined for MSVC since Torch headers use std::min and
+    # std::max inline which of course results in a compilation nightmare
+    if(MSVC)
+        target_compile_definitions(torch_traits_test PRIVATE NOMINMAX)
+    endif()
+    npygl_use_release_crt(torch_traits_test ON)
+    target_link_libraries(torch_traits_test PRIVATE npygl::external::torch)
+    npygl_copy_torch_dlls(torch_traits_test)
+    add_test(NAME torch_traits_test COMMAND torch_traits_test)
+endif()
