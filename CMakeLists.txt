@@ -184,6 +184,9 @@ if(SAND_PYTORCH_FOUND)
             # C4702: unreachable code (from c10/util/irange.h)
             /wd4702
         )
+        # NOMINMAX must be defined for MSVC since Torch headers use std::min +
+        # std::max inline which of course results in a compilation nightmare
+        target_compile_definitions(npygl::external::torch INTERFACE NOMINMAX)
     endif()
     # note: sadly, /external:W0 doesn't work as broadly as desired with MSVC
     target_include_directories(
