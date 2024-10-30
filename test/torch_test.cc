@@ -100,6 +100,15 @@ int main()
     auto ten = npygl::make_tensor(std::move(mat));
     tensor_summary<decltype(mat)>(std::cout, ten);
   }
+  // create float PyTorch tensor from fixed-size Eigen vector outer product
+  {
+    // print vector
+    Eigen::Vector4f vec{1.f, 1.5f, 2.4f, 5.4f};
+    auto ten = npygl::make_tensor(std::move(vec));
+    tensor_summary<decltype(vec)>(std::cout, ten);
+    // print outer product
+    std::cout << ten * ten.t() << std::endl;
+  }
 #endif  /// NPYGL_HAS_EIGEN3
 #if NPYGL_HAS_ARMADILLO && !defined(NPYGL_NO_ARMADILLO)
   // create float PyTorch tensor from an Armadillo matrix
