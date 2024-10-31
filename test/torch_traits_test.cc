@@ -29,9 +29,52 @@ namespace npygl {
  * @tparam T Element type
  */
 template <typename T>
-struct tensor_info_context<std::pmr::deque<T>> {};
+struct tensor_info_context<std::deque<T>> {
+  /**
+   * Ctor.
+   *
+   * The pointer type is incorrect.
+   */
+  tensor_info_context(T** /*unused*/) noexcept {}
+
+  /**
+   * Data pointer is not convertible into a Torch type value.
+   */
+  std::deque<T>* data() const noexcept
+  {
+    return nullptr;
+  }
+
+  /**
+   * Shape is returned as prvalue instead of lvalue reference.
+   */
+  std::vector<std::int64_t> shape() const
+  {
+    return {8, 4};
+  }
+
+  /**
+   * Strides are returned as prvalue instead of lvalue reference.
+   */
+  std::vector<std::int64_t> strides() const
+  {
+    return {1, 8};
+  }
+};
 
 }  // namespace npygl
+
+namespace {
+
+/**
+ * Shorthand for the invalid `tensor_info_context<std::deque<T>>`.
+ *
+ * @tparam T Element type
+ */
+template <typename T>
+using bad_tensor_info_context = npygl::tensor_info_context<std::deque<T>>;
+
+}  // namespace
 
 using driver_type = npygl::testing::traits_checker_driver<
   // is_tensor_info_context
@@ -52,7 +95,7 @@ using driver_type = npygl::testing::traits_checker_driver<
       npygl::tensor_info_context<std::pmr::vector<unsigned>>,
       npygl::tensor_info_context<std::vector<int>>,
       std::pair<npygl::tensor_info_context<int>, std::false_type>,
-      std::pair<npygl::tensor_info_context<std::deque<int>>, std::false_type>
+      std::pair<bad_tensor_info_context<int>, std::false_type>
     >
   >,
   // is_tensor_info_context_with_data
@@ -68,7 +111,22 @@ using driver_type = npygl::testing::traits_checker_driver<
         std::false_type
       >,
       // PyTorch C++ types work just fine
-      npygl::tensor_info_context<std::pmr::vector<c10::complex<c10::Half>>>
+      npygl::tensor_info_context<std::pmr::vector<c10::complex<c10::Half>>>,
+      std::pair<bad_tensor_info_context<double>, std::false_type>
+    >
+  >,
+  // is_tensor_context_with_shape
+  npygl::testing::traits_checker<
+    npygl::is_tensor_info_context_with_shape,
+    std::tuple<
+      std::pair<npygl::tensor_info_context<void*>, std::false_type>,
+      npygl::tensor_info_context<std::vector<double>>,
+      std::pair<bad_tensor_info_context<unsigned>, std::false_type>,
+      // note: although the std::vector<std::complex<T>> partial specialization
+      // is overall invalid the resultant shape() member is still valid
+      npygl::tensor_info_context<std::vector<std::complex<double>>>,
+      // as usual PyTorch C++ types are ok
+      npygl::tensor_info_context<std::vector<c10::complex<double>>>
     >
   >
 >;
