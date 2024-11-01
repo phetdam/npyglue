@@ -115,7 +115,7 @@ using driver_type = npygl::testing::traits_checker_driver<
       std::pair<bad_tensor_info_context<double>, std::false_type>
     >
   >,
-  // is_tensor_context_with_shape
+  // is_tensor_info_context_with_shape
   npygl::testing::traits_checker<
     npygl::is_tensor_info_context_with_shape,
     std::tuple<
@@ -127,6 +127,23 @@ using driver_type = npygl::testing::traits_checker_driver<
       npygl::tensor_info_context<std::vector<std::complex<double>>>,
       // as usual PyTorch C++ types are ok
       npygl::tensor_info_context<std::vector<c10::complex<double>>>
+    >
+  >,
+  // is_tensor_info_context_with_strides
+  npygl::testing::traits_checker<
+    npygl::is_tensor_info_context_with_strides,
+    std::tuple<
+      npygl::tensor_info_context<std::vector<unsigned>>,
+      std::pair<bad_tensor_info_context<std::complex<double>>, std::false_type>,
+      std::pair<
+        npygl::tensor_info_context<std::tuple<int, double, int, unsigned>>,
+        std::false_type
+      >,
+      // note: again, std::vector<std::complex<T>> does not result in a valid
+      // partial specialization, but the strides member is still valid
+      npygl::tensor_info_context<std::vector<std::complex<float>>>,
+      // as usual PyTorch C++ types are ok
+      npygl::tensor_info_context<std::vector<c10::BFloat16>>
     >
   >
 >;
