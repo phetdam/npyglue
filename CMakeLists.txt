@@ -318,6 +318,8 @@ endif()
 if(Armadillo_FOUND)
     message(STATUS "Armadillo version: ${ARMADILLO_VERSION_STRING}")
     # need to manually add ARMADILLO_INCLUDE_DIRS if non-system install
+    # TODO: define sand::external::armadillo imported target to manage the
+    # include directories and the ARMA_DONT_USE_WRAPPER preprocessor define
     include_directories(SYSTEM ${ARMADILLO_INCLUDE_DIRS})
 else()
     message(STATUS "Armadillo version: None")

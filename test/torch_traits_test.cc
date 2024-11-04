@@ -16,9 +16,17 @@
 #include <utility>
 #include <vector>
 
+#include "npygl/features.h"
 #include "npygl/termcolor.hh"
 #include "npygl/testing/traits_checker.hh"
 #include "npygl/torch.hh"
+
+#if NPYGL_HAS_ARMADILLO
+#include <armadillo>
+#endif  // NPYGL_HAS_ARMADILLO
+#if NPYGL_HAS_EIGEN3
+#include <Eigen/Core>
+#endif  // NPYGL_HAS_EIGEN3
 
 // namespace contiuation for tensor_info_context specializations
 namespace npygl {
@@ -144,6 +152,35 @@ using driver_type = npygl::testing::traits_checker_driver<
       npygl::tensor_info_context<std::vector<std::complex<float>>>,
       // as usual PyTorch C++ types are ok
       npygl::tensor_info_context<std::vector<c10::BFloat16>>
+    >
+  >,
+  // is_valid_tensor_info_context
+  npygl::testing::traits_checker<
+    npygl::is_valid_tensor_info_context,
+    std::tuple<
+      npygl::tensor_info_context<std::pmr::vector<double>>,
+      npygl::tensor_info_context<std::vector<unsigned>>,
+      // std::vector<std::complex<T>> is not valid
+      std::pair<
+        npygl::tensor_info_context<std::vector<std::complex<double>>>,
+        std::false_type
+      >,
+      // must use PyTorch c10::complex<T. instead
+      npygl::tensor_info_context<std::vector<c10::complex<double>>>,
+#if NPYGL_HAS_ARMADILLO
+      npygl::tensor_info_context<arma::mat>,
+      npygl::tensor_info_context<arma::fmat>,
+      // std::complex<T> not valid PyTorch C++ type
+      std::pair<npygl::tensor_info_context<arma::cx_mat>, std::false_type>,
+#endif  // NPYGL_HAS_ARMADILLO
+#if NPYGL_HAS_EIGEN3
+      npygl::tensor_info_context<Eigen::MatrixXd>,
+      npygl::tensor_info_context<Eigen::MatrixXf>,
+      npygl::tensor_info_context<Eigen::Matrix4f>,
+      // std::complex<T> not valid PyTorch C++ type
+      std::pair<npygl::tensor_info_context<Eigen::Matrix4cf>, std::false_type>,
+#endif  // NPYGL_HAS_EIGEN3
+      npygl::tensor_info_context<std::pmr::vector<int>>
     >
   >
 >;
