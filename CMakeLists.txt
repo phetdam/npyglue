@@ -178,10 +178,10 @@ if(NPYGL_PYTORCH_FOUND)
     # a custom Torch target that disables some of the annoying warnings. in
     # general you might want to leave these on but when they show up for
     # *every* program that uses Torch headers this really becomes a PITA
-    add_library(npygl::external::torch INTERFACE IMPORTED)
+    add_library(npygl::Torch INTERFACE IMPORTED)
     if(MSVC)
         target_compile_options(
-            npygl::external::torch INTERFACE
+            npygl::Torch INTERFACE
             # C4267: conversion from size_t to int (various Torch headers)
             /wd4267
             # C4702: unreachable code (from c10/util/irange.h)
@@ -189,20 +189,17 @@ if(NPYGL_PYTORCH_FOUND)
         )
         # NOMINMAX must be defined for MSVC since Torch headers use std::min +
         # std::max inline which of course results in a compilation nightmare
-        target_compile_definitions(npygl::external::torch INTERFACE NOMINMAX)
+        target_compile_definitions(npygl::Torch INTERFACE NOMINMAX)
     endif()
     # note: sadly, /external:W0 doesn't work as broadly as desired with MSVC
-    target_include_directories(
-        npygl::external::torch
-        SYSTEM INTERFACE ${TORCH_INCLUDE_DIRS}
-    )
+    target_include_directories(npygl::Torch SYSTEM INTERFACE ${TORCH_INCLUDE_DIRS})
     # precompile the torch/torch.h header (decrease in incremental build time
     # by nearly half for targets that include torch/torch.h but the initial PCH
     # generation will double this build time just once)
     if(NPYGL_TORCH_PRECOMPILE)
-        target_precompile_headers(npygl::external::torch INTERFACE <torch/torch.h>)
+        target_precompile_headers(npygl::Torch INTERFACE <torch/torch.h>)
     endif()
-    target_link_libraries(npygl::external::torch INTERFACE ${TORCH_LIBRARIES})
+    target_link_libraries(npygl::Torch INTERFACE ${TORCH_LIBRARIES})
 endif()
 if(TORCH_FOUND)
     message(STATUS "PyTorch C++: Yes")
