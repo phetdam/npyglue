@@ -88,66 +88,69 @@ if(Python3_FOUND)
     # check if PyTorch is installed
     execute_process(
         COMMAND pip show torch
-        RESULT_VARIABLE SAND_SHOW_TORCH
+        RESULT_VARIABLE NPYGL_SHOW_TORCH
         OUTPUT_QUIET ERROR_QUIET
     )
     # failed, no PyTorch
-    if(SAND_SHOW_TORCH)
-        set(SAND_PYTORCH_FOUND OFF)
+    if(NPYGL_SHOW_TORCH)
+        set(NPYGL_PYTORCH_FOUND OFF)
     else()
-        set(SAND_PYTORCH_FOUND ON)
+        set(NPYGL_PYTORCH_FOUND ON)
     endif()
     # clean up
-    unset(SAND_SHOW_TORCH)
+    unset(NPYGL_SHOW_TORCH)
 endif()
 
 # if PyTorch available, get some info
-if(SAND_PYTORCH_FOUND)
+if(NPYGL_PYTORCH_FOUND)
     # get PyTorch config info
     execute_process(
         COMMAND python torch_info.py
-        RESULT_VARIABLE SAND_TORCH_INFO_RESULT
-        OUTPUT_VARIABLE SAND_TORCH_INFO_OUTPUT
+        RESULT_VARIABLE NPYGL_TORCH_INFO_RESULT
+        OUTPUT_VARIABLE NPYGL_TORCH_INFO_OUTPUT
     )
     # failed
-    if(SAND_TORCH_INFO_RESULT)
+    if(NPYGL_TORCH_INFO_RESULT)
         message(FATAL_ERROR "Failed to get PyTorch configuration info")
     endif()
     # turn string output into list
-    string(REGEX REPLACE "\n" ";" SAND_TORCH_INFO_OUTPUT ${SAND_TORCH_INFO_OUTPUT})
+    string(
+        REGEX REPLACE "\n" ";"
+        NPYGL_TORCH_INFO_OUTPUT ${NPYGL_TORCH_INFO_OUTPUT}
+    )
     # get version, CMake prefix path, if CUDA is available
-    list(GET SAND_TORCH_INFO_OUTPUT 0 SAND_PYTORCH_VERSION)
-    list(GET SAND_TORCH_INFO_OUTPUT 1 SAND_PYTORCH_CMAKE_PREFIX_PATH)
-    list(GET SAND_TORCH_INFO_OUTPUT 2 SAND_PYTORCH_CUDA_VERSION)
+    list(GET NPYGL_TORCH_INFO_OUTPUT 0 NPYGL_PYTORCH_VERSION)
+    list(GET NPYGL_TORCH_INFO_OUTPUT 1 NPYGL_PYTORCH_CMAKE_PREFIX_PATH)
+    list(GET NPYGL_TORCH_INFO_OUTPUT 2 NPYGL_PYTORCH_CUDA_VERSION)
     # PyTorch does not have CUDA
-    if(SAND_PYTORCH_CUDA_VERSION STREQUAL "None")
-        set(SAND_PYTORCH_HAS_CUDA OFF)
-        unset(SAND_PYTORCH_CUDA_VERSION)
+    if(NPYGL_PYTORCH_CUDA_VERSION STREQUAL "None")
+        set(NPYGL_PYTORCH_HAS_CUDA OFF)
+        unset(NPYGL_PYTORCH_CUDA_VERSION)
     # PyTorch has CUDA
     else()
-        set(SAND_PYTORCH_HAS_CUDA ON)
+        set(NPYGL_PYTORCH_HAS_CUDA ON)
     endif()
     # update CMake prefix path
-    set(CMAKE_PREFIX_PATH ${SAND_PYTORCH_CMAKE_PREFIX_PATH} ${CMAKE_PREFIX_PATH})
+    set(CMAKE_PREFIX_PATH ${NPYGL_PYTORCH_CMAKE_PREFIX_PATH} ${CMAKE_PREFIX_PATH})
     # clean up
-    unset(SAND_TORCH_INFO_RESULT)
-    unset(SAND_TORCH_INFO_OUTPUT)
+    unset(NPYGL_TORCH_INFO_RESULT)
+    unset(NPYGL_TORCH_INFO_OUTPUT)
     # print version info
-    message(STATUS "PyTorch version: ${SAND_PYTORCH_VERSION}")
+    message(STATUS "PyTorch version: ${NPYGL_PYTORCH_VERSION}")
 else()
     message(STATUS "PyTorch version: None")
 endif()
 
 # does PyTorch have CUDA?
 # note: may not be the same as FindCUDAToolkit value
-if(SAND_PYTORCH_HAS_CUDA)
-    message(STATUS "PyTorch CUDA version: ${SAND_PYTORCH_CUDA_VERSION}")
+if(NPYGL_PYTORCH_HAS_CUDA)
+    message(STATUS "PyTorch CUDA version: ${NPYGL_PYTORCH_CUDA_VERSION}")
 else()
     message(STATUS "PyTorch CUDA version: None")
 endif()
 
 # find Torch C++ libraries (CMake module path already updated)
-if(SAND_PYTORCH_FOUND)
+if(NPYGL_PYTORCH_FOUND)
     # for PyTorch 2.5.0 torch/share/cmake/Caffe2/public/cuda.cmake hardcodes a
     # search location for NVTX, which became a header-only library and for CUDA
     # 12+ no longer ships the library binary. therefore, CUDA::nvToolsExt is
@@ -156,8 +159,8 @@ if(SAND_PYTORCH_FOUND)
     # fail. our workaround is to manually define CUDA::nvToolsExt as a library
     # target that use the NVTX include directories if possible
     if(
-        SAND_PYTORCH_VERSION VERSION_GREATER_EQUAL 2.5.0 AND
-        SAND_PYTORCH_CUDA_VERSION VERSION_GREATER_EQUAL 12
+        NPYGL_PYTORCH_VERSION VERSION_GREATER_EQUAL 2.5.0 AND
+        NPYGL_PYTORCH_CUDA_VERSION VERSION_GREATER_EQUAL 12
     )
         message(STATUS "PyTorch NVTX headers workaround: Yes")
         # only do this if nvToolsExt is not defined and CUDA::nvtx3 exists
@@ -318,7 +321,7 @@ endif()
 if(Armadillo_FOUND)
     message(STATUS "Armadillo version: ${ARMADILLO_VERSION_STRING}")
     # need to manually add ARMADILLO_INCLUDE_DIRS if non-system install
-    # TODO: define sand::external::armadillo imported target to manage the
+    # TODO: define npygl::external::armadillo imported target to manage the
     # include directories and the ARMA_DONT_USE_WRAPPER preprocessor define
     include_directories(SYSTEM ${ARMADILLO_INCLUDE_DIRS})
 else()
