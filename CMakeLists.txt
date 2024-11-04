@@ -320,9 +320,17 @@ endif()
 # note: module is kind of old and does not define Armadillo_VERSION
 if(Armadillo_FOUND)
     message(STATUS "Armadillo version: ${ARMADILLO_VERSION_STRING}")
+    # convenience interface target to manage Armadillo include
+    add_library(npygl::Armadillo INTERFACE IMPORTED)
+    # always use header-only mode
+    target_compile_definitions(npygl::Armadillo INTERFACE ARMA_DONT_USE_WRAPPER)
+    target_include_directories(
+        npygl::Armadillo
+        SYSTEM INTERFACE ${ARMADILLO_INCLUDE_DIRS}
+    )
+    # TODO: replace broad usage of ARMA_DONT_USE_WRAPPER and Armadillo includes
+    # with direct linking to the npygl::Armadillo target
     # need to manually add ARMADILLO_INCLUDE_DIRS if non-system install
-    # TODO: define npygl::external::armadillo imported target to manage the
-    # include directories and the ARMA_DONT_USE_WRAPPER preprocessor define
     include_directories(SYSTEM ${ARMADILLO_INCLUDE_DIRS})
 else()
     message(STATUS "Armadillo version: None")
