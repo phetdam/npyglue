@@ -6,6 +6,7 @@
  */
 
 #include <cstdlib>
+#include <functional>
 #include <map>
 #include <string>
 #include <tuple>
@@ -172,9 +173,9 @@ using driver_type = npygl::testing::traits_checker_driver<
       std::pair<std::tuple<unsigned, int>, std::false_type>
     >
   >,
-  // is_fixed_size
+  // has_static_size
   npygl::testing::traits_checker<
-    npygl::is_fixed_size,
+    npygl::has_static_size,
     std::tuple<
       std::tuple<int, double, char>,
       std::pair<std::vector<double>, std::false_type>,
@@ -188,14 +189,39 @@ using driver_type = npygl::testing::traits_checker_driver<
       std::pair<double[], std::false_type>
     >
   >,
-  // size<T>()
-  // FIXME: test case is just std::is_same_v<...> which is not descriptive
+  // static_size (indirectly tests static_size_traits)
   npygl::testing::traits_checker<
-    npygl::partially_fixed<std::is_same, std::true_type>::type,
+    npygl::static_size,
     std::tuple<
-      std::bool_constant<npygl::size<double>() == 1u>,
-      std::bool_constant<npygl::size<std::vector<double>>() == 1u>,
-      std::bool_constant<npygl::size<char[256]>() == 256u>
+      // FIXME: doesn't integrate with skipped<> yet
+      std::pair<
+        std::vector<double>,
+        npygl::testing::traits_comparison<
+          std::not_equal_to<>,
+          std::integral_constant<unsigned, 2u>
+        >
+      >,
+      std::pair<
+        std::pmr::vector<unsigned>,
+        npygl::testing::traits_comparison<
+          std::equal_to<>,
+          std::integral_constant<unsigned, 1u>
+        >
+      >,
+      std::pair<
+        const double[256],
+        npygl::testing::traits_comparison<
+          std::equal_to<>,
+          std::integral_constant<unsigned, 256u>
+        >
+      >,
+      std::pair<
+        std::array<int, 32>,
+        npygl::testing::traits_comparison<
+          std::equal_to<>,
+          std::integral_constant<unsigned, 32u>
+        >
+      >
     >
   >
 >;

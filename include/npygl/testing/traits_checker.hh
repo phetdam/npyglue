@@ -171,6 +171,118 @@ struct traits_checker<Traits, std::pair<T, std::bool_constant<B>>> {
   }
 };
 
+namespace detail {
+
+template <typename T, typename = void>
+struct invoke_result_or_value {};
+
+template <typename T>
+struct invoke_result_or_value<T, std::enable_if_t<std::is_invocable_v<T>>> {
+  static constexpr auto value = T();
+};
+
+template <typename T>
+struct invoke_result_or_value<T, std::void_t<decltype(T::value)>> {
+  static constexpr auto value = T::value;
+};
+
+}  // namespace detail
+
+template <typename C, typename V>
+struct traits_comparison {};
+
+template <typename C, typename T, T v>
+struct traits_comparison<C, std::integral_constant<T, v>> {
+  static constexpr C op{};
+  static constexpr T value = v;
+};
+
+/**
+ * Partial specialization for a `traits_expression<Traits, C>`.
+ *
+ * @tparam Traits Traits template type invocable or with a `value` member
+ * @tparam C Comparator type, e.g. `std::equal_to<>`
+ * @tparam B Expected truth value
+ */
+template <
+  template <typename> typename Traits,
+  typename C,
+  typename T,
+  typename V,
+  V v_ >
+struct traits_checker<
+  Traits, std::pair<T, traits_comparison<C, std::integral_constant<V, v_>>> > {
+private:
+  using invoke_type = detail::invoke_result_or_value<Traits<T>>;
+
+public:
+  /**
+   * Provides the tuple of failing input cases.
+   *
+   * Each case is a `std::pair` where the first type is a pair with `Traits<T>`
+   * as the first element and `traits_comparison<...>` as the second element.
+   * This allows the failed cases formatter to show an expression was checked.
+   *
+   * The second type of the `std::pair` case is always `std::true_type`.
+   */
+  using failed_cases = std::conditional_t<
+    C{}(v_, invoke_type::value),
+    std::tuple<>,
+    std::tuple<
+      std::pair<
+        std::pair<Traits<T>, traits_comparison<C, std::integral_constant<V, v_>>>,
+        std::true_type
+      >
+    >
+  >;
+
+  /**
+   * Provides the tuple of skipped input cases.
+   */
+  using skipped_cases = std::tuple<>;
+
+  /**
+   * Return total number of tests (always 1)
+   */
+  static constexpr std::size_t n_tests() noexcept
+  {
+    return 1u;
+  }
+
+  /**
+   * Return number of failed tests, either 1 or 0.
+   */
+  static constexpr std::size_t n_failed() noexcept
+  {
+    return std::tuple_size_v<failed_cases>;
+  }
+
+  /**
+   * Return number of skipped tests (always 0).
+   */
+  static constexpr std::size_t n_skipped() noexcept
+  {
+    return 0u;
+  }
+
+  /**
+   * Check the type against the traits and indicate if test succeeded.
+   *
+   * @param out Stream to write messages to
+   * @return `true` on success, `false` on failure
+   */
+  bool operator()(std::ostream& out = std::cout) const
+  {
+    using formatter = traits_checker_formatter<!n_failed()>;
+    // print formatted output
+    out << formatter::status_color << "[ " << formatter::status_text << " ] " <<
+      vts::fg_normal << npygl::type_name(typeid(C)) << "{}(" << v_ << ", " <<
+      npygl::type_name(typeid(invoke_type)) << "::value) == " <<
+      formatter::truth_text << std::endl;
+    return !n_failed();
+  }
+};
+
 /**
  * Skip indication type.
  *

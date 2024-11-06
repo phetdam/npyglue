@@ -374,7 +374,7 @@ struct partially_fixed<T, fix_last_types, Ts...> {
  * @tparam T type
  */
 template <typename T>
-struct fixed_size_traits {};
+struct static_size_traits {};
 
 /**
  * Partial specialization for C arrays.
@@ -383,7 +383,7 @@ struct fixed_size_traits {};
  * @tparam N Element count
  */
 template <typename T, std::size_t N>
-struct fixed_size_traits<T[N]> {
+struct static_size_traits<T[N]> {
   static constexpr auto size = N;
 };
 
@@ -394,7 +394,7 @@ struct fixed_size_traits<T[N]> {
  * @tparam N Element count
  */
 template <typename T, std::size_t N>
-struct fixed_size_traits<std::array<T, N>> {
+struct static_size_traits<std::array<T, N>> {
   static constexpr auto size = N;
 };
 
@@ -404,7 +404,7 @@ struct fixed_size_traits<std::array<T, N>> {
  * @tparam Ts... Element types
  */
 template <typename... Ts>
-struct fixed_size_traits<std::tuple<Ts...>> {
+struct static_size_traits<std::tuple<Ts...>> {
   static constexpr auto size = std::tuple_size_v<std::tuple<Ts...>>;
 };
 
@@ -415,7 +415,7 @@ struct fixed_size_traits<std::tuple<Ts...>> {
  * @tparam U Second element type
  */
 template <typename T, typename U>
-struct fixed_size_traits<std::pair<T, U>> {
+struct static_size_traits<std::pair<T, U>> {
   static constexpr std::size_t size = 2u;
 };
 
@@ -425,15 +425,15 @@ struct fixed_size_traits<std::pair<T, U>> {
  * @tparam T type
  */
 template <typename T, typename = void>
-struct is_fixed_size : std::false_type {};
+struct has_static_size : std::false_type {};
 
 /**
- * Partial specialization for types with a `fixed_size_traits` specialization.
+ * Partial specialization for types with a `static_size_traits` specialization.
  *
  * @tparam T type
  */
 template <typename T>
-struct is_fixed_size<T, std::void_t<decltype(fixed_size_traits<T>::size)>>
+struct has_static_size<T, std::void_t<decltype(static_size_traits<T>::size)>>
   : std::true_type {};
 
 /**
@@ -442,7 +442,38 @@ struct is_fixed_size<T, std::void_t<decltype(fixed_size_traits<T>::size)>>
  * @tparam T type
  */
 template <typename T>
-constexpr bool is_fixed_size_v = is_fixed_size<T>::value;
+constexpr bool has_static_size_v = has_static_size<T>::value;
+
+/**
+ * Traits to get the compile-time container size of a type.
+ *
+ * This provides a `value` member which is more traditional. For any types that
+ * do not have a compile-time known element count, the value is just 1.
+ *
+ * @tparam T type
+ */
+template <typename T, typename = void>
+struct static_size {
+  static constexpr std::size_t value = 1u;
+};
+
+/**
+ * True specialization for types where `has_static_size_v` is `true`.
+ *
+ * @tparam T type
+ */
+template <typename T>
+struct static_size<T, std::enable_if_t<has_static_size_v<T>>> {
+  static constexpr auto value = static_size_traits<T>::size;
+};
+
+/**
+ * Helper to get the compile-time container size.
+ *
+ * @tparam T type
+ */
+template <typename T>
+static constexpr auto static_size_v = static_size<T>::value;
 
 /**
  * SFINAE helper to enable overload selection for fixed-size container types.
@@ -450,25 +481,7 @@ constexpr bool is_fixed_size_v = is_fixed_size<T>::value;
  * @tparam T type
  */
 template <typename T>
-using fixed_size_t = std::enable_if_t<is_fixed_size_v<T>>;
-
-/**
- * Get a type's compile-time element count if possible.
- *
- * If `is_fixed_size_v<T>` evaluates to `false` then 1 is returned.
- *
- * @todo Consider adding compile-time only `constexpr` for the fixed size.
- *
- * @tparam T type
- */
-template <typename T>
-constexpr std::size_t size()
-{
-  if constexpr (is_fixed_size_v<T>)
-    return fixed_size_traits<T>::size;
-  else
-    return 1u;
-}
+using static_size_t = std::enable_if_t<has_static_size_v<T>>;
 
 }  // namespace npygl
 
