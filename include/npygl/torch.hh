@@ -576,6 +576,16 @@ constexpr bool convertible_to_tensor = (
   is_valid_tensor_info_context_v<tensor_info_context<T>>
 );
 
+/**
+ * Type alias SFINAE help for a `make_tensor` constraint.
+ *
+ * This provides the `std::enable_if` type member for appropriate types.
+ *
+ * @tparam T type
+ */
+template <typename T>
+using convertible_to_tensor_t = std::enable_if_t<convertible_to_tensor<T>>;
+
 #if NPYGL_HAS_CC_20
 /**
  * Concept for a C++ type that `make_tensor` can convert to a PyTorch tensor.
@@ -602,7 +612,7 @@ concept tensor_convertible = convertible_to_tensor<T>;
  * @param obj C++ object to consume
  * @param opts Tensor creation options
  */
-template <typename T, typename = std::enable_if_t<convertible_to_tensor<T>>>
+template <typename T, typename = convertible_to_tensor_t<T>>
 auto make_tensor(T&& obj, const torch::TensorOptions& opts = {})
 {
   // placement new into buffer
