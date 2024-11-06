@@ -8,6 +8,9 @@
 #ifndef NPYGL_TYPE_TRAITS_HH_
 #define NPYGL_TYPE_TRAITS_HH_
 
+#include <array>
+#include <cstdint>
+#include <tuple>
 #include <type_traits>
 #include <utility>
 
@@ -359,6 +362,113 @@ struct partially_fixed<T, fix_last_types, Ts...> {
   using fixed_types = std::tuple<Ts...>;
   template <typename... Us> using type = T<Us..., Ts...>;
 };
+
+/**
+ * Traits type for container types with known compile-time element count.
+ *
+ * This includes types like array types, `std::array`, `std::tuple`, where even
+ * without an instance of the type the number of elements is known already.
+ *
+ * Valid partial specializations provide the constexpr `size` static value.
+ *
+ * @tparam T type
+ */
+template <typename T>
+struct fixed_size_traits {};
+
+/**
+ * Partial specialization for C arrays.
+ *
+ * @tparam T Element type
+ * @tparam N Element count
+ */
+template <typename T, std::size_t N>
+struct fixed_size_traits<T[N]> {
+  static constexpr auto size = N;
+};
+
+/**
+ * Partial specializaton for `std::array`.
+ *
+ * @tparam T Element type
+ * @tparam N Element count
+ */
+template <typename T, std::size_t N>
+struct fixed_size_traits<std::array<T, N>> {
+  static constexpr auto size = N;
+};
+
+/**
+ * Partial specialization for `std::tuple`.
+ *
+ * @tparam Ts... Element types
+ */
+template <typename... Ts>
+struct fixed_size_traits<std::tuple<Ts...>> {
+  static constexpr auto size = std::tuple_size_v<std::tuple<Ts...>>;
+};
+
+/**
+ * Partial specialization for `std::pair`.
+ *
+ * @tparam T First element type
+ * @tparam U Second element type
+ */
+template <typename T, typename U>
+struct fixed_size_traits<std::pair<T, U>> {
+  static constexpr std::size_t size = 2u;
+};
+
+/**
+ * Helper to indicate if a container type has a compile-time fixed size.
+ *
+ * @tparam T type
+ */
+template <typename T, typename = void>
+struct is_fixed_size : std::false_type {};
+
+/**
+ * Partial specialization for types with a `fixed_size_traits` specialization.
+ *
+ * @tparam T type
+ */
+template <typename T>
+struct is_fixed_size<T, std::void_t<decltype(fixed_size_traits<T>::size)>>
+  : std::true_type {};
+
+/**
+ * Helper to indicate a type is a container type with compile-time size.
+ *
+ * @tparam T type
+ */
+template <typename T>
+constexpr bool is_fixed_size_v = is_fixed_size<T>::value;
+
+/**
+ * SFINAE helper to enable overload selection for fixed-size container types.
+ *
+ * @tparam T type
+ */
+template <typename T>
+using fixed_size_t = std::enable_if_t<is_fixed_size_v<T>>;
+
+/**
+ * Get a type's compile-time element count if possible.
+ *
+ * If `is_fixed_size_v<T>` evaluates to `false` then 1 is returned.
+ *
+ * @todo Consider adding compile-time only `constexpr` for the fixed size.
+ *
+ * @tparam T type
+ */
+template <typename T>
+constexpr std::size_t size()
+{
+  if constexpr (is_fixed_size_v<T>)
+    return fixed_size_traits<T>::size;
+  else
+    return 1u;
+}
 
 }  // namespace npygl
 

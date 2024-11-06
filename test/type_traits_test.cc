@@ -171,6 +171,32 @@ using driver_type = npygl::testing::traits_checker_driver<
       >,
       std::pair<std::tuple<unsigned, int>, std::false_type>
     >
+  >,
+  // is_fixed_size
+  npygl::testing::traits_checker<
+    npygl::is_fixed_size,
+    std::tuple<
+      std::tuple<int, double, char>,
+      std::pair<std::vector<double>, std::false_type>,
+      std::pair<std::tuple<char, unsigned, std::string>, std::true_type>,
+      std::pair<double, const volatile void*>,
+      std::array<unsigned, 100>,
+      char[256],
+      std::pair<std::string, std::false_type>,
+      std::pair<std::map<std::string, unsigned>, std::false_type>,
+      int[2][3][4],
+      std::pair<double[], std::false_type>
+    >
+  >,
+  // size<T>()
+  // FIXME: test case is just std::is_same_v<...> which is not descriptive
+  npygl::testing::traits_checker<
+    npygl::partially_fixed<std::is_same, std::true_type>::type,
+    std::tuple<
+      std::bool_constant<npygl::size<double>() == 1u>,
+      std::bool_constant<npygl::size<std::vector<double>>() == 1u>,
+      std::bool_constant<npygl::size<char[256]>() == 256u>
+    >
   >
 >;
 // test driver instance. but if testing LLVM demangling we won't be needing it
