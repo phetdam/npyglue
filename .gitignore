@@ -11,3 +11,5 @@
 *PYTHON_wrap*.cxx
 # __pycache__
 **/__pycache__
+# ignore CTest testing directory
+/Testing
