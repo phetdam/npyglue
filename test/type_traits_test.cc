@@ -219,6 +219,16 @@ using driver_type = npygl::testing::traits_checker_driver<
       std::pair<
         unsigned[1024],
         npygl::testing::traits_value_is_less_equal<unsigned long, 2048>
+      >,
+      // multidimensional fixed-size array
+      std::pair<
+        double[24][32][46],
+        npygl::testing::traits_value_is_equal<unsigned, 24>
+      >,
+      // multidimensional array of unknown first bound
+      std::pair<
+        double[][32][16],
+        npygl::testing::traits_value_is_equal<unsigned, 1>
       >
     >
   >
