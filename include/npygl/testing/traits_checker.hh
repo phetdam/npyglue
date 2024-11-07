@@ -36,6 +36,28 @@ struct traits_checker_formatter {
 };
 
 /**
+ * Traits class to represent a single traits checker test case.
+ *
+ * This defines the type member that represents how the test is represented.
+ *
+ * @tparam Traits Traits template type with a boolean `value` member
+ * @tparam T Input type
+ */
+template <template <typename> typename Traits, typename T>
+struct traits_checker_case {
+  using type = std::pair<Traits<T>, std::true_type>;
+};
+
+/**
+ * Type alias for the traits checker test case type member.
+ *
+ * @tparam Traits Traits template type with a boolean `value` member
+ * @tparam T Input type
+ */
+template <template <typename> typename Traits, typename T>
+using traits_checker_case_t = typename traits_checker_case<Traits, T>::type;
+
+/**
  * Check if a type satisfies the given traits.
  *
  * This class knows at compile-time the number of failed and total tests.
@@ -53,7 +75,7 @@ struct traits_checker {
   using failed_cases = std::conditional_t<
     Traits<T>::value,
     std::tuple<>,
-    std::tuple<std::pair<Traits<T>, std::true_type>>
+    std::tuple<traits_checker_case_t<Traits, T>>
   >;
 
   /**
@@ -103,6 +125,18 @@ struct traits_checker {
 };
 
 /**
+ * Partial specialization for `std::pair<T, std::bool_constant<B>>` inputs.
+ *
+ * @tparam Traits Traits template type with a boolean `value` member
+ * @tparam T Input type
+ * @tparam B Truth value
+ */
+template <template <typename> typename Traits, typename T, bool B>
+struct traits_checker_case<Traits, std::pair<T, std::bool_constant<B>>> {
+  using type = std::pair<Traits<T>, std::bool_constant<B>>;
+};
+
+/**
  * Partial specialization for a `std::pair<T, std::bool_constant<B>>`.
  *
  * @tparam Traits Traits template type with a boolean `value` member
@@ -111,6 +145,10 @@ struct traits_checker {
  */
 template <template <typename> typename Traits, typename T, bool B>
 struct traits_checker<Traits, std::pair<T, std::bool_constant<B>>> {
+private:
+  using input_type = std::pair<T, std::bool_constant<B>>;
+
+public:
   /**
    * Provides the tuple of failing input cases.
    *
@@ -119,7 +157,7 @@ struct traits_checker<Traits, std::pair<T, std::bool_constant<B>>> {
   using failed_cases = std::conditional_t<
     B == Traits<T>::value,
     std::tuple<>,
-    std::tuple<std::pair<Traits<T>, std::bool_constant<B>>>
+    std::tuple<traits_checker_case_t<Traits, input_type>>
   >;
 
   /**
@@ -361,6 +399,33 @@ struct traits_comparator_formatter<std::less_equal<T>> {
 };
 
 /**
+ * Partial specialization for a `std::pair<T, traits_value_comparison<C, V>>`.
+ *
+ * @tparam Traits Traits template type invocable or with a `value` member
+ * @tparam T Traits input type
+ * @tparam C Comparator type, e.g. `std::equal_to<>`
+ * @tparam V Expression input type
+ * @tparam v_ Expression input value
+ */
+template <
+  template <typename> typename Traits,
+  typename T,
+  typename C,
+  typename V,
+  V v_>
+struct traits_checker_case<
+  Traits,
+  std::pair<T, traits_value_comparison<C, std::integral_constant<V, v_>>> > {
+  using type = std::pair<
+    std::pair<
+      Traits<T>,
+      traits_value_comparison<C, std::integral_constant<V, v_>>
+    >,
+    std::true_type
+  >;
+};
+
+/**
  * Partial specialization for a `traits_value_comparison<C, v_>`.
  *
  * @tparam Traits Traits template type invocable or with a `value` member
@@ -379,8 +444,11 @@ struct traits_checker<
   Traits,
   std::pair<T, traits_value_comparison<C, std::integral_constant<V, v_>>> > {
 private:
+  using input_type = std::pair<
+    T,
+    traits_value_comparison<C, std::integral_constant<V, v_>>
+  >;
   using invoke_type = detail::invoke_result_or_value<Traits<T>>;
-  using input_type = std::integral_constant<V, v_>;
 
 public:
   /**
@@ -395,12 +463,7 @@ public:
   using failed_cases = std::conditional_t<
     C{}(invoke_type::value, v_),
     std::tuple<>,
-    std::tuple<
-      std::pair<
-        std::pair<Traits<T>, traits_value_comparison<C, input_type>>,
-        std::true_type
-      >
-    >
+    std::tuple<traits_checker_case_t<Traits, input_type>>
   >;
 
   /**
@@ -473,15 +536,16 @@ struct skipped { using type = T; };
 /**
  * Traits class to unwrap an input type.
  *
- * This yields the `T` from a `std::pair<T, std::bool_constant<B>>` and the
- * correct unwrapped type from a `skipped<T>` type.
+ * This yields the `T` from a `std::pair<T, std::bool_constant<B>>` or a
+ * `std::pair<T, traits_value_comparison<C, V>>` and the correct unwrapped
+ * inputy type from a `skipped<T>` specialization.
  *
  * @tparam T Input type
  */
 template <typename T>
 struct traits_checker_input_unwrapper {
   using type = T;
-  static constexpr bool truth =true;
+  static constexpr bool truth = true;
 };
 
 /**
@@ -497,6 +561,21 @@ struct traits_checker_input_unwrapper<std::pair<T, std::bool_constant<B>>> {
 };
 
 /**
+ * Partial specialization for a `std::pair<T, traits_value_comparison<...>>`.
+ *
+ * @tparam T Traits input type
+ * @tparam C Comparator type
+ * @tparam V Expression input type
+ * @tparam v_ Expression input value
+ */
+template <typename T, typename C, typename V, V v_>
+struct traits_checker_input_unwrapper<
+  std::pair<T, traits_value_comparison<C, std::integral_constant<V, v_>>> > {
+  using type = T;
+  static constexpr bool truth = true;
+};
+
+/**
  * Partial specialization for a `skipped<T>`.
  *
  * @tparam T Input type
@@ -508,13 +587,13 @@ struct traits_checker_input_unwrapper<skipped<T>>
 /**
  * Partial specialization for a skipped input case.
  *
- * @tparam Traits Traits template type with a boolean `value` member
- * @tparam T Input, either plain `T` or `std::pair<T, std::bool_constant<B>>`
+ * @tparam Traits Traits template type invocable or with a `value` member
+ * @tparam T Input type
  */
 template <template <typename> typename Traits, typename T>
 struct traits_checker<Traits, skipped<T>> {
 private:
-  // unwrapped input type and expected truth value
+  // unwrapped traits input type and expected truth value
   using input_type = typename traits_checker_input_unwrapper<T>::type;
   static constexpr bool truth = traits_checker_input_unwrapper<T>::truth;
 
@@ -526,12 +605,8 @@ public:
 
   /**
    * Provides the tuple of skipped input cases.
-   *
-   * The input case is a `std::pair<Traits<T>, std::bool_constant<B>>>`.
    */
-  using skipped_cases = std::tuple<
-    std::pair<Traits<input_type>, std::bool_constant<truth>>
-  >;
+  using skipped_cases = std::tuple<traits_checker_case_t<Traits, T>>;
 
   /**
    * Return total number of tests (always 1).
@@ -568,6 +643,7 @@ public:
     // borrowing traits_checker_formatter to use truth_text
     using formatter = traits_checker_formatter<true /*ignored*/, truth>;
     // print formatted output
+    // FIXME: format not correct for traits_value_comparison<...> inputs
     out << vts::fg_yellow << "[ SKIP ] " << vts::fg_normal <<
       npygl::type_name(typeid(Traits<T>)) << "::value == " <<
       formatter::truth_text << std::endl;

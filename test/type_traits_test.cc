@@ -193,7 +193,8 @@ using driver_type = npygl::testing::traits_checker_driver<
   npygl::testing::traits_checker<
     npygl::static_size,
     std::tuple<
-      // FIXME: doesn't integrate with skipped<> yet
+      // FIXME: doesn't fully integrate with skipped<> yet as the way the case
+      // is formatted in the printout is not the expected format
       std::pair<
         std::vector<double>,
         npygl::testing::traits_value_is_not_equal<unsigned, 2u>
