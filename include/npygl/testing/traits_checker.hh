@@ -249,6 +249,17 @@ using traits_value_is_less = traits_value_comparison<
 >;
 
 /**
+ * Type alias for a less than or equal comparison operation and input.
+ *
+ * @tparam T Input type
+ * @tparam v_ Input value
+ */
+template <typename T, T v_>
+using traits_value_is_less_equal = traits_value_comparison<
+  std::less_equal<>, std::integral_constant<T, v_>
+>;
+
+/**
  * Type alias for a strict greater than comparison and input.
  *
  * @tparam T Input type
@@ -258,6 +269,96 @@ template <typename T, T v_>
 using traits_value_is_greater = traits_value_comparison<
   std::greater<>, std::integral_constant<T, v_>
 >;
+
+/**
+ * Type alias for a greater than or equal comparison operation and input.
+ *
+ * @tparam T Input type
+ * @tparam v_ Input value
+ */
+template <typename T, T v_>
+using traits_value_is_greater_equal = traits_value_comparison<
+  std::greater_equal<>, std::integral_constant<T, v_>
+>;
+
+/**
+ * Formatting traits for the `traits_value_comparison` comparator.
+ *
+ * This base template is for non-standard comparators, e.g. something that is
+ * not one of the standard `<functional>` comparison types.
+ *
+ * @tparam C Comparator type, e.g. `std::equal_to<>`
+ */
+template <typename C>
+struct traits_comparator_formatter {
+  static constexpr bool standard = false;
+};
+
+/**
+ * Partial specialization for `std::equal_to<T>`.
+ *
+ * @tparam T type
+ */
+template <typename T>
+struct traits_comparator_formatter<std::equal_to<T>> {
+  static constexpr bool standard = true;
+  static constexpr const char op_string[] = "==";
+};
+
+/**
+ * Partial specializaton for `std::not_equal_to<T>`.
+ *
+ * @tparam T type
+ */
+template <typename T>
+struct traits_comparator_formatter<std::not_equal_to<T>> {
+  static constexpr bool standard = true;
+  static constexpr const char op_string[] = "!=";
+};
+
+/**
+ * Partial specialization for `std::less<T>`.
+ *
+ * @tparam T type
+ */
+template <typename T>
+struct traits_comparator_formatter<std::less<T>> {
+  static constexpr bool standard = true;
+  static constexpr const char op_string[] = "<";
+};
+
+/**
+ * Partial specialization for `std::greater<T>`.
+ *
+ * @tparam T type
+ */
+template <typename T>
+struct traits_comparator_formatter<std::greater<T>> {
+  static constexpr bool standard = true;
+  static constexpr const char op_string[] = ">";
+};
+
+/**
+ * Partial specialization for `std::greater_equal<T>`.
+ *
+ * @tparam T type
+ */
+template <typename T>
+struct traits_comparator_formatter<std::greater_equal<T>> {
+  static constexpr bool standard = true;
+  static constexpr const char op_string[] = ">=";
+};
+
+/**
+ * Partial specialization for `std::less_equal<T>`.
+ *
+ * @tparam T type
+ */
+template <typename T>
+struct traits_comparator_formatter<std::less_equal<T>> {
+  static constexpr bool standard = true;
+  static constexpr const char op_string[] = "<=";
+};
 
 /**
  * Partial specialization for a `traits_value_comparison<C, v_>`.
@@ -292,7 +393,7 @@ public:
    * The second type of the `std::pair` case is always `std::true_type`.
    */
   using failed_cases = std::conditional_t<
-    C{}(v_, invoke_type::value),
+    C{}(invoke_type::value, v_),
     std::tuple<>,
     std::tuple<
       std::pair<
@@ -340,11 +441,23 @@ public:
   bool operator()(std::ostream& out = std::cout) const
   {
     using formatter = traits_checker_formatter<!n_failed()>;
+    using comp_formatter = traits_comparator_formatter<C>;
     // print formatted output
     out << formatter::status_color << "[ " << formatter::status_text << " ] " <<
-      vts::fg_normal << npygl::type_name(typeid(C)) << "{}(" << v_ << ", " <<
-      npygl::type_name(typeid(invoke_type)) << "::value) == " <<
-      formatter::truth_text << std::endl;
+      vts::fg_normal;
+    // if standard comparator, we can print a nicer format
+    if constexpr (comp_formatter::standard) {
+      out << npygl::type_name(typeid(invoke_type)) << "::value " <<
+        comp_formatter::op_string << ' ' << v_;
+    }
+    // else fall back to a more verbose and explicit representation
+    else {
+      out << npygl::type_name(typeid(C)) << "{}(" <<
+        npygl::type_name(typeid(invoke_type)) << "::value, " << v_ << ") == " <<
+        formatter::truth_text;
+    }
+    // flush and finish
+    out << std::endl;
     return !n_failed();
   }
 };
