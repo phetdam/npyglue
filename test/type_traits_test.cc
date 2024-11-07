@@ -196,31 +196,19 @@ using driver_type = npygl::testing::traits_checker_driver<
       // FIXME: doesn't integrate with skipped<> yet
       std::pair<
         std::vector<double>,
-        npygl::testing::traits_comparison<
-          std::not_equal_to<>,
-          std::integral_constant<unsigned, 2u>
-        >
+        npygl::testing::traits_value_is_not_equal<unsigned, 2u>
       >,
       std::pair<
         std::pmr::vector<unsigned>,
-        npygl::testing::traits_comparison<
-          std::equal_to<>,
-          std::integral_constant<unsigned, 1u>
-        >
+        npygl::testing::traits_value_is_equal<unsigned, 1u>
       >,
       std::pair<
         const double[256],
-        npygl::testing::traits_comparison<
-          std::equal_to<>,
-          std::integral_constant<unsigned, 256u>
-        >
+        npygl::testing::traits_value_is_equal<unsigned, 256u>
       >,
       std::pair<
         std::array<int, 32>,
-        npygl::testing::traits_comparison<
-          std::equal_to<>,
-          std::integral_constant<unsigned, 32u>
-        >
+        npygl::testing::traits_value_is_equal<unsigned, 32u>
       >
     >
   >

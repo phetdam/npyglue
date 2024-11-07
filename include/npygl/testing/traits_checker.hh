@@ -173,14 +173,32 @@ struct traits_checker<Traits, std::pair<T, std::bool_constant<B>>> {
 
 namespace detail {
 
+/**
+ * Traits type that giving the `value` member or a compile-time invocation.
+ *
+ * Valid partial specializations will have a `value` member that is either a
+ * copy of `T::value` or the result of the `T()` constant expression.
+ *
+ * @tparam T type
+ */
 template <typename T, typename = void>
 struct invoke_result_or_value {};
 
+/**
+ * Partial specialization for invocable types.
+ *
+ * @tparam T Invocable type
+ */
 template <typename T>
 struct invoke_result_or_value<T, std::enable_if_t<std::is_invocable_v<T>>> {
   static constexpr auto value = T();
 };
 
+/**
+ * Partial specialization for types with a `value` static member.
+ *
+ * @tparam T Type with a constexpr `value` static member
+ */
 template <typename T>
 struct invoke_result_or_value<T, std::void_t<decltype(T::value)>> {
   static constexpr auto value = T::value;
@@ -188,21 +206,67 @@ struct invoke_result_or_value<T, std::void_t<decltype(T::value)>> {
 
 }  // namespace detail
 
+/**
+ * Input type representing a comparison operation and value to operate on.
+ *
+ * @tparam C Comparator type, e.g. `std::equal_to<>`
+ * @tparam V `std::integral_constant<T, v>` specialization
+ */
 template <typename C, typename V>
-struct traits_comparison {};
-
-template <typename C, typename T, T v>
-struct traits_comparison<C, std::integral_constant<T, v>> {
-  static constexpr C op{};
-  static constexpr T value = v;
-};
+struct traits_value_comparison {};
 
 /**
- * Partial specialization for a `traits_expression<Traits, C>`.
+ * Type alias for an equality comparison operation and input.
+ *
+ * @tparam T Input type
+ * @tparam v_ Input value
+ */
+template <typename T, T v_>
+using traits_value_is_equal = traits_value_comparison<
+  std::equal_to<>, std::integral_constant<T, v_>
+>;
+
+/**
+ * Type alias for an inequality comparison operation and input.
+ *
+ * @tparam T Input type
+ * @tparam v_ Input value
+ */
+template <typename T, T v_>
+using traits_value_is_not_equal = traits_value_comparison<
+  std::not_equal_to<>, std::integral_constant<T, v_>
+>;
+
+/**
+ * Type alias for a strict less than comparison operation and input.
+ *
+ * @tparam T Input type
+ * @tparam v_ Input value
+ */
+template <typename T, T v_>
+using traits_value_is_less = traits_value_comparison<
+  std::less<>, std::integral_constant<T, v_>
+>;
+
+/**
+ * Type alias for a strict greater than comparison and input.
+ *
+ * @tparam T Input type
+ * @tparam v_ Input value
+ */
+template <typename T, T v_>
+using traits_value_is_greater = traits_value_comparison<
+  std::greater<>, std::integral_constant<T, v_>
+>;
+
+/**
+ * Partial specialization for a `traits_value_comparison<C, v_>`.
  *
  * @tparam Traits Traits template type invocable or with a `value` member
  * @tparam C Comparator type, e.g. `std::equal_to<>`
- * @tparam B Expected truth value
+ * @tparam T Traits input type
+ * @tparam V Expression input type
+ * @tparam v_ Expression value type
  */
 template <
   template <typename> typename Traits,
@@ -211,17 +275,19 @@ template <
   typename V,
   V v_ >
 struct traits_checker<
-  Traits, std::pair<T, traits_comparison<C, std::integral_constant<V, v_>>> > {
+  Traits,
+  std::pair<T, traits_value_comparison<C, std::integral_constant<V, v_>>> > {
 private:
   using invoke_type = detail::invoke_result_or_value<Traits<T>>;
+  using input_type = std::integral_constant<V, v_>;
 
 public:
   /**
    * Provides the tuple of failing input cases.
    *
    * Each case is a `std::pair` where the first type is a pair with `Traits<T>`
-   * as the first element and `traits_comparison<...>` as the second element.
-   * This allows the failed cases formatter to show an expression was checked.
+   * as the first element and `traits_value_comparison<...>` as the second
+   * element. This lets the failed cases formatter show a comparison was done.
    *
    * The second type of the `std::pair` case is always `std::true_type`.
    */
@@ -230,7 +296,7 @@ public:
     std::tuple<>,
     std::tuple<
       std::pair<
-        std::pair<Traits<T>, traits_comparison<C, std::integral_constant<V, v_>>>,
+        std::pair<Traits<T>, traits_value_comparison<C, input_type>>,
         std::true_type
       >
     >
