@@ -316,6 +316,7 @@ function(npygl_copy_torch_dlls target)
                 COMMAND ${CMAKE_COMMAND} -E copy_if_different ${TORCH_DLLS}
                     $<TARGET_FILE_DIR:${ARGV0}>
             COMMENT "Copying Torch DLLs for ${ARGV0}"
+            COMMAND_EXPAND_LISTS
         )
     endif()
 endfunction()
