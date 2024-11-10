@@ -23,19 +23,6 @@ namespace npygl {
 namespace testing {
 
 /**
- * Formatting traits for a compile-time traits test pass/fail.
- *
- * @tparam passed Pass/fail result for the traits test
- * @tparam truth Expected truth result for the traits test
- */
-template <bool passed, bool truth = true>
-struct traits_checker_formatter {
-  static constexpr auto status_text = passed ? "PASS" : "FAIL";
-  static constexpr auto status_color = passed ? vts::fg_green : vts::fg_red;
-  static constexpr auto truth_text = truth ? "true" : "false";
-};
-
-/**
  * Traits class to represent a single traits checker test case.
  *
  * This defines the type member that represents how the test is represented.
