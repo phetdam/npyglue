@@ -8,6 +8,8 @@
 #include <complex>
 #include <cstdlib>
 #include <map>
+// GCC requires <memory_resource> for std::pmr::allocator to be complete
+#include <memory_resource>
 #include <tuple>
 #include <utility>
 #include <vector>

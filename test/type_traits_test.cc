@@ -8,6 +8,8 @@
 #include <cstdlib>
 #include <functional>
 #include <map>
+// GCC requires <memory_resource> for std::pmr::allocator to be complete
+#include <memory_resource>
 #include <string>
 #include <tuple>
 #include <type_traits>
@@ -224,6 +226,13 @@ using driver_type = npygl::testing::traits_checker_driver<
       std::pair<
         double[24][32][46],
         npygl::testing::traits_value_is_equal<unsigned, 24>
+      >,
+      // skip test for traits_value_comparison with multidimensional array
+      npygl::testing::skipped<
+        std::pair<
+          const volatile void*[2][4][8][16],
+          npygl::testing::traits_value_is_equal<unsigned, 2>
+        >
       >,
       // multidimensional array of unknown first bound
       std::pair<

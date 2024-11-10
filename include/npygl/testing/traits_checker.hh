@@ -58,6 +58,116 @@ template <template <typename> typename Traits, typename T>
 using traits_checker_case_t = typename traits_checker_case<Traits, T>::type;
 
 /**
+ * Enum for the traits checker test case status.
+ *
+ * @note Members are ordered such that casting a boolean to this strongly-typed
+ *  enum will result in either `pass` or `fail` status.
+ */
+enum class traits_checker_case_status {
+  fail,
+  pass,
+  skip
+};
+
+/**
+ * Formatter and traits class for printing the test case status banner.
+ *
+ * @tparam status Pass/fail/skip status
+ */
+template <traits_checker_case_status status>
+struct traits_checker_banner {
+  // status text message
+  static constexpr auto text = []
+  {
+    switch (status) {
+      case traits_checker_case_status::pass:
+        return "PASS";
+      case traits_checker_case_status::fail:
+        return "FAIL";
+      case traits_checker_case_status::skip:
+        return "SKIP";
+      default:
+        return "XXXX";
+    }
+  }();
+  // VTS foreground color
+  static constexpr auto color = []
+  {
+    switch (status) {
+      case traits_checker_case_status::pass:
+        return vts::fg_green;
+      case traits_checker_case_status::fail:
+        return vts::fg_red;
+      case traits_checker_case_status::skip:
+        return vts::fg_yellow;
+      default:
+        return vts::fg_normal;
+    }
+  }();
+};
+
+/**
+ * Print the test case status banner to the given stream.
+ *
+ * @tparam status Pass/fail/skip status
+ *
+ * @param out Output stream
+ */
+template <traits_checker_case_status status>
+auto& operator<<(std::ostream& out, traits_checker_banner<status> banner)
+{
+  out << banner.color << "[ " << banner.text << " ]" << vts::fg_normal;
+  return out;
+}
+
+/**
+ * Traits test case formatter type.
+ *
+ * This assists with printing the actual test case name as a string.
+ *
+ * @tparam T Traits test case
+ */
+template <typename T>
+struct traits_checker_case_formatter {};
+
+/**
+ * Stream the traits test case name using the given formatter.
+ *
+ * @tparam T Traits test case
+ *
+ * @param formatter Formatter instance
+ */
+template <typename T>
+auto& operator<<(std::ostream& out, traits_checker_case_formatter<T> formatter)
+{
+  formatter(out);
+  return out;
+}
+
+/**
+ * Partial specialization for "standard" traits test case.
+ *
+ * This is typically of the form `std::pair<Traits<T>, std::bool_constant<B>>`,
+ * but `T` is used as a general type to work with `partially_fixed<...>`.
+ *
+ * @tparam T Traits type
+ * @tparam B Truth value
+ */
+template <typename T, bool B>
+struct traits_checker_case_formatter<std::pair<T, std::bool_constant<B>> > {
+  /**
+   * Write the formatted test case to the output stream.
+   *
+   * @param out Output stream
+   */
+  void operator()(std::ostream& out = std::cout) const
+  {
+    constexpr auto truth = B ? "true" : "false";
+    out << npygl::type_name(typeid(T)) << "::value == " << truth;
+  }
+};
+
+/**
  * Check if a type satisfies the given traits.
  *
  * This class knows at compile-time the number of failed and total tests.
@@ -115,11 +225,12 @@ struct traits_checker {
    */
   bool operator()(std::ostream& out = std::cout) const
   {
-    using formatter = traits_checker_formatter<!n_failed()>;
-    // print formatted output
-    out << formatter::status_color << "[ " << formatter::status_text <<
-      " ] " << vts::fg_normal << npygl::type_name(typeid(Traits<T>)) <<
-      "::value == " << formatter::truth_text << std::endl;
+    // pass/fail result
+    constexpr auto res = static_cast<traits_checker_case_status>(!n_failed());
+    // print banner and case
+    out << traits_checker_banner<res>{} << ' ' <<
+      traits_checker_case_formatter<traits_checker_case_t<Traits, T>>{} <<
+      std::endl;
     return !n_failed();
   }
 };
@@ -200,11 +311,12 @@ public:
    */
   bool operator()(std::ostream& out = std::cout) const
   {
-    using formatter = traits_checker_formatter<!n_failed(), B>;
-    // print formatted output
-    out << formatter::status_color << "[ " << formatter::status_text << " ] " <<
-      vts::fg_normal << npygl::type_name(typeid(Traits<T>)) << "::value == " <<
-      formatter::truth_text << std::endl;
+    using case_type = traits_checker_case_t<Traits, input_type>;
+    // get pass/fail result
+    constexpr auto res = static_cast<traits_checker_case_status>(!n_failed());
+    // format test case and return
+    out << traits_checker_banner<res>{} << ' ' <<
+      traits_checker_case_formatter<case_type>{} << std::endl;
     return !n_failed();
   }
 };
@@ -426,6 +538,45 @@ struct traits_checker_case<
 };
 
 /**
+ * Partial specialization for a `traits_value_comparison` traits test case.
+ *
+ * @tparam T Traits type that is either invocable or with a `value` member
+ * @tparam C Comparator type, e.g. `std::equal_to<>`
+ * @tparam V Expression input type
+ * @tparam v_ Expression input value
+ */
+template <typename T, typename C, typename V, V v_>
+struct traits_checker_case_formatter<
+  std::pair<
+    std::pair<T, traits_value_comparison<C, std::integral_constant<V, v_>>>,
+    std::true_type
+  > > {
+  // traits type with the traits type value member
+  using invoke_type = detail::invoke_result_or_value<T>;
+
+  /**
+   * Write the formatted test case to the output stream.
+   *
+   * @param out Output stream
+   */
+  void operator()(std::ostream& out = std::cout) const
+  {
+    using comp_formatter = traits_comparator_formatter<C>;
+    // if standard comparator, we can print a nicer format
+    if constexpr (comp_formatter::standard) {
+      out << npygl::type_name(typeid(invoke_type)) << "::value " <<
+        comp_formatter::op_string << ' ' << v_;
+    }
+    // else fall back to a more verbose and explicit representation
+    else {
+      out << npygl::type_name(typeid(C)) << "{}(" <<
+        npygl::type_name(typeid(invoke_type)) << "::value, " << v_ <<
+          ") == true";
+    }
+  }
+};
+
+/**
  * Partial specialization for a `traits_value_comparison<C, v_>`.
  *
  * @tparam Traits Traits template type invocable or with a `value` member
@@ -503,24 +654,12 @@ public:
    */
   bool operator()(std::ostream& out = std::cout) const
   {
-    using formatter = traits_checker_formatter<!n_failed()>;
-    using comp_formatter = traits_comparator_formatter<C>;
-    // print formatted output
-    out << formatter::status_color << "[ " << formatter::status_text << " ] " <<
-      vts::fg_normal;
-    // if standard comparator, we can print a nicer format
-    if constexpr (comp_formatter::standard) {
-      out << npygl::type_name(typeid(invoke_type)) << "::value " <<
-        comp_formatter::op_string << ' ' << v_;
-    }
-    // else fall back to a more verbose and explicit representation
-    else {
-      out << npygl::type_name(typeid(C)) << "{}(" <<
-        npygl::type_name(typeid(invoke_type)) << "::value, " << v_ << ") == " <<
-        formatter::truth_text;
-    }
-    // flush and finish
-    out << std::endl;
+    using case_type = traits_checker_case_t<Traits, input_type>;
+    // get pass/fail result
+    constexpr auto res = static_cast<traits_checker_case_status>(!n_failed());
+    // format test case and return
+    out << traits_checker_banner<res>{} << ' ' <<
+      traits_checker_case_formatter<case_type>{} << std::endl;
     return !n_failed();
   }
 };
@@ -640,13 +779,10 @@ public:
    */
   bool operator()(std::ostream& out = std::cout) const
   {
-    // borrowing traits_checker_formatter to use truth_text
-    using formatter = traits_checker_formatter<true /*ignored*/, truth>;
-    // print formatted output
-    // FIXME: format not correct for traits_value_comparison<...> inputs
-    out << vts::fg_yellow << "[ SKIP ] " << vts::fg_normal <<
-      npygl::type_name(typeid(Traits<T>)) << "::value == " <<
-      formatter::truth_text << std::endl;
+    // print skip banner + formatted test case
+    out << traits_checker_banner<traits_checker_case_status::skip>{} << ' ' <<
+      traits_checker_case_formatter<traits_checker_case_t<Traits, T>>{} <<
+      std::endl;
     return true;
   }
 };
@@ -778,13 +914,9 @@ struct input_case_lister<std::tuple<T, Ts...>> {
    */
   void operator()(std::ostream& out) const
   {
-    // borrowing traits_checker_formatter to use truth_text
-    using truth_type = typename T::second_type;
-    using formatter = traits_checker_formatter<true /*ignored*/, truth_type::value>;
-    // input case
+    // print test case with padding and given color
     out << std::string(left_pad, ' ') << text_color <<
-      type_name(typeid(typename T::first_type)) << " == " <<
-      formatter::truth_text << vts::fg_normal;
+      traits_checker_case_formatter<T>{} << vts::fg_normal;
     // recurse if more types
     if constexpr (sizeof...(Ts)) {
       out << delim;
