@@ -23,7 +23,13 @@
 // a smoke test for using llvm::itaniumDemangle on driver_type. we have noted
 // that for GCC 11.3.0, abi::__cxa_demangle can't demangle driver_type, likely
 // because driver_type produces a mangled name that is "too long". at the very
-// least, the generated mangled name exceeds 1024 characters.
+// least, the generated mangled name exceeds 1024 characters. this means that
+// tools like nm and c++filt will not be able to correctly demangle the name.
+//
+// fortunately, llvm::itaniumDemangle works properly. type_name() has also been
+// updated to act like boost::core::demangle() and return the mangled name in
+// case demangling with abi::__cxa_demangle fails.
+//
 #if defined(NPYGL_USE_LLVM_DEMANGLE)
 // not strictly necessary but we do it for correctness
 #include <iostream>
@@ -66,23 +72,6 @@ using driver_type = npygl::testing::traits_checker_driver<
       char,
       std::map<unsigned, int>,
       // test skipped<>
-      //
-      // note:
-      //
-      // when any more skipped<> are added after skipped<double> on WSL1 Ubuntu
-      // 22.04 we are seeing c++filt, abi::__cxa_demangle, nm become unable to
-      // demangle the mangled type name. GCC 11.3.0 is used here. it appears
-      // that once the type name gets long enough, e.g. more than 4151 chars
-      // demangled or 1019 chars mangled (1024 may be the limit), the standard
-      // demangling facilities stop working. have not cross-checked against
-      // llvm-cxxfilt (some people report this as working when c++filt fails).
-      //
-      // type_name() has been updated to act like boost::core::demangle() and
-      // return the mangled name if demangling fails, so if demangling of the
-      // driver_type is desired, the mangled name cannot be too long.
-      //
-      // fortunately, llvm::itaniumDemangle works properly in this case.
-      //
       npygl::testing::skipped<double>,
       npygl::testing::skipped<std::pair<std::pair<int, char>, std::false_type>>,
       npygl::testing::skipped<std::pair<double, std::false_type>>
