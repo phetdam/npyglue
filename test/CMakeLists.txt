@@ -244,9 +244,13 @@ if(SWIG_FOUND AND Python3_Development_FOUND AND Python3_NumPy_FOUND)
     endif()
 endif()
 
-# type_traits_test: C++ type traits test
+# type_traits_test: C++ type traits tests
 add_executable(type_traits_test type_traits_test.cc)
 add_test(NAME type_traits_test COMMAND type_traits_test)
+
+# traits_checker_test: C++ traits_checker.hh functionality tests
+# add_executable(traits_checker_test traits_checker_test.cc)
+# add_test(NAME traits_checker_test COMMAND traits_checker_test)
 
 # termcolors: program to print the SGR values and 8-bit terminal colors
 add_executable(termcolors termcolors.cc)

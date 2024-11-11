@@ -308,8 +308,6 @@ public:
   }
 };
 
-namespace detail {
-
 /**
  * Traits type that giving the `value` member or a compile-time invocation.
  *
@@ -340,8 +338,6 @@ template <typename T>
 struct invoke_result_or_value<T, std::void_t<decltype(T::value)>> {
   static constexpr auto value = T::value;
 };
-
-}  // namespace detail
 
 /**
  * Input type representing a comparison operation and value to operate on.
@@ -539,7 +535,7 @@ struct traits_checker_case_formatter<
     std::true_type
   > > {
   // traits type with the traits type value member
-  using invoke_type = detail::invoke_result_or_value<T>;
+  using invoke_type = invoke_result_or_value<T>;
 
   /**
    * Write the formatted test case to the output stream.
@@ -586,7 +582,7 @@ private:
     T,
     traits_value_comparison<C, std::integral_constant<V, v_>>
   >;
-  using invoke_type = detail::invoke_result_or_value<Traits<T>>;
+  using invoke_type = invoke_result_or_value<Traits<T>>;
 
 public:
   /**

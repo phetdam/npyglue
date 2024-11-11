@@ -214,11 +214,18 @@ using driver_type = npygl::testing::traits_checker_driver<
         double[24][32][46],
         npygl::testing::traits_value_is_equal<unsigned, 24>
       >,
-      // skip test for traits_value_comparison with multidimensional array
+      // skip testing for traits_value_comparison
+      // TODO: move these to dedicated traits_checker.hh tests
       npygl::testing::skipped<
         std::pair<
           const volatile void*[2][4][8][16],
           npygl::testing::traits_value_is_equal<unsigned, 2>
+        >
+      >,
+      npygl::testing::skipped<
+        std::pair<
+          std::pmr::vector<double>,
+          npygl::testing::traits_value_is_greater<unsigned, 100>
         >
       >,
       // multidimensional array of unknown first bound
