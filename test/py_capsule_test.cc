@@ -13,6 +13,7 @@
 #include <map>
 #include <ostream>
 #include <string>
+#include <type_traits>
 #include <utility>
 #include <variant>
 #include <vector>
@@ -20,6 +21,7 @@
 #include "npygl/demangle.hh"
 #include "npygl/features.h"
 #include "npygl/python.hh"
+#include "npygl/type_traits.hh"
 
 #if NPYGL_HAS_EIGEN3
 #include <Eigen/Core>
@@ -112,11 +114,74 @@ auto& operator<<(std::ostream& out, const package_type& package)
   for (auto it = package.begin(); it != package.end(); it++) {
     if (std::distance(package.begin(), it))
       out << ",\n";
-    out << "    {" << it->first << ", ";
+    out << "    {" << it->first << ": ";
     std::visit(data_type_printer{out}, it->second);
     out << '}';
   }
   return out << "\n}";
+}
+
+/**
+ * SFINAE helper for `capsule_test`.
+ *
+ * @tparam T C++ type compatible with `py_object::create`
+ * @tparam Fs... Callables taking a `const T&`
+ */
+template <typename T, typename... Fs>
+using capsule_testable_t = std::enable_if_t<
+  !std::is_reference_v<T> &&
+  (std::is_invocable_v<Fs, T> && ...)
+>;
+
+/**
+ * Move a C++ object into a Python capsule and then access it via capsule view.
+ *
+ * The name of the original C++ object type will also be written along with the
+ * text representation of the object as presented via `operator<<` call.
+ *
+ * @tparam T C++ type compatible with `py_object::create`
+ *
+ * @param out Output stream to write to
+ * @param obj C++ object to move to capsule
+ */
+template <typename T, typename... Fs, typename = capsule_testable_t<T, Fs...>>
+void capsule_test(std::ostream& out, T&& obj, Fs... funcs)
+{
+  // create capsule from the moved object
+  auto cap = npygl::py_object::create(std::move(obj));
+  npygl::py_error_exit();
+  // take capsule view
+  npygl::cc_capsule_view view{cap};
+  npygl::py_error_exit();
+  // print the type name
+  const auto& val = *view.as<T>();
+  out << "-- " << npygl::type_name(view.info()) << '\n';
+  // stream the type to the output stream if possible else print a default
+  if constexpr (npygl::is_ostreamable_v<T>)
+    out << val;
+  else
+    out << "<object " << npygl::type_name(typeid(val)) << " at " <<
+      &val << '>';
+  // newline + flush
+  out << std::endl;
+  // run any custom actions on the object
+  if constexpr (sizeof...(Fs))
+    (funcs(val), ...);
+}
+
+/**
+ * Move a C++ object into a Python capsule and then access it via capsule view.
+ *
+ * Standard output will receive the content written by the function.
+ *
+ * @tparam T C++ type compatible with `py_object::create`
+ *
+ * @param obj C++ object to move to capsule
+ */
+template <typename T, typename... Fs, typename = capsule_testable_t<T, Fs...>>
+void capsule_test(T&& obj, Fs... funcs)
+{
+  capsule_test(std::cout, std::move(obj), std::move(funcs)...);
 }
 
 }  // namespace
@@ -127,82 +192,66 @@ int main()
   npygl::py_init();
   std::cout << Py_GetVersion() << std::endl;
   // C++ map that we will pass to Python
-  // note: using ordered map for consistent iteration order
-  package_type package{
-    {"key_1", 4.333},
-    {"key_2", 342},
-    {"key_3", "the quick brown fox jumped over the lazy dog"},
-    {"key_4", std::vector{4., 3.22, 1.22, 5.645, 3.14159265358979}}
-  };
-  // print package
-  std::cout << "C++ package:\n" << package << std::endl;
-  // create capsule from the package via move
-  // note: braced context used to test dtor callback
   {
-    auto capsule = npygl::py_object::create(std::move(package));
-    npygl::py_error_exit();
-    // package got moved from
-    std::cout << "\nC++ package (moved):\n" << package << std::endl;
-    // get capsule view
-    npygl::cc_capsule_view view{capsule};
-    npygl::py_error_exit();
-    // we already know the type so directly print package from capsule
-    std::cout << "\ncapsule data:\n" << *view.as<package_type>() << std::endl;
+    // note: using ordered map for consistent iteration order
+    package_type package{
+      {"key_1", 4.333},
+      {"key_2", 342},
+      {"key_3", "the quick brown fox jumped over the lazy dog"},
+      {"key_4", std::vector{4., 3.22, 1.22, 5.645, 3.14159265358979}}
+    };
+    // create capsule from the package via move
+    capsule_test(std::move(package));
+    // show that original object has been moved from
+    std::cout << "-- " << npygl::type_name(typeid(decltype(package))) <<
+      " (moved):\n" << package << std::endl;
   }
   // pass the data_type_printer itself to a capsule
-  {
-    auto capsule = npygl::py_object::create(data_type_printer{});
-    npygl::py_error_exit();
-    // get capsule view
-    npygl::cc_capsule_view view{capsule};
-    npygl::py_error_exit();
-    // call the printer's methods on some data
-    const auto& printer = *view.as<data_type_printer>();
-    std::cout << "\ndata_type_printer printing from capsule:\n";
-    printer(4.34353);
-    std::cout << '\n';
-    printer(233);
-    std::cout << '\n';
-    printer("the lazy dog was awakened by the boisterous fox");
-    std::cout << '\n';
-    printer(std::vector{4.33, 1.23, 1.51424, 1.111});
-    std::cout << std::endl;
-  }
+  capsule_test(
+    data_type_printer{},
+    // perform some printing using the moved printer
+    [](const data_type_printer& printer)
+    {
+      std::cout << "-- " << npygl::type_name(typeid(data_type_printer)) <<
+        " printing from capsule:\n";
+      printer(4.34353);
+      std::cout << '\n';
+      printer(233);
+      std::cout << '\n';
+      printer("the lazy dog was awakened by the boisterous fox");
+      std::cout << '\n';
+      printer(std::vector{4.33, 1.23, 1.51424, 1.111});
+      std::cout << std::endl;
+    }
+  );
 #if NPYGL_HAS_EIGEN3
-  // create a row-major Eigen matrix and pass it into a capsule
+  // create a column-major Eigen matrix and pass it into a capsule
   {
-    auto capsule = npygl::py_object::create(
-      Eigen::MatrixXf{
-        {4.f, 3.222f, 3.41f, 2.3f},
-        {5.44f, 2.33f, 2.33f, 5.563f},
-        {6.55f, 7.234f, 23.1f, 7.66f}
-      }
-    );
-    npygl::py_error_exit();
-    npygl::cc_capsule_view view{capsule};
-    npygl::py_error_exit();
-    // print the type name + the matrix contents itself
-    const auto& mat = *view.as<Eigen::MatrixXf>();
-    std::cout << "-- " << npygl::type_name(view.info()) << std::endl;
-    std::cout << mat << std::endl;
+    Eigen::MatrixXf mat{
+      {4.f, 3.222f, 3.41f, 2.3f},
+      {5.44f, 2.33f, 2.33f, 5.563f},
+      {6.55f, 7.234f, 23.1f, 7.66f}
+    };
+    capsule_test(std::move(mat));
+  }
+  // create a fixed-size Eigen matrix and pass it into a capsule
+  {
+    Eigen::Matrix3d mat{
+      {1., 0.45, 0.115},
+      {0.45, 1., 0.87},
+      {0.115, 0.87, 1.}
+    };
+    capsule_test(std::move(mat));
   }
 #endif  // NPYGL_HAS_EIGEN3
 #if NPYGL_HAS_ARMADILLO
   // create an Armadillo complex matrix and pass it into a capsule
   {
-    auto capsule = npygl::py_object::create(
-      arma::cx_mat{
-        {{4.3, 3.422}, {1.3, 2.322}, {5.44, 3.431}},
-        {{6.33, 3.413}, {12.12, 5.434}, {5.44, 3.222}}
-      }
-    );
-    npygl::py_error_exit();
-    npygl::cc_capsule_view view{capsule};
-    npygl::py_error_exit();
-    // print the type name + the matrix contents
-    const auto& mat = *view.as<arma::cx_mat>();
-    std::cout << "-- " << npygl::type_name(view.info()) << std::endl;
-    std::cout << mat << std::endl;
+    arma::cx_mat mat{
+      {{4.3, 3.422}, {1.3, 2.322}, {5.44, 3.431}},
+      {{6.33, 3.413}, {12.12, 5.434}, {5.44, 3.222}}
+    };
+    capsule_test(std::move(mat));
   }
 #endif  // NPYGL_HAS_ARMADILLO
 #if NPYGL_HAS_LIBTORCH
@@ -217,14 +266,7 @@ int main()
     // a single-threaded case where we know the instances are separate we can
     // call whatever methods we would like without fear.
     auto gen = at::make_generator<at::CPUGeneratorImpl>();
-    auto capsule = npygl::py_object::create(torch::randn({2, 3, 4}, gen));
-    npygl::py_error_exit();
-    npygl::cc_capsule_view view{capsule};
-    npygl::py_error_exit();
-    // print the type name + tensor contents
-    const auto& ten = *view.as<torch::Tensor>();
-    std::cout << "-- " << npygl::type_name(view.info()) << std::endl;
-    std::cout << ten << std::endl;
+    capsule_test(torch::randn({2, 3, 4}, gen));
   }
 #endif  // NPYGL_HAS_LIBTORCH
   return EXIT_SUCCESS;
