@@ -38,6 +38,24 @@
 
 namespace {
 
+/**
+ * Throwaway type that does not have a `operator<<` defined for it.
+ */
+struct not_ostreamable_type {};
+
+/**
+ * Throwaway type that *does* have a `operator<<` defined for it.
+ */
+struct ostreamable_type {};
+
+/**
+ * Extraction operator for the `ostreamable_type`.
+ */
+auto& operator<<(std::ostream& out, ostreamable_type /*v*/)
+{
+  return out << npygl::type_name(typeid(ostreamable_type));
+}
+
 // test driver type
 using driver_type = npygl::testing::traits_checker_driver<
   // is_pair
@@ -233,6 +251,21 @@ using driver_type = npygl::testing::traits_checker_driver<
         double[][32][16],
         npygl::testing::traits_value_is_equal<unsigned, 1>
       >
+    >
+  >,
+  // is_ostreamable
+  npygl::testing::traits_checker<
+    npygl::is_ostreamable,
+    std::tuple<
+      int,
+      double,
+      char,
+      const char*,
+      std::string,
+      // no one should have an operator<< for this
+      std::pair<std::tuple<std::tuple<std::tuple<std::string>>>, std::false_type>,
+      std::pair<not_ostreamable_type, std::false_type>,
+      ostreamable_type
     >
   >
 >;

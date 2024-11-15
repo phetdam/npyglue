@@ -10,6 +10,7 @@
 
 #include <array>
 #include <cstdint>
+#include <iosfwd>
 #include <tuple>
 #include <type_traits>
 #include <utility>
@@ -482,6 +483,33 @@ static constexpr auto static_size_v = static_size<T>::value;
  */
 template <typename T>
 using static_size_t = std::enable_if_t<has_static_size_v<T>>;
+
+/**
+ * Traits type for a object streamable to a `std::ostream`.
+ *
+ * @tparam T type
+ */
+template <typename T, typename = void>
+struct is_ostreamable : std::false_type {};
+
+/**
+ * True specialization for an object streamable to a `std::ostream`.
+ *
+ * @tparam T type
+ */
+template <typename T>
+struct is_ostreamable<
+  T,
+  std::void_t<decltype(std::declval<std::ostream>() << std::declval<T>())> >
+  : std::true_type {};
+
+/**
+ * Helper to indicate if a type is streamable to `std::ostream`.
+ *
+ * @tparam T type
+ */
+template <typename T>
+constexpr bool is_ostreamable_v = is_ostreamable<T>::value;
 
 }  // namespace npygl
 
