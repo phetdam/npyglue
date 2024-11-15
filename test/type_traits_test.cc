@@ -18,6 +18,7 @@
 
 #include "npygl/testing/traits_checker.hh"
 #include "npygl/type_traits.hh"
+#include "npygl/warnings.h"
 
 // repurpose this preprocessor definition so we can compile this source file as
 // a smoke test for using llvm::itaniumDemangle on driver_type. we have noted
@@ -48,6 +49,9 @@ struct not_ostreamable_type {};
  */
 struct ostreamable_type {};
 
+// silence MSVC C5245 about unreferenced function with internal linkage removed
+NPYGL_MSVC_WARNING_PUSH()
+NPYGL_MSVC_WARNING_DISABLE(5245)
 /**
  * Extraction operator for the `ostreamable_type`.
  */
@@ -55,6 +59,7 @@ auto& operator<<(std::ostream& out, ostreamable_type /*v*/)
 {
   return out << npygl::type_name(typeid(ostreamable_type));
 }
+NPYGL_MSVC_WARNING_POP()
 
 // test driver type
 using driver_type = npygl::testing::traits_checker_driver<
