@@ -248,6 +248,10 @@ endif()
 add_executable(type_traits_test type_traits_test.cc)
 add_test(NAME type_traits_test COMMAND type_traits_test)
 
+# ostream_test: C++ ostream extensions test
+add_executable(ostream_test ostream_test.cc)
+add_test(NAME ostream_test COMMAND ostream_test)
+
 # traits_checker_test: C++ traits_checker.hh functionality tests
 # add_executable(traits_checker_test traits_checker_test.cc)
 # add_test(NAME traits_checker_test COMMAND traits_checker_test)
