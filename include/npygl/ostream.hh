@@ -10,6 +10,7 @@
 
 #include <iostream>
 #include <ostream>
+#include <mutex>
 
 #include "npygl/demangle.hh"
 #include "npygl/features.h"
@@ -82,6 +83,64 @@ private:
 // drop-in replacements for standard output streams
 inline ostream_wrapper cout{std::cout};
 inline ostream_wrapper cerr{std::cerr};
+
+/**
+ * Synchronized output stream wrapper that enables any type to be streamed.
+ */
+class synced_ostream_wrapper {
+public:
+  /**
+   * Ctor.
+   *
+   * @param out Output stream reference
+   */
+  synced_ostream_wrapper(std::ostream& out) noexcept : out_{out} {}
+
+  /**
+   * Insert a value into the underlying stream.
+   *
+   * Calls `ostream_wrapper::operator<<` but ensures non-interleaved output
+   * when called concurrently from multiple threads.
+   *
+   * @tparam T type
+   *
+   * @param obj Object to stream
+   */
+  template <typename T>
+  auto& operator<<(const T& obj)
+  {
+    std::lock_guard locker{mut_};
+    out_ << obj;
+    return *this;
+  }
+
+  /**
+   * Call an I/O manipulator on the underlying stream.
+   *
+   * This allows `std::endl`, `std::flush`, etc. to work correctly while
+   * ensuring non-interleaved output when called concurrently.
+   *
+   * @param func I/O manipulator function
+   */
+  auto& operator<<(std::ostream& (*func)(std::ostream&))
+  {
+    std::lock_guard locker{mut_};
+    out_ << func;
+    return *this;
+  }
+
+private:
+  std::mutex mut_;
+  ostream_wrapper out_;
+};
+
+namespace synced {
+
+// synchronized replacements for standard output streams
+inline synced_ostream_wrapper cout{std::cout};
+inline synced_ostream_wrapper cerr{std::cerr};
+
+}  // namespace synced
 
 }  // namespace npygl
 
