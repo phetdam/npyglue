@@ -267,7 +267,7 @@ using driver_type = npygl::testing::traits_checker_driver<
       char,
       const char*,
       std::string,
-      // no one should have an operator<< for this
+      std::pair<std::vector<std::pmr::vector<unsigned>>, std::false_type>,
       std::pair<std::tuple<std::tuple<std::tuple<std::string>>>, std::false_type>,
       std::pair<not_ostreamable_type, std::false_type>,
       ostreamable_type
