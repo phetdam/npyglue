@@ -6,7 +6,7 @@
  */
 
 #ifndef NPYGL_OSTREAM_HH_
-#define NPYFL_OSTREAM_HH_
+#define NPYGL_OSTREAM_HH_
 
 #include <iostream>
 #include <ostream>
@@ -144,4 +144,4 @@ inline synced_ostream_wrapper cerr{std::cerr};
 
 }  // namespace npygl
 
-#endif  // NPYFL_OSTREAM_HH_
+#endif  // NPYGL_OSTREAM_HH_

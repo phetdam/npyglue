@@ -83,40 +83,35 @@ auto& operator<<(std::ostream& out, const std::vector<value_wrapper<T>, A>& vec)
  * @tparam Ts... Input types
  */
 template <typename... Ts>
-class ostream_wrapper_tester {
-public:
+struct ostream_wrapper_tester {
   /**
-   * Ctor.
+   * Execute the tests for each input type.
    *
    * @param out Output stream to write to
    */
-  ostream_wrapper_tester(std::ostream& out = std::cout) noexcept : out_{out} {}
-
-  /**
-   * Execute the tests for each input type.
-   */
-  void operator()()
+  void operator()(std::ostream& out = std::cout) const
   {
+    npygl::ostream_wrapper sink{out};
     // for each input
     (
-      [this]
+      [&sink]
       {
+        // print test header
+        // FIXME: we actually want the type of the input
+        sink << "Test " << npygl::type_name(typeid(Ts)) << '\n';
         // if invocable, use invoked value
         if constexpr (std::is_invocable_v<Ts>)
-          out_ << Ts{}() << '\n';
+          sink << Ts{}() << '\n';
         // else assume it has the static value member
         else
-          out_ << Ts::value << '\n';
+          sink << Ts::value << '\n';
       }()
       ,
       ...
     );
     // ensure all results are written
-    out_ << std::flush;
+    sink << std::flush;
   }
-
-private:
-  npygl::ostream_wrapper out_;
 };
 
 /**
@@ -126,9 +121,7 @@ private:
  */
 template <typename... Ts>
 struct ostream_wrapper_tester<std::tuple<Ts...>>
-  : ostream_wrapper_tester<Ts...> {
-  using ostream_wrapper_tester<Ts...>::ostream_wrapper_tester;
-};
+  : ostream_wrapper_tester<Ts...> {};
 
 /**
  * Type to hold a double input.
@@ -221,12 +214,14 @@ using input_types = std::tuple<
   set_input
 >;
 
+// sequential stream test driver
+constexpr ostream_wrapper_tester<input_types> tester;
+
 }  // namespace
 
 int main()
 {
   // run sequential stream tests
-  ostream_wrapper_tester<input_types> tester{std::cout};
   tester();
   return EXIT_SUCCESS;
 }
