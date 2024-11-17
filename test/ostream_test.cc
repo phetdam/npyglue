@@ -8,6 +8,10 @@
 #include <cstdlib>
 #include <map>
 #include <ostream>
+#include <set>
+#include <thread>
+#include <tuple>
+#include <type_traits>
 #include <utility>
 #include <vector>
 
@@ -45,6 +49,17 @@ private:
 };
 
 /**
+ * Insertion operator for the value wrapper.
+ *
+ * @tparam T type
+ */
+template <typename T>
+auto& operator<<(std::ostream& out, const value_wrapper<T>& value)
+{
+  return out << value.value();
+}
+
+/**
  * Insertion operator for a vector with value wrapper instances.
  *
  * @tparam T type
@@ -57,39 +72,165 @@ auto& operator<<(std::ostream& out, const std::vector<value_wrapper<T>, A>& vec)
   for (decltype(vec.size()) i = 0; i < vec.size(); i++) {
     if (i)
       out << ", ";
-    out << vec[i].value();
+    out << vec[i];
   }
   return out << ']';
 }
+
+/**
+ * Test driver for the output stream wrapper.
+ *
+ * Each input type should be either a `std::integral_constant<T, v_>`, a type
+ * that has a static `value` member, or an invocable type where invocation
+ * returns the input value to use for the test case.
+ *
+ * @tparam Ts... Input types
+ */
+template <typename... Ts>
+class ostream_wrapper_tester {
+public:
+  /**
+   * Ctor.
+   *
+   * @param out Output stream to write to
+   */
+  ostream_wrapper_tester(std::ostream& out = std::cout) noexcept : out_{out} {}
+
+  /**
+   * Execute the tests for each input type.
+   */
+  void operator()()
+  {
+    // for each input
+    (
+      [this]
+      {
+        // if invocable, use invoked value
+        if constexpr (std::is_invocable_v<Ts>)
+          out_ << Ts{}() << '\n';
+        // else assume it has the static value member
+        else
+          out_ << Ts::value << '\n';
+      }()
+      ,
+      ...
+    );
+    // ensure all results are written
+    out_ << std::flush;
+  }
+
+private:
+  npygl::ostream_wrapper out_;
+};
+
+/**
+ * Partial specialization for a tuple of input types.
+ *
+ * @tparam Ts... Input types
+ */
+template <typename... Ts>
+struct ostream_wrapper_tester<std::tuple<Ts...>>
+  : ostream_wrapper_tester<Ts...> {
+  using ostream_wrapper_tester<Ts...>::ostream_wrapper_tester;
+};
+
+/**
+ * Type to hold a double input.
+ *
+ * Necessary as pre-C++20 non-type template params don't allow floating types.
+ */
+struct double_input {
+  static constexpr auto value = 1.45;
+};
+
+/**
+ * Type to hold the `not_ostreamable_type` input.
+ *
+ * Necessary as pre-C++20 non-type template params don't allow user-defined
+ * literal types, just the integral, enum, pointer, etc.
+ */
+struct not_ostreamable_type_input {
+  static constexpr not_ostreamable_type value{};
+};
+
+/**
+ * Callable that returns a `std::map`.
+ */
+struct map_input {
+  std::map<std::string, double> operator()() const
+  {
+    return {{"a", 1.4}, {"b", 1.334}, {"c", 5.66}};
+  }
+};
+
+/**
+ * Type to hold a string literal input.
+ */
+struct cstring_input {
+  static constexpr auto value = "the quick brown fox jumped over the lazy dog";
+};
+
+/**
+ * Callable that returns a `std::string`.
+ */
+struct string_input {
+  std::string operator()() const
+  {
+    return "this is a short sentence";
+  }
+};
+
+/**
+ * Callable that returns a `std::vector`.
+ */
+struct vector_input {
+  std::vector<double> operator()() const
+  {
+    return {1., 3.44, 1.232, 1.554, 1.776};
+  }
+};
+
+/**
+ * Callable that returns a `std::vector<value_wrapper<T>>`.
+ */
+struct value_wrapper_vector_input {
+  std::vector<value_wrapper<unsigned>> operator()() const
+  {
+    return {1u, 2u, 3u, 4u, 5u, 6u};
+  }
+};
+
+/**
+ * Callable that returns a `std::set`.
+ */
+struct set_input {
+  std::set<double> operator()() const
+  {
+    return {1., 3.22, 4.23, 4.233, 5.151};
+  }
+};
+
+/**
+ * Output stream wrapper input types.
+ */
+using input_types = std::tuple<
+  std::integral_constant<int, 5>,
+  double_input,
+  not_ostreamable_type_input,
+  map_input,
+  cstring_input,
+  string_input,
+  vector_input,
+  value_wrapper_vector_input,
+  set_input
+>;
 
 }  // namespace
 
 int main()
 {
-  // int
-  npygl::cout << 5 << std::endl;
-  // double
-  npygl::cout << 1.45 << std::endl;
-  // not_ostreamable_type
-  npygl::cout << not_ostreamable_type{} << std::endl;
-  // std::map
-  {
-    std::map<std::string, double> map{{"a", 1.4}, {"b", 1.334}, {"c", 5.66}};
-    npygl::cout << map << std::endl;
-  }
-  // string literal
-  npygl::cout << "the quick brown fox jumped over the lazy dog" << std::endl;
-  // std::string
-  npygl::cout << std::string{"this is a short sentence"} << std::endl;
-  // std::vector
-  {
-    std::vector<double> vec{1., 3.44, 1.232, 1.554, 1.776};
-    npygl::cout << vec << std::endl;
-  }
-  // std::vector<value_wrapper<T>> (operator<< defined)
-  {
-    std::vector<value_wrapper<unsigned>> vec{1u, 2u, 3u, 4u, 5u, 6u};
-    npygl::cout << vec << std::endl;
-  }
+  // run sequential stream tests
+  ostream_wrapper_tester<input_types> tester{std::cout};
+  tester();
   return EXIT_SUCCESS;
 }
