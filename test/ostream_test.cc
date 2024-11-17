@@ -16,13 +16,9 @@
 #include <vector>
 
 #include "npygl/ostream.hh"
+#include "npygl/testing/ostream.hh"
 
 namespace {
-
-/**
- * Non-streamable type.
- */
-struct not_ostreamable_type {};
 
 /**
  * Type wrapper.
@@ -150,7 +146,7 @@ struct double_input {
  * literal types, just the integral, enum, pointer, etc.
  */
 struct not_ostreamable_type_input {
-  static constexpr not_ostreamable_type value{};
+  static constexpr npygl::testing::not_ostreamable_type value{};
 };
 
 /**

@@ -16,6 +16,7 @@
 #include <utility>
 #include <vector>
 
+#include "npygl/testing/ostream.hh"
 #include "npygl/testing/traits_checker.hh"
 #include "npygl/type_traits.hh"
 #include "npygl/warnings.h"
@@ -38,28 +39,6 @@
 #endif  // defined(NPYGL_USE_LLVM_DEMANGLE)
 
 namespace {
-
-/**
- * Throwaway type that does not have a `operator<<` defined for it.
- */
-struct not_ostreamable_type {};
-
-/**
- * Throwaway type that *does* have a `operator<<` defined for it.
- */
-struct ostreamable_type {};
-
-// silence MSVC C5245 about unreferenced function with internal linkage removed
-NPYGL_MSVC_WARNING_PUSH()
-NPYGL_MSVC_WARNING_DISABLE(5245)
-/**
- * Extraction operator for the `ostreamable_type`.
- */
-auto& operator<<(std::ostream& out, ostreamable_type /*v*/)
-{
-  return out << npygl::type_name(typeid(ostreamable_type));
-}
-NPYGL_MSVC_WARNING_POP()
 
 // test driver type
 using driver_type = npygl::testing::traits_checker_driver<
@@ -269,8 +248,8 @@ using driver_type = npygl::testing::traits_checker_driver<
       std::string,
       std::pair<std::vector<std::pmr::vector<unsigned>>, std::false_type>,
       std::pair<std::tuple<std::tuple<std::tuple<std::string>>>, std::false_type>,
-      std::pair<not_ostreamable_type, std::false_type>,
-      ostreamable_type
+      std::pair<npygl::testing::not_ostreamable_type, std::false_type>,
+      npygl::testing::ostreamable_type
     >
   >
 >;
