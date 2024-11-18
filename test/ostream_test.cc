@@ -75,6 +75,57 @@ auto& operator<<(std::ostream& out, const std::vector<value_wrapper<T>, A>& vec)
 }
 
 /**
+ * Traits type to get the stream wrapper tested type from the input type.
+ *
+ * Input types have either a static `value` member or are invocable.
+ *
+ * @tparam T type
+ */
+template <typename T, typename = void>
+struct tester_input_type {};
+
+/**
+ * Partial specialization for a `std::integral_constant<T, v_>`.
+ *
+ * This is necessary because it has both `value` and `operator()`.
+ *
+ * @tparam T type
+ * @tparam v_ value
+ */
+template <typename T, T v_>
+struct tester_input_type<std::integral_constant<T, v_>, void> {
+  using type = T;
+};
+
+/**
+ * True specialization for a valid input type with a `value` member.
+ *
+ * @tparam T type
+ */
+template <typename T>
+struct tester_input_type<T, std::void_t<decltype(T::value)>> {
+  using type = decltype(T::value);
+};
+
+/**
+ * True specialization for a valid callable input type.
+ *
+ * @tparam T type
+ */
+template <typename T>
+struct tester_input_type<T, std::void_t<decltype(std::declval<T>()())>> {
+  using type = decltype(std::declval<T>()());
+};
+
+/**
+ * Type alias for the input type in the stream wrapper input type.
+ *
+ * @tparam T Input case type
+ */
+template <typename T>
+using tester_input_type_t = typename tester_input_type<T>::type;
+
+/**
  * Test driver for the output stream wrapper.
  *
  * Each input type should be either a `std::integral_constant<T, v_>`, a type
@@ -99,8 +150,8 @@ struct ostream_wrapper_tester {
       [&sink]
       {
         // print test header
-        // FIXME: we actually want the type of the input
-        sink << "Test " << npygl::type_name(typeid(Ts)) << '\n';
+        sink << "-- " << npygl::type_name(typeid(Ts)) << " [type = " <<
+          npygl::type_name(typeid(tester_input_type_t<Ts>)) << "]\n";
         // if invocable, use invoked value
         if constexpr (std::is_invocable_v<Ts>)
           sink << Ts{}() << std::endl;
@@ -167,9 +218,9 @@ public:
               // ensures writes are sequential in this scope
               std::lock_guard locker{sink.mut()};
               // print test header
-              // FIXME: we actually want the type of the input
-              sink << "Test " << npygl::type_name(typeid(Ts)) <<
-                " (" << i << ")\n";
+              sink << "-- " << npygl::type_name(typeid(Ts)) <<
+                " (" << i << ") [type = " <<
+                npygl::type_name(typeid(tester_input_type_t<Ts>)) << "]\n";
               // if invocable, use invoked value
               if constexpr (std::is_invocable_v<Ts>)
                 sink << Ts{}() << std::endl;
