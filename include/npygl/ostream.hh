@@ -86,6 +86,10 @@ inline ostream_wrapper cerr{std::cerr};
 
 /**
  * Synchronized output stream wrapper that enables any type to be streamed.
+ *
+ * @note Although any call to `operator<<` is synchronized and so will not be
+ *  interrupted by concurrent calls to `operator<<`, mutex locking is required
+ *  in order for an entire series of `operator<<` calls to be uninterrupted.
  */
 class synced_ostream_wrapper {
 public:
@@ -97,10 +101,23 @@ public:
   synced_ostream_wrapper(std::ostream& out) noexcept : out_{out} {}
 
   /**
+   * Return reference to the associated mutex.
+   *
+   * To ensure multiple stream insertions are performed sequentially by the
+   * calling thread this should be managed via `lock_guard` or `scoped_lock`.
+   */
+  auto& mut() noexcept
+  {
+    return mut_;
+  }
+
+  /**
    * Insert a value into the underlying stream.
    *
    * Calls `ostream_wrapper::operator<<` but ensures non-interleaved output
    * when called concurrently from multiple threads.
+   *
+   * @note If multiple calls must be made uninterrupted, acquire the mutex.
    *
    * @tparam T type
    *
@@ -120,6 +137,8 @@ public:
    * This allows `std::endl`, `std::flush`, etc. to work correctly while
    * ensuring non-interleaved output when called concurrently.
    *
+   * @note If multiple calls must be made uninterrupted, acquire the mutex.
+   *
    * @param func I/O manipulator function
    */
   auto& operator<<(std::ostream& (*func)(std::ostream&))
@@ -130,7 +149,8 @@ public:
   }
 
 private:
-  std::mutex mut_;
+  // note: recursive mutex for multiple operator<< calls in one thread
+  std::recursive_mutex mut_;
   ostream_wrapper out_;
 };
 

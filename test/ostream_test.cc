@@ -7,6 +7,7 @@
 
 #include <cstdlib>
 #include <map>
+#include <mutex>
 #include <ostream>
 #include <set>
 #include <thread>
@@ -92,6 +93,7 @@ struct ostream_wrapper_tester {
   void operator()(std::ostream& out = std::cout) const
   {
     npygl::ostream_wrapper sink{out};
+    sink << "Running " << sizeof...(Ts) << " test inputs..." << std::endl;
     // for each input
     (
       [&sink]
@@ -101,16 +103,15 @@ struct ostream_wrapper_tester {
         sink << "Test " << npygl::type_name(typeid(Ts)) << '\n';
         // if invocable, use invoked value
         if constexpr (std::is_invocable_v<Ts>)
-          sink << Ts{}() << '\n';
+          sink << Ts{}() << std::endl;
         // else assume it has the static value member
         else
-          sink << Ts::value << '\n';
+          sink << Ts::value << std::endl;
       }()
       ,
       ...
     );
-    // ensure all results are written
-    sink << std::flush;
+    sink << "Finished " << sizeof...(Ts) << " test inputs" << std::endl;
   }
 };
 
@@ -122,6 +123,86 @@ struct ostream_wrapper_tester {
 template <typename... Ts>
 struct ostream_wrapper_tester<std::tuple<Ts...>>
   : ostream_wrapper_tester<Ts...> {};
+
+/**
+ * Test driver for the synchronized stream wrapper.
+ *
+ * Each input type should be either a `std::integral_constant<T, v_>`, a type
+ * that has a static `value` member, or an invocable type where invocation
+ * returns the input value to use for the test case.
+ *
+ * @tparam Ts... Input types
+ */
+template <typename... Ts>
+class synced_ostream_wrapper_tester {
+public:
+  /**
+   * Ctor.
+   *
+   * @param repeats Number of times to re-schedule the given input types
+   */
+  constexpr synced_ostream_wrapper_tester(unsigned repeats = 1u) noexcept
+    : repeats_{repeats}
+  {}
+
+  /**
+   * Execute the tests for each input type concurrently.
+   *
+   * @param out Output stream to write to
+   */
+  void operator()(std::ostream& out = std::cout) const
+  {
+    npygl::synced_ostream_wrapper sink{out};
+    sink << "Running " << sizeof...(Ts) << " test inputs repeated " <<
+      repeats_ << " times concurrently..." << std::endl;
+    // threads to launch
+    std::vector<std::thread> tasks;
+    // for the given number of repeat counts * each input
+    for (unsigned i = 0; i < repeats_; i++)
+      (
+        tasks.emplace_back(
+          std::thread{
+            [&sink, i]
+            {
+              // ensures writes are sequential in this scope
+              std::lock_guard locker{sink.mut()};
+              // print test header
+              // FIXME: we actually want the type of the input
+              sink << "Test " << npygl::type_name(typeid(Ts)) <<
+                " (" << i << ")\n";
+              // if invocable, use invoked value
+              if constexpr (std::is_invocable_v<Ts>)
+                sink << Ts{}() << std::endl;
+              // else assume it has the static value member
+              else
+                sink << Ts::value << std::endl;
+            }
+          }
+        )
+        ,
+        ...
+      );
+    // join all threads
+    for (auto& task : tasks)
+      task.join();
+    sink << "Finished " << sizeof...(Ts) << " test inputs repeated " <<
+      repeats_ << " times concurrently" << std::endl;
+  }
+
+private:
+  unsigned repeats_;
+};
+
+/**
+ * Partial specialization for a tuple of input types.
+ *
+ * @tparam Ts... Input types
+ */
+template <typename... Ts>
+struct synced_ostream_wrapper_tester<std::tuple<Ts...>>
+  : synced_ostream_wrapper_tester<Ts...> {
+  using synced_ostream_wrapper_tester<Ts...>::synced_ostream_wrapper_tester;
+};
 
 /**
  * Type to hold a double input.
@@ -216,6 +297,8 @@ using input_types = std::tuple<
 
 // sequential stream test driver
 constexpr ostream_wrapper_tester<input_types> tester;
+// synchronized concurrent stream test driver
+constexpr synced_ostream_wrapper_tester<input_types> sync_tester{100};
 
 }  // namespace
 
@@ -223,5 +306,7 @@ int main()
 {
   // run sequential stream tests
   tester();
+  // run concurrent synchronized stream tests
+  sync_tester();
   return EXIT_SUCCESS;
 }
