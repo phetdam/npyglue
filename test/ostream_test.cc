@@ -97,6 +97,8 @@ struct tester_input_type<std::integral_constant<T, v_>, void> {
   using type = T;
 };
 
+// FIXME: need to prevent C2953 class template already defined for MSVC
+
 /**
  * True specialization for a valid input type with a `value` member.
  *
