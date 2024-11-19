@@ -63,21 +63,25 @@
 #include "npygl/features.h"
 #include "npygl/python.hh"
 #include "npygl/range_views.hh"
+#include "npygl/warnings.h"
 
 // C++20
 #if NPYGL_HAS_CC_20
 #include <span>
 #endif  // !NPYGL_HAS_CC_20
 
-// Eigen 3 if desired
-#if NPYGL_HAS_EIGEN3 && !defined(NPYGL_NO_EIGEN3)
-#include <Eigen/Core>
-#endif  // NPYGL_HAS_EIGEN3 && !defined(NPYGL_NO_EIGEN3)
-
 // Armadillo if desired
 #if NPYGL_HAS_ARMADILLO && !defined(NPYGL_NO_ARMADILLO)
 #include <armadillo>
 #endif  // NPYGL_HAS_ARMADILLO && !defined(NPYGL_NO_ARMADILLO)
+// Eigen 3 if desired
+#if NPYGL_HAS_EIGEN3 && !defined(NPYGL_NO_EIGEN3)
+#include <Eigen/Core>
+#endif  // NPYGL_HAS_EIGEN3 && !defined(NPYGL_NO_EIGEN3)
+// PyTorch C++ (LibTorch) if desired
+#if NPYGL_HAS_LIBTORCH && !defined(NPYGL_NO_LIBTORCH)
+#include <torch/torch.h>
+#endif  // NPYGL_HAS_LIBTORCH && !defined(NPYGL_NO_LIBTORCH)
 
 namespace npygl {
 
@@ -793,6 +797,170 @@ struct ndarray_capsule_builder<
   }
 };
 #endif  // !NPYGL_HAS_ARMADILLO || defined(NPYGL_NO_ARMADILLO)
+
+// enable if we have PyTorch C++ headers unless NPYGL_NO_LIBTORCH is defined
+#if NPYGL_HAS_LIBTORCH && !defined(NPYGL_NO_LIBTORCH)
+/**
+ * Get the corresponding NumPy type value from a PyTorch data type.
+ *
+ * On error `NPY_NOTYPE` is returned (not a valid type).
+ *
+ * @param type PyTorch data type
+ */
+constexpr NPY_TYPES npy_type(at::ScalarType type) noexcept
+{
+  switch (type) {
+    case at::ScalarType::Bool:
+      return NPY_BOOL;
+    case at::ScalarType::Char:
+      return NPY_BYTE;
+    case at::ScalarType::Short:
+      return NPY_SHORT;
+    case at::ScalarType::Int:
+      return NPY_INT;
+    case at::ScalarType::Long:
+      return NPY_LONGLONG;
+    case at::ScalarType::Byte:
+      return NPY_UBYTE;
+    case at::ScalarType::UInt16:
+      return NPY_USHORT;
+    case at::ScalarType::UInt32:
+      return NPY_UINT;
+    case at::ScalarType::UInt64:
+      return NPY_ULONGLONG;
+    case at::ScalarType::Half:
+      return NPY_HALF;
+    case at::ScalarType::Float:
+      return NPY_FLOAT;
+    case at::ScalarType::Double:
+      return NPY_DOUBLE;
+    case at::ScalarType::ComplexFloat:
+      return NPY_CFLOAT;
+    case at::ScalarType::ComplexDouble:
+      return NPY_CDOUBLE;
+    default:
+      return NPY_NOTYPE;
+  }
+}
+
+/**
+ * NumPy array builder for a capsule holding a PyTorch tensor.
+ *
+ * The PyTorch tensor's type is given at runtime so this class is non-template.
+ *
+ * @note PyTorch provides an API for creating custom operators that should use
+ *  pybind11 to wrap the native ``Tensor`` back into Python. This class is more
+ *  of a curiosity than for practical usage unless you really want to convert a
+ *  PyTorch tensor object into a plain NumPy array.
+ */
+template <>
+struct ndarray_capsule_builder<torch::Tensor>
+  : ndarray_capsule_builder_base<ndarray_capsule_builder<torch::Tensor>> {
+private:
+  /**
+   * Validate and convert a PyTorch dtype to the NumPy type enum value.
+   *
+   * On error `NPY_NOTYPE` is returned and a Python exception is set.
+   *
+   * @param dtype PyTorch dtype
+   */
+  auto convert_type(caffe2::TypeMeta dtype) const
+  {
+    // note: we can use C10_UNLIKELY here since this branch is highly unlikely
+    if (C10_UNLIKELY(!dtype.isScalarType())) {
+      // note: technically does not provide noexcept guarantee
+      std::stringstream ss;
+      ss << NPYGL_PRETTY_FUNCTION_NAME <<
+        ": torch::Tensor cannot have non-scalar dtype " << dtype.name();
+      PyErr_SetString(PyExc_TypeError, ss.str().c_str());
+      return NPY_NOTYPE;
+    }
+    // attempt to convert PyTorch scalar type to NumPy type
+    // note: toScalarType should not fail since valid tensor types are scalar
+    auto stype = dtype.toScalarType();
+    auto type = npy_type(stype);
+    // unsupported PyTorch scalar type
+    if (type == NPY_NOTYPE) {
+      std::stringstream ss;
+      ss << NPYGL_PRETTY_FUNCTION_NAME << ": torch::Tensor scalar dtype " <<
+        stype << " is unsupported";
+      PyErr_SetString(PyExc_TypeError, ss.str().c_str());
+      return NPY_NOTYPE;
+    }
+    // success
+    return type;
+  }
+
+public:
+  using object_type = torch::Tensor;
+
+  /**
+   * Create a NumPy array backed by a PyTorch tensor.
+   *
+   * @note This overload does not validate the capsule or the object pointer.
+   *
+   * @param cap Python capsule following `cc_capsule_view` protocol
+   * @param cap_cube Pointer to C++ PyTorch tensor retrieved from the capsule
+   */
+  py_object operator()(py_object&& cap, object_type* cap_ten) const noexcept
+  {
+    // get tensor type as NumPy type
+    auto type = convert_type(cap_ten->dtype());
+    // ensure strided (NumPy only works with strided, dense representations)
+    if (cap_ten->layout() != c10::Layout::Strided) {
+      PyErr_SetString(
+        PyExc_ValueError,
+        "only strided (dense) torch::Tensor can be converted to a NumPy array"
+      );
+      return {};
+    }
+    // get number of dimensions
+    auto n_dim = cap_ten->dim();
+    // TODO: can optimize for low-dimension tensor, e.g. d <= 4, by using a
+    // std::pmr::vector<npy_intp> allocated from a monotonic_buffer_resource
+    // where the initial buffer is a npy_intp[4] array
+NPYGL_MSVC_WARNING_PUSH()
+NPYGL_MSVC_WARNING_DISABLE(4365)  // signed/unsigned mismatch
+    std::vector<npy_intp> dims(n_dim);
+    for (decltype(n_dim) i = 0; i < n_dim; i++)
+      dims[i] = cap_ten->size(i);
+    // get strides
+    std::vector<npy_intp> strides(n_dim);
+    for (decltype(n_dim) i = 0; i < n_dim; i++)
+      strides[i] = cap_ten->stride(i);
+NPYGL_MSVC_WARNING_POP()
+    // create new NumPy array from tensor
+    py_object ar{
+      PyArray_New(
+        &PyArray_Type,                // subtype
+NPYGL_MSVC_WARNING_PUSH()
+NPYGL_MSVC_WARNING_DISABLE(4244)  // possible loss of data due to narrowing
+        n_dim,                        // nd
+NPYGL_MSVC_WARNING_POP()
+        // FIXME: if sizeof(npy_intp) == sizeof(decltype(cap_ten->size(0))),
+        // which is typically int64_t, then we can alias directly and not copy
+        dims.data(),                  // dims
+        type,                         // type_num
+        // FIXME: like with dims, if sizeof(npy_intp) ==
+        // sizeof(decltype(cap_ten->stride(0))), we can alias directly
+        strides.data(),               // strides
+        cap_ten->mutable_data_ptr(),  // data
+        0,                            // itemsize (ignored)
+        // FIXME: if possible we should specify NPY_ARRAY_CARRAY or
+        // NPY_ARRAY_FARRAY depending on the strides
+        NPY_ARRAY_BEHAVED,            // flags (aligned, unknown ordering)
+        nullptr                       // obj (ignored)
+      )
+    };
+    if (!ar)
+      return {};
+    // set base object so NumPy array owns the capsule
+    if (PyArray_SetBaseObject(ar.as<PyArrayObject>(), cap.release()) < 0)
+      return {};
+    return ar;
+  }
+};
+#endif  // NPYGL_HAS_LIBTORCH && !defined(NPYGL_NO_LIBTORCH)
 
 /**
  * NumPy array builder for working with a number of capsule types.

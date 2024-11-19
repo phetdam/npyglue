@@ -83,11 +83,15 @@ if(Python3_Development_FOUND AND Python3_NumPy_FOUND)
         LIBRARIES Python3::NumPy
         USE_RELEASE_CRT ${PY_MSVC_ALWAYS_RELEASE}
     )
-    # not using Armadillo currently (may change later)
-    target_compile_definitions(npy_helpers_test PRIVATE NPYGL_NO_ARMADILLO)
     # enable Eigen features if available
     if(Eigen3_FOUND)
         target_link_libraries(npy_capsule_test PRIVATE Eigen3::Eigen)
+    endif()
+    # enable LibTorch features if available
+    if(TORCH_FOUND)
+        npygl_use_release_crt(npy_capsule_test ON)
+        target_link_libraries(npy_capsule_test PRIVATE npygl::Torch)
+        npygl_copy_torch_dlls(npy_capsule_test)
     endif()
     add_test(NAME npy_capsule_test COMMAND npy_capsule_test)
 endif()
@@ -281,12 +285,10 @@ if(TORCH_FOUND)
     # Torch C++ DLLs are linked against release C runtime
     npygl_use_release_crt(torch_test ON)
     target_link_libraries(torch_test PRIVATE npygl::Torch)
+    npygl_copy_torch_dlls(torch_test)
     if(Eigen3_FOUND)
         target_link_libraries(torch_test PRIVATE Eigen3::Eigen)
     endif()
-    # TODO: post-build copy is kind of slow (and runs more often than expected)
-    # so maybe it's better to have a pre-build target that does the copy
-    npygl_copy_torch_dlls(torch_test)
     add_test(NAME torch_test COMMAND torch_test)
 endif()
 

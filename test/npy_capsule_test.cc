@@ -16,6 +16,16 @@
 #include "npygl/ndarray.hh"
 #include "npygl/python.hh"
 
+#if NPYGL_HAS_ARMADILLO
+#include <armadillo>
+#endif  // NPYGL_HAS_ARMADILLO
+#if NPYGL_HAS_EIGEN3
+#include <Eigen/Core>
+#endif  // NPYGL_HAS_EIGEN3
+#if NPYGL_HAS_LIBTORCH
+#include <torch/torch.h>
+#endif  // NPYGL_HAS_LIBTORCH
+
 // TODO: consider having this not be a giant main() function
 
 int main()
@@ -87,6 +97,14 @@ int main()
   auto arv_ar = npygl::make_ndarray(arma::rowvec{5., 4.33, 2.433, 1.22, 4.34});
   npygl::py_error_exit();
 #endif  // NPYGL_HAS_ARMADILLO
+#if NPYGL_HAS_LIBTORCH
+  // PyTorch generator object for reproducibility. no need to acquire impl
+  // mutex in single-threaded runtime like for this program
+  auto gen = at::make_generator<at::CPUGeneratorImpl>();
+  // create a NumPy array backed by a random PyTorch float tensor
+  auto t_ar = npygl::make_ndarray(torch::randn({2, 3, 4}, gen));
+  npygl::py_error_exit();
+#endif  // NPYGL_HAS_LIBTORCH
   // create a "normal" NumPy array
   auto ar_init = Py_BuildValue("ddddd", 3.4, 1.222, 6.745, 5.2, 5.66, 7.333);
   npygl::py_error_exit();
@@ -109,6 +127,9 @@ int main()
     "-- arma::fvec\n" << av_ar << '\n' <<
     "-- arma::rowvec\n" << arv_ar << '\n' <<
 #endif  // NPYGL_HAS_ARMADILLO
+#if NPYGL_HAS_LIBTORCH
+    "-- torch::Tensor\n" << t_ar << '\n' <<
+#endif  // NPYGL_HAS_LIBTORCH
     "-- tuple[double]\n" << ar << '\n' << std::endl;
   npygl::py_error_exit();
   // get base objects for each array
@@ -124,6 +145,9 @@ int main()
   auto av_base = PyArray_BASE(av_ar.as<PyArrayObject>());
   auto arv_base = PyArray_BASE(arv_ar.as<PyArrayObject>());
 #endif  // NPYGL_HAS_ARMADILLO
+#if NPYGL_HAS_LIBTORCH
+  auto t_base = PyArray_BASE(t_ar.as<PyArrayObject>());
+#endif  // NPYGL_HAS_LIBTORCH
   auto base = PyArray_BASE(ar.as<PyArrayObject>());
   // print base objects for each array
   std::cout <<
@@ -142,6 +166,9 @@ int main()
     "-- arma::fvec\n" << av_base << '\n' <<
     "-- arma::rowvec\n" << arv_base << '\n' <<
 #endif  // NPYGL_HAS_ARMADILLO
+#if NPYGL_HAS_LIBTORCH
+    "-- torch::Tensor\n" << t_base << '\n' <<
+#endif  // NPYGL_HAS_LIBTORCH
     "-- tuple[double]\n" << base << std::endl;
   npygl::py_error_exit();
   return EXIT_SUCCESS;
