@@ -6,6 +6,9 @@
  */
 
 #include <cstdlib>
+#include <deque>
+#include <forward_list>
+#include <iterator>
 #include <map>
 #include <mutex>
 #include <ostream>
@@ -32,18 +35,170 @@ public:
   /**
    * Ctor.
    *
-   * @param value Value to copy or move from
+   * @param value Value to copy from
    */
-  value_wrapper(T&& value) : value_{std::forward<T>(value)} {}
+  value_wrapper(const T& value) : value_{value} {}
+
+  /**
+   * Ctor.
+   *
+   * @param value Value to move from
+   */
+  value_wrapper(T&& value) : value_{std::move(value)} {}
 
   /**
    * Return a const reference to the value.
    */
   const T& value() const noexcept { return value_; }
 
+  /**
+   * Return a const reference to the value.
+   */
+  const auto& operator*() const noexcept
+  {
+    return value_;
+  }
+
 private:
   T value_;
 };
+
+/**
+ * Traits class to check if a type is a `value_wrapper<T>`.
+ *
+ * @tparam T type
+ */
+template <typename T>
+struct is_value_wrapper : std::false_type {};
+
+/**
+ * True specialization for a `value_wrapper<T>` instance.
+ *
+ * @tparam T type
+ */
+template <typename T>
+struct is_value_wrapper<value_wrapper<T>> : std::true_type {};
+
+/**
+ * SFINAE helper for an iterable container of `value_wrapper<T>`.
+ *
+ * @tparam T type
+ */
+template <typename T>
+using value_wrapper_iterable_t = std::enable_if_t<
+  is_value_wrapper<std::decay_t<decltype(*std::begin(std::declval<T>()))>>
+    ::value
+>;
+
+/**
+ * Iterator that yields `value_wrapper<T>` from a `T` iterator.
+ *
+ * This satisfies the *LegacyInputIterator* named concept.
+ *
+ * @tparam It Iterator type
+ */
+template <typename It>
+class value_wrapper_iterator {
+public:
+  // iterator traits types
+  using difference_type = std::ptrdiff_t;
+  using value_type = value_wrapper<std::decay_t<decltype(*std::declval<It>())>>;
+  using pointer = const value_type*;
+  using reference = const value_type&;
+  using iterator_category = std::input_iterator_tag;
+
+  /**
+   * Ctor.
+   *
+   * @note The `value_wrapper<T>` uses a value-initialized `T` so that tag
+   *  dispatch is not required when using a one-past-the-end iterator.
+   *
+   * @param iter Iterator
+   */
+  value_wrapper_iterator(It iter) noexcept
+    : iter_{iter}, value_{{}} {}
+
+  /**
+   * Return a reference to the current wrapped value.
+   *
+   * @note Each call performs an additional read + copy from original iterator.
+   */
+  auto& operator*()
+  {
+    value_ = *iter_;
+    return value_;
+  }
+
+  /**
+   * Increment the iterator position (pre-increment).
+   */
+  auto& operator++()
+  {
+    ++iter_;
+    return *this;
+  }
+
+  /**
+   * Increment the iterator position (post-increment).
+   */
+  void operator++(int)
+  {
+    iter_++;
+  }
+
+  /**
+   * Equality comparison for the iterator.
+   */
+  bool operator==(const value_wrapper_iterator& other) const noexcept
+  {
+    return iter_ == other.iter_;
+  }
+
+  /**
+   * Inequality comparison for the iterator.
+   */
+  bool operator!=(const value_wrapper_iterator& other) const noexcept
+  {
+    return !(*this == other);
+  }
+
+  /**
+   * Provide member access to the yielded value wrapper.
+   */
+  value_type* operator->()
+  {
+    return &*(*this);
+  }
+
+private:
+  It iter_;
+  value_type value_;
+};
+
+}  // namespace
+
+namespace std {
+
+/**
+ * `std::less` partial specialization for `value_wrapper<T>`.
+ *
+ * Necessary for `value_wrapper<T>` to work with `std::set`, `std::map`.
+ *
+ * @tparam T type
+ */
+template <typename T>
+struct less<value_wrapper<T>> {
+  bool operator()(
+    const value_wrapper<T>& a,
+    const value_wrapper<T>& b) const noexcept(noexcept(*a < *b))
+  {
+    return *a < *b;
+  }
+};
+
+}  // namespace std
+
+namespace {
 
 /**
  * Insertion operator for the value wrapper.
@@ -57,6 +212,49 @@ auto& operator<<(std::ostream& out, const value_wrapper<T>& value)
 }
 
 /**
+ * Write an iterable of `value_wrapper<T>` to a stream.
+ *
+ * Values are printed with `", "` as a separator.
+ *
+ * @tparam C Forward-iterable container of `value_wrapper<T>`
+ *
+ * @param out Stream to write to
+ * @param values Container of `value_wrapper<T>` to write
+ */
+template <typename C, typename = value_wrapper_iterable_t<C>>
+void write(std::ostream& out, const C& values)
+{
+  auto it_begin = std::begin(values);
+  auto it_end = std::end(values);
+  // print values
+  for (auto it = it_begin; it != it_end; it++) {
+    if (it != it_begin)
+      out << ", ";
+    out << *it;
+  }
+}
+
+/**
+ * Write an iterable of `value_wrapper<T>` to a stream with left/right delims.
+ *
+ * Values are printed with `", "` as a separator.
+ *
+ * @tparam C Forward-iterable container of `value_wrapper<T>`
+ *
+ * @param out Stream to write to
+ * @param values Container of `value_wrapper<T>` to write
+ * @param ldelim Left delimiter
+ * @param rdelim Right delimiter
+ */
+template <typename C, typename = value_wrapper_iterable_t<C>>
+void write(std::ostream& out, const C& values, char ldelim, char rdelim)
+{
+  out << ldelim;
+  write(out, values);
+  out << rdelim;
+}
+
+/**
  * Insertion operator for a vector with value wrapper instances.
  *
  * @tparam T type
@@ -65,13 +263,34 @@ auto& operator<<(std::ostream& out, const value_wrapper<T>& value)
 template <typename T, typename A>
 auto& operator<<(std::ostream& out, const std::vector<value_wrapper<T>, A>& vec)
 {
-  out << '[';
-  for (decltype(vec.size()) i = 0; i < vec.size(); i++) {
-    if (i)
-      out << ", ";
-    out << vec[i];
-  }
-  return out << ']';
+  write(out, vec, '[', ']');
+  return out;
+}
+
+/**
+ * Insertion operator for a set with value wrapper instances.
+ *
+ * @tparam K Key type
+ * @tparam C Comparator type
+ * @tparam A Allocator type
+ */
+template <typename K, typename C, typename A>
+auto& operator<<(std::ostream& out, const std::set<value_wrapper<K>, C, A>& set)
+{
+  write(out, set, '{', '}');
+  return out;
+}
+
+/**
+ * Insertion operator for a general iterable value wrapper container.
+ *
+ * @tparam C Container type
+ */
+template <typename C, typename = value_wrapper_iterable_t<C>>
+auto& operator<<(std::ostream& out, const C& values)
+{
+  write(out, values);
+  return out;
 }
 
 /**
@@ -81,31 +300,24 @@ auto& operator<<(std::ostream& out, const std::vector<value_wrapper<T>, A>& vec)
  *
  * @tparam T type
  */
-template <typename T, typename = void>
+template <typename T, typename = void, typename = void>
 struct tester_input_type {};
-
-/**
- * Partial specialization for a `std::integral_constant<T, v_>`.
- *
- * This is necessary because it has both `value` and `operator()`.
- *
- * @tparam T type
- * @tparam v_ value
- */
-template <typename T, T v_>
-struct tester_input_type<std::integral_constant<T, v_>, void> {
-  using type = T;
-};
-
-// FIXME: need to prevent C2953 class template already defined for MSVC
 
 /**
  * True specialization for a valid input type with a `value` member.
  *
+ * @note Since some types, like `std::integral_constant<T, v_>`, may have both
+ *  the `value` static member and an `operator()()`, we need to ensure that in
+ *  this case only one partial specialization matches.
+ *
  * @tparam T type
  */
 template <typename T>
-struct tester_input_type<T, std::void_t<decltype(T::value)>> {
+struct tester_input_type<
+  T,
+  std::enable_if_t<!std::is_invocable_v<T>>,
+  std::void_t<decltype(T::value)>
+> {
   using type = decltype(T::value);
 };
 
@@ -115,8 +327,8 @@ struct tester_input_type<T, std::void_t<decltype(T::value)>> {
  * @tparam T type
  */
 template <typename T>
-struct tester_input_type<T, std::void_t<decltype(std::declval<T>()())>> {
-  using type = decltype(std::declval<T>()());
+struct tester_input_type<T, std::enable_if_t<std::is_invocable_v<T>>> {
+  using type = std::invoke_result_t<T>;
 };
 
 /**
@@ -315,11 +527,16 @@ struct vector_input {
 
 /**
  * Callable that returns a `std::vector<value_wrapper<T>>`.
+ *
+ * The vector values used are from `vector_input{}()`.
  */
 struct value_wrapper_vector_input {
-  std::vector<value_wrapper<unsigned>> operator()() const
+  auto operator()() const
   {
-    return {1u, 2u, 3u, 4u, 5u, 6u};
+    auto values = vector_input{}();
+    auto it_begin = value_wrapper_iterator{std::begin(values)};
+    auto it_end = value_wrapper_iterator{std::end(values)};
+    return std::vector(std::move(it_begin), std::move(it_end));
   }
 };
 
@@ -330,6 +547,46 @@ struct set_input {
   std::set<double> operator()() const
   {
     return {1., 3.22, 4.23, 4.233, 5.151};
+  }
+};
+
+/**
+ * Callable that returns a `std::set<value_wrapper<T>>`.
+ *
+ * The set values used are from `set_input{}()`.
+ */
+struct value_wrapper_set_input {
+  auto operator()() const
+  {
+    auto values = set_input{}();
+    auto it_begin = value_wrapper_iterator{std::begin(values)};
+    auto it_end = value_wrapper_iterator{std::end(values)};
+    return std::set(std::move(it_begin), std::move(it_end));
+  }
+};
+
+/**
+ * Callable that returns a `std::deque`.
+ */
+struct deque_input {
+  std::deque<unsigned> operator()() const
+  {
+    return {1u, 5u, 4u, 23u, 66u, 18u, 41u, 42u};
+  }
+};
+
+/**
+ * Callable that returns a `std::deque<value_wrapper<T>>`.
+ *
+ * The deque values used are from `deque_input{}()`.
+ */
+struct value_wrapper_deque_input {
+  std::deque<value_wrapper<unsigned>> operator()() const
+  {
+    auto values = deque_input{}();
+    auto it_begin = value_wrapper_iterator{std::begin(values)};
+    auto it_end = value_wrapper_iterator{std::end(values)};
+    return std::deque(std::move(it_begin), std::move(it_end));
   }
 };
 
@@ -345,7 +602,10 @@ using input_types = std::tuple<
   string_input,
   vector_input,
   value_wrapper_vector_input,
-  set_input
+  set_input,
+  value_wrapper_set_input,
+  deque_input,
+  value_wrapper_deque_input
 >;
 
 // sequential stream test driver
