@@ -534,8 +534,8 @@ struct value_wrapper_vector_input {
   auto operator()() const
   {
     auto values = vector_input{}();
-    auto it_begin = value_wrapper_iterator{std::begin(values)};
-    auto it_end = value_wrapper_iterator{std::end(values)};
+    auto it_begin = value_wrapper_iterator{values.begin()};
+    auto it_end = value_wrapper_iterator{values.end()};
     return std::vector(std::move(it_begin), std::move(it_end));
   }
 };
@@ -559,8 +559,8 @@ struct value_wrapper_set_input {
   auto operator()() const
   {
     auto values = set_input{}();
-    auto it_begin = value_wrapper_iterator{std::begin(values)};
-    auto it_end = value_wrapper_iterator{std::end(values)};
+    auto it_begin = value_wrapper_iterator{values.begin()};
+    auto it_end = value_wrapper_iterator{values.end()};
     return std::set(std::move(it_begin), std::move(it_end));
   }
 };
@@ -584,8 +584,8 @@ struct value_wrapper_deque_input {
   auto operator()() const
   {
     auto values = deque_input{}();
-    auto it_begin = value_wrapper_iterator{std::begin(values)};
-    auto it_end = value_wrapper_iterator{std::end(values)};
+    auto it_begin = value_wrapper_iterator{values.begin()};
+    auto it_end = value_wrapper_iterator{values.end()};
     return std::deque(std::move(it_begin), std::move(it_end));
   }
 };
@@ -609,8 +609,8 @@ struct value_wrapper_forward_list_input {
   auto operator()() const
   {
     auto values = forward_list_input{}();
-    auto it_begin = value_wrapper_iterator{std::begin(values)};
-    auto it_end = value_wrapper_iterator{std::end(values)};
+    auto it_begin = value_wrapper_iterator{values.begin()};
+    auto it_end = value_wrapper_iterator{values.end()};
     return std::forward_list(std::move(it_begin), std::move(it_end));
   }
 };
