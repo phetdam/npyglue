@@ -581,12 +581,37 @@ struct deque_input {
  * The deque values used are from `deque_input{}()`.
  */
 struct value_wrapper_deque_input {
-  std::deque<value_wrapper<unsigned>> operator()() const
+  auto operator()() const
   {
     auto values = deque_input{}();
     auto it_begin = value_wrapper_iterator{std::begin(values)};
     auto it_end = value_wrapper_iterator{std::end(values)};
     return std::deque(std::move(it_begin), std::move(it_end));
+  }
+};
+
+/**
+ * Callable that returns a `std::forward_list`.
+ */
+struct forward_list_input {
+  std::forward_list<float> operator()() const
+  {
+    return {3.1f, 34.22f, 5.11f, 1.23f, 1.5672f, 5.663f};
+  }
+};
+
+/**
+ * Callable that returns a `std::forward_list<value_wrapper<T>>`.
+ *
+ * The forward list values used are from `forward_list_input{}()`.
+ */
+struct value_wrapper_forward_list_input {
+  auto operator()() const
+  {
+    auto values = forward_list_input{}();
+    auto it_begin = value_wrapper_iterator{std::begin(values)};
+    auto it_end = value_wrapper_iterator{std::end(values)};
+    return std::forward_list(std::move(it_begin), std::move(it_end));
   }
 };
 
@@ -605,7 +630,9 @@ using input_types = std::tuple<
   set_input,
   value_wrapper_set_input,
   deque_input,
-  value_wrapper_deque_input
+  value_wrapper_deque_input,
+  forward_list_input,
+  value_wrapper_forward_list_input
 >;
 
 // sequential stream test driver
