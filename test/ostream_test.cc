@@ -174,6 +174,22 @@ private:
   value_type value_;
 };
 
+/**
+ * Return value wrapper iterators for a container's start and end iterators.
+ *
+ * @tparam T Iterable type
+ *
+ * @param values Iterable or range
+ */
+template <typename T, typename = std::void_t<decltype(std::begin(std::declval<T>()))>>
+auto make_value_wrapper_iterators(const T& values)
+{
+  return std::make_pair(
+    value_wrapper_iterator{std::begin(values)},
+    value_wrapper_iterator{std::end(values)}
+  );
+}
+
 }  // namespace
 
 namespace std {
@@ -533,8 +549,7 @@ struct value_wrapper_vector_input {
   auto operator()() const
   {
     auto values = vector_input{}();
-    auto it_begin = value_wrapper_iterator{values.begin()};
-    auto it_end = value_wrapper_iterator{values.end()};
+    auto [it_begin, it_end] = make_value_wrapper_iterators(values);
     return std::vector(std::move(it_begin), std::move(it_end));
   }
 };
@@ -558,8 +573,7 @@ struct value_wrapper_set_input {
   auto operator()() const
   {
     auto values = set_input{}();
-    auto it_begin = value_wrapper_iterator{values.begin()};
-    auto it_end = value_wrapper_iterator{values.end()};
+    auto [it_begin, it_end] = make_value_wrapper_iterators(values);
     return std::set(std::move(it_begin), std::move(it_end));
   }
 };
@@ -583,8 +597,7 @@ struct value_wrapper_deque_input {
   auto operator()() const
   {
     auto values = deque_input{}();
-    auto it_begin = value_wrapper_iterator{values.begin()};
-    auto it_end = value_wrapper_iterator{values.end()};
+    auto [it_begin, it_end] = make_value_wrapper_iterators(values);
     return std::deque(std::move(it_begin), std::move(it_end));
   }
 };
@@ -608,8 +621,7 @@ struct value_wrapper_forward_list_input {
   auto operator()() const
   {
     auto values = forward_list_input{}();
-    auto it_begin = value_wrapper_iterator{values.begin()};
-    auto it_end = value_wrapper_iterator{values.end()};
+    auto [it_begin, it_end] = make_value_wrapper_iterators(values);
     return std::forward_list(std::move(it_begin), std::move(it_end));
   }
 };
