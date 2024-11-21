@@ -115,8 +115,7 @@ public:
    *
    * @param iter Iterator
    */
-  value_wrapper_iterator(It iter) noexcept
-    : iter_{iter}, value_{{}} {}
+  value_wrapper_iterator(It iter) noexcept : iter_{iter}, value_{{}} {}
 
   /**
    * Return a reference to the current wrapped value.
