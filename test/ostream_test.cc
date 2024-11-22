@@ -7,12 +7,15 @@
 
 #include <cstdlib>
 #include <deque>
+#include <filesystem>
 #include <forward_list>
 #include <iterator>
 #include <map>
 #include <mutex>
 #include <ostream>
 #include <set>
+#include <string>
+#include <string_view>
 #include <thread>
 #include <tuple>
 #include <type_traits>
@@ -426,6 +429,14 @@ public:
   {}
 
   /**
+   * Return the number of test input repeats.
+   */
+  constexpr auto repeats() const noexcept
+  {
+    return repeats_;
+  }
+
+  /**
    * Execute the tests for each input type concurrently.
    *
    * @param out Output stream to write to
@@ -483,6 +494,58 @@ struct synced_ostream_wrapper_tester<std::tuple<Ts...>>
   : synced_ostream_wrapper_tester<Ts...> {
   using synced_ostream_wrapper_tester<Ts...>::synced_ostream_wrapper_tester;
 };
+
+/**
+ * Test case lister.
+ *
+ * Each input type should be either a `std::integral_constant<T, v_>`, a type
+ * that has a static `value` member, or an invocable type where invocation
+ * returns the input value to use for the test case.
+ *
+ * @tparam Ts... Input types
+ */
+template <typename... Ts>
+struct input_case_lister {
+  /**
+   * List the input cases and the number of serial and concurrent tests.
+   *
+   * @param out Output stream
+   * @param repeats Number of concurrent tests run per test input
+   */
+  void operator()(std::ostream& out, unsigned repeats = 0u) const
+  {
+    (
+      [&out, repeats]
+      {
+        out << "-- " << npygl::type_name(typeid(Ts)) <<
+          " (1 serial, " << repeats << " concurrent) [type = " <<
+          npygl::type_name(typeid(tester_input_type_t<Ts>)) << "]\n";
+      }()
+      ,
+      ...
+    );
+  }
+
+  /**
+   * List the input cases and the number of serial and concurrent tests.
+   *
+   * Output is written to `std::cout`.
+   *
+   * @param repeats Number of concurrent tests run per test input
+   */
+  void operator()(unsigned repeats = 0u) const
+  {
+    operator()(std::cout, repeats);
+  }
+};
+
+/**
+ * Partial specialization for a tuple of input types.
+ *
+ * @tparam Ts... Input types
+ */
+template <typename... Ts>
+struct input_case_lister<std::tuple<Ts...>> : input_case_lister<Ts...> {};
 
 /**
  * Type to hold a double input.
@@ -650,14 +713,91 @@ using input_types = std::tuple<
 constexpr ostream_wrapper_tester<input_types> tester;
 // synchronized concurrent stream test driver
 constexpr synced_ostream_wrapper_tester<input_types> sync_tester{100};
+// input case lister
+constexpr input_case_lister<input_types> lister;
+
+// program name and usage
+const auto program_name = std::filesystem::path{__FILE__}.stem().string();
+const std::string program_usage{
+  "Usage: " + program_name + " [-h] [--with-concurrent] [--list-tests]\n"
+  "\n"
+  "Run tests on the npygl ostream_wrapper universal output stream types.\n"
+  "\n"
+  "Options:\n"
+  "  -h, --help           Print this usage\n"
+  "\n"
+  "  --with-concurrent    Enable running multithreaded tests of the synced\n"
+  "                       std::ostream output stream wrappers\n"
+  "\n"
+  "  --list-tests         List the test cases that will be run. The listed\n"
+  "                       are affected by the presence of --with-concurrent."
+};
+
+/**
+ * Program options struct.
+ */
+struct program_options {
+  bool help = false;
+  bool with_concurrent = false;
+  bool list_tests = false;
+};
+
+/**
+ * Parse incoming program options.
+ *
+ * @param opts Program options struct
+ * @param argc Argument count from `main()`
+ * @param argv Argument vector from `main()`
+ * @returns `true` on success, `false` on error
+ */
+bool parse_options(program_options& opts, int argc, char* argv[])
+{
+  for (int i = 1; i < argc; i++) {
+    // string view is more convenient to work with
+    std::string_view arg{argv[i]};
+    // help, so break early
+    if (arg == "-h" || arg == "--help") {
+      opts.help = true;
+      return true;
+    }
+    // include concurrent tests
+    else if (arg == "--with-concurrent")
+      opts.with_concurrent = true;
+    // list tests
+    else if (arg == "--list-tests")
+      opts.list_tests = true;
+    // unknown argument
+    else {
+      std::cerr << "Error: Unknown argument " << arg << ". Try " <<
+        program_name << " --help for usage" << std::endl;
+      return false;
+    }
+  }
+  return true;
+}
 
 }  // namespace
 
-int main()
+int main(int argc, char* argv[])
 {
+  // parse command-line arguments
+  program_options opts;
+  if (!parse_options(opts, argc, argv))
+    return EXIT_FAILURE;
+  // print help
+  if (opts.help) {
+    std::cout << program_usage << std::endl;
+    return EXIT_SUCCESS;
+  }
+  // list tests
+  if (opts.list_tests) {
+    lister(opts.with_concurrent ? sync_tester.repeats() : 0u);
+    return EXIT_SUCCESS;
+  }
   // run sequential stream tests
   tester();
-  // run concurrent synchronized stream tests
-  sync_tester();
+  // run concurrent synchronized stream tests if desired
+  if (opts.with_concurrent)
+    sync_tester();
   return EXIT_SUCCESS;
 }

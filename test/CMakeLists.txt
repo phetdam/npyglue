@@ -255,6 +255,23 @@ add_test(NAME type_traits_test COMMAND type_traits_test)
 # ostream_test: C++ ostream extensions test
 add_executable(ostream_test ostream_test.cc)
 add_test(NAME ostream_test COMMAND ostream_test)
+add_test(
+    NAME ostream_test_with_concurrent
+    COMMAND ostream_test --with-concurrent
+)
+# brief tests of the CLI options
+add_test(NAME ostream_test_h COMMAND ostream_test -h)
+add_test(NAME ostream_test_help COMMAND ostream_test --help)
+add_test(NAME ostream_test_list_tests COMMAND ostream_test --list-tests)
+add_test(
+    NAME ostream_test_list_all_tests
+    COMMAND ostream_test --list-tests --with-concurrent
+)
+add_test(NAME ostream_test_bad_option COMMAND ostream_test --list-tests ssss)
+set_tests_properties(
+    ostream_test_bad_option PROPERTIES
+    PASS_REGULAR_EXPRESSION "Unknown argument"
+)
 
 # traits_checker_test: C++ traits_checker.hh functionality tests
 # add_executable(traits_checker_test traits_checker_test.cc)
