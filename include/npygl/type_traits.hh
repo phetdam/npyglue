@@ -511,6 +511,41 @@ struct is_ostreamable<
 template <typename T>
 constexpr bool is_ostreamable_v = is_ostreamable<T>::value;
 
+/**
+ * Traits type for a range that can yield begin and end iterators.
+ *
+ * @tparam T type
+ */
+template <typename T, typename = void, typename = void>
+struct is_iterable : std::false_type {};
+
+/**
+ * True specialization for a range that can yield begin and end iterators.
+ *
+ * @tparam T type
+ */
+template <typename T>
+struct is_iterable<
+  T,
+  std::void_t<decltype(std::begin(std::declval<T>()))>,
+  std::void_t<decltype(std::end(std::declval<T>()))> > : std::true_type {};
+
+/**
+ * Helper to indicate if a type can yield begin and end iterators.
+ *
+ * @tparam T type
+ */
+template <typename T>
+constexpr bool is_iterable_v = is_iterable<T>::value;
+
+/**
+ * SFINAE helper to enable overload selection for iterable range types.
+ *
+ * @tparam T type
+ */
+template <typename T>
+using iterable_range_t = std::enable_if_t<is_iterable_v<T>>;
+
 }  // namespace npygl
 
 #endif  // NPYGL_TYPE_TRAITS_HH_

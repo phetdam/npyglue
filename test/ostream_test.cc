@@ -181,7 +181,7 @@ private:
  *
  * @param values Iterable or range
  */
-template <typename T, typename = std::void_t<decltype(std::begin(std::declval<T>()))>>
+template <typename T, typename = npygl::iterable_range_t<T>>
 auto make_value_wrapper_iterators(const T& values)
 {
   return std::make_pair(

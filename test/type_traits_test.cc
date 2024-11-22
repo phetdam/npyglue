@@ -251,6 +251,19 @@ using driver_type = npygl::testing::traits_checker_driver<
       std::pair<npygl::testing::not_ostreamable_type, std::false_type>,
       npygl::testing::ostreamable_type
     >
+  >,
+  // is_iterable
+  npygl::testing::traits_checker<
+    npygl::is_iterable,
+    std::tuple<
+      std::array<double, 100u>,
+      double(&)[1024],
+      std::pmr::vector<unsigned>,
+      std::pair<double, std::false_type>,
+      std::string,
+      std::pair<npygl::testing::not_ostreamable_type, std::false_type>,
+      std::pair<std::tuple<double, int, std::string>, std::false_type>
+    >
   >
 >;
 // test driver instance. but if testing LLVM demangling we won't be needing it
