@@ -1681,6 +1681,25 @@ inline auto& operator<<(std::ostream& out, PyObject* obj)
   return out;
 }
 
+/**
+ * Stream the string representation of the Python type object as with `repr()`.
+ *
+ * On error the Python exception trace is printed with `PyErr_Print`. Note that
+ * this will also clear the error indicator so use with care.
+ *
+ * @note In order for ADL to work this is defined in the top-level namespace.
+ *
+ * @note This overload removes the need for a `PyObject*` cast when using the
+ *  `Py_TYPE()` macro or a function returning a `PyTypeObject*`.
+ *
+ * @param out Output stream
+ * @param obj Python type object to stream
+ */
+inline auto& operator<<(std::ostream& out, PyTypeObject* obj)
+{
+  return out << reinterpret_cast<PyObject*>(obj);
+}
+
 namespace npygl {
 
 /**
