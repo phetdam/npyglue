@@ -107,6 +107,12 @@ if(Python3_Development_FOUND AND Python3_NumPy_FOUND)
     if(Eigen3_FOUND)
         target_link_libraries(npy_traits_test PRIVATE Eigen3::Eigen)
     endif()
+    # note: don't really need to specify release C runtime for Windows and to
+    # copy the Torch DLLs because we only need the torch::Tensor type
+    # definition but we keep everything as usual for consistency
+    npygl_use_release_crt(npy_traits_test ON)
+    target_link_libraries(npy_traits_test PRIVATE npygl::Torch)
+    npygl_copy_torch_dlls(npy_traits_test)
     add_test(NAME npy_traits_test COMMAND npy_traits_test)
 endif()
 

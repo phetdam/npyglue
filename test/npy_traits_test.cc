@@ -24,6 +24,9 @@
 #if NPYGL_HAS_EIGEN3
 #include <Eigen/Core>
 #endif  // NPYGL_HAS_EIGEN3
+#if NPYGL_HAS_LIBTORCH
+#include <torch/torch.h>
+#endif  // NPYGL_HAS_LIBTORCH
 
 namespace {
 
@@ -67,6 +70,9 @@ using driver_type = npygl::testing::traits_checker_driver<
       arma::rowvec,
       arma::fvec,
 #endif  // NPYGL_HAS_ARMADILLO
+#if NPYGL_HAS_LIBTORCH
+      torch::Tensor,
+#endif  // NPYGL_HAS_LIBTORCH
       std::pair<
         std::tuple<std::pair<unsigned, std::true_type>, std::pair<double, int>>,
         std::false_type
