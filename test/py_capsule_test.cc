@@ -21,6 +21,7 @@
 #include "npygl/demangle.hh"
 #include "npygl/features.h"
 #include "npygl/python.hh"
+#include "npygl/ostream.hh"
 #include "npygl/type_traits.hh"
 
 #if NPYGL_HAS_EIGEN3
@@ -83,7 +84,7 @@ public:
   {
     out_ << '[';
     for (auto it = vec.begin(); it != vec.end(); it++) {
-      if (std::distance(vec.begin(), it))
+      if (it != vec.begin())
         out_ << ", ";
       out_ << *it;
     }
@@ -101,6 +102,33 @@ private:
  */
 using package_type = std::map<std::string, data_type>;
 
+}  // namespace
+
+//
+// note:
+//
+// the package_type operator<< we define in the std:: namespace because
+// PyTorch's c10/util/logging_is_not_google_glog.h defines in std:: this:
+//
+// template <typename... Ts>
+// auto& operator<<(std::ostream, const std::map<Ts...>&);
+//
+// due to ADL rules, since this template is in std::, it is matched before ours
+// below (which was in an anonymous namespace). thus, in c10::PrintSequence,
+// since the package_type value type is a std::variant that has operator<<
+// overload, compilation fails, as c10/util/logging_is_not_google_glog.h also
+// defines in the std:: namespace the following overload:
+//
+// template <typename First, typename Second>
+// auto& operator<<(std::ostream, const std::pair<First, Second>&);
+//
+// this overload simply streams each object using operator<< however, so for
+// types like a std::variant specialization, overload matching will fail. thus,
+// we have to define the package_type operator<< in std:: namespace instead so
+// that it is matched before the c10 function template.
+//
+namespace std {
+
 /**
  * `operator<<` overload so we can print our package.
  */
@@ -112,7 +140,7 @@ auto& operator<<(std::ostream& out, const package_type& package)
   // otherwise, display like a JSON string
   out << "{\n";
   for (auto it = package.begin(); it != package.end(); it++) {
-    if (std::distance(package.begin(), it))
+    if (it != package.begin())
       out << ",\n";
     out << "    {" << it->first << ": ";
     std::visit(data_type_printer{out}, it->second);
@@ -120,6 +148,10 @@ auto& operator<<(std::ostream& out, const package_type& package)
   }
   return out << "\n}";
 }
+
+}  // namespace std
+
+namespace {
 
 /**
  * SFINAE helper for `capsule_test`.
@@ -147,6 +179,8 @@ using capsule_testable_t = std::enable_if_t<
 template <typename T, typename... Fs, typename = capsule_testable_t<T, Fs...>>
 void capsule_test(std::ostream& out, T&& obj, Fs... funcs)
 {
+  // wrapped stream
+  npygl::ostream_wrapper stream{out};
   // create capsule from the moved object
   auto cap = npygl::py_object::create(std::move(obj));
   npygl::py_error_exit();
@@ -155,15 +189,9 @@ void capsule_test(std::ostream& out, T&& obj, Fs... funcs)
   npygl::py_error_exit();
   // print the type name
   const auto& val = *view.as<T>();
-  out << "-- " << npygl::type_name(view.info()) << '\n';
-  // stream the type to the output stream if possible else print a default
-  if constexpr (npygl::is_ostreamable_v<T>)
-    out << val;
-  else
-    out << "<object " << npygl::type_name(typeid(val)) << " at " <<
-      &val << '>';
-  // newline + flush
-  out << std::endl;
+  stream << "-- " << npygl::type_name(view.info()) << '\n';
+  // write the object to the output stream + flush
+  stream << val << std::endl;
   // run any custom actions on the object
   if constexpr (sizeof...(Fs))
     (funcs(val), ...);
