@@ -338,7 +338,7 @@ int main()
   // create a 2D NumPy array from a list of nested lists
   make_ndarray_test(list_2d_ndarray_factory{});
   // print an error because the functor doesn't create a NumPy array
-  // TODO: conditionally enable it?
+  // TODO: conditionally enable it? doesn't produce an error, just a demo
   make_ndarray_test(tuple_factory{});
   return EXIT_SUCCESS;
 }
