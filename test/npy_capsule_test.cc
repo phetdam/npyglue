@@ -10,6 +10,7 @@
 
 #include <cstdlib>
 #include <iostream>
+#include <string_view>
 #include <typeinfo>
 #include <type_traits>
 #include <utility>
@@ -33,15 +34,53 @@
 
 namespace {
 
-// TODO: document; also unnecessary since we can directly evaluate the lambda
+/**
+ * Traits type to indicate if a type has a `source_type` member function.
+ *
+ * This member function should return something that is implicitly convertible
+ * to a `std::string_view`, e.g. a `const char*`, `const std::string&`.
+ *
+ * This traits type helps define the NumPy array object factory concept.
+ *
+ * @tparam T type
+ */
 template <typename T, typename = void>
-struct produces_ndarray_convertible : std::false_type {};
+struct has_source_type : std::false_type {};
 
+/**
+ * True specialization for a type with a `source_type` member function.
+ *
+ * @tparam T type
+ */
 template <typename T>
-struct produces_ndarray_convertible<
+struct has_source_type<
   T,
-  std::enable_if_t<npygl::can_make_ndarray_v<std::invoke_result_t<T>>>
-> : std::true_type {};
+  std::enable_if_t<
+    std::is_convertible_v<
+      decltype(std::declval<T>().source_type()),
+      std::string_view
+    >
+  > > : std::true_type {};
+
+/**
+ * Indicate that a type satisfies the NumPy array object factory concept.
+ *
+ * The type must satisfy the `has_source_type<T>` traits and when invoked
+ * return a `npygl::py_object` instance assumed to be a NumPy array.
+ *
+ * @tparam T type
+ */
+template <typename T>
+struct is_ndarray_object_factory : std::bool_constant<
+  has_source_type<T>::value && std::is_invocable_r_v<npygl::py_object, T> > {};
+
+/**
+ * Helper to indicate a type satisfies the NumPy array object factory concept.
+ *
+ * @tparam T type
+ */
+template <typename T>
+constexpr bool is_ndarray_object_factory_v = is_ndarray_object_factory<T>::value;
 
 /**
  * SFINAE helper to indicate if a type can be used to create a NumPy array.
@@ -54,8 +93,9 @@ template <typename T>
 using make_ndarray_test_t = std::enable_if_t<
   // require move-only construction + type must have a builder
   (!std::is_reference_v<T> && npygl::can_make_ndarray_v<T>) ||
-  // or is invokable and return value type has a builder
-  produces_ndarray_convertible<T>::value
+  // matches the "concept" of having a source_type() member function and when
+  // invoked can return a new npygl::py_object holding a NumPy array
+  is_ndarray_object_factory<T>::value
 >;
 
 /**
@@ -74,20 +114,36 @@ void make_ndarray_test(std::ostream& out, T&& obj)
   // create NumPy array backed by C++ object
   auto ar = [&obj]
   {
-    // if callable
-    if constexpr (produces_ndarray_convertible<T>::value)
-      return npygl::make_ndarray(obj());
+    // matches concept of having source_type() member + returning py_object
+    if constexpr (is_ndarray_object_factory_v<T>)
+      return obj();
     // object is directly convertible
     else
       return npygl::make_ndarray(std::move(obj));
   }();
   npygl::py_error_exit();
+  // get string view to type name
+  std::string_view type_name = [&obj]
+  {
+    if constexpr (is_ndarray_object_factory_v<T>)
+      return obj.source_type();
+    else
+      return npygl::type_name(typeid(T));
+  }();
+  // if NumPy object factory doesn't return a NumPy array, error
+  if constexpr (is_ndarray_object_factory_v<T>) {
+    if (!npygl::is_ndarray(ar)) {
+      out << "-- Error: Invocation of " << npygl::type_name(typeid(T)) <<
+        " instance with source_type() = " << type_name <<
+        " did not produce a NumPy array" << std::endl;
+      return;
+    }
+  }
   // get backing base object for the object
   // note: need template qualifier since ar implicitly depends on T
   auto ar_base = PyArray_BASE(ar.template as<PyArrayObject>());
   // write to stream with type name + base
-  out << "-- " << npygl::type_name(typeid(T)) << " (" << ar_base << ")\n" <<
-    ar << std::endl;
+  out << "-- " << type_name << " (" << ar_base << ")\n" << ar << std::endl;
 }
 
 /**
@@ -105,6 +161,94 @@ void make_ndarray_test(T&& obj)
 {
   make_ndarray_test(std::cout, std::move(obj));
 }
+
+/**
+ * Functor that creates a 1D NumPy array from a tuple.
+ *
+ * This satisfies the `is_ndarray_object_factory<T>` traits type.
+ */
+struct tuple_ndarray_factory {
+  constexpr auto source_type() const noexcept
+  {
+    // string literal is in Python type annotation style
+    return "tuple[double]";
+  }
+
+  auto operator()() const noexcept
+  {
+    // create new tuple of doubles
+    auto tup = Py_BuildValue("ddddd", 3.4, 1.222, 6.745, 5.2, 5.66, 7.333);
+    npygl::py_error_exit();
+    // create 1D NumPy array, taking ownership of the tuple for Py_DECREF
+    auto ar = npygl::make_ndarray<double>(npygl::py_object{tup});
+    npygl::py_error_exit();
+    return ar;
+  }
+};
+
+/**
+ * Functor that creates a 1D NumPy array from a list of mixed arithmetic types.
+ *
+ * This satisfies the `is_ndarray_object_factory<T>` traits type.
+ */
+struct list_1d_ndarray_factory {
+  constexpr auto source_type() const noexcept
+  {
+    // returned string literal is in Python type annotation style
+    return "list[int | float]";
+  }
+
+  auto operator()() const noexcept
+  {
+    // new list of int + double
+    auto list = Py_BuildValue("[dididid]", 1.22, 2, 4.11, 2, 4.132, 1, 2.22);
+    npygl::py_error_exit();
+    // create 1D NumPy array, taking ownership of the list for Py_DECREF
+    auto ar = npygl::make_ndarray<double>(npygl::py_object{list});
+    npygl::py_error_exit();
+    return ar;
+  }
+};
+
+/**
+ * Functor that creates a 2D NumPy array from nested lists of mixed types.
+ *
+ * This satisfies the `is_ndarray_object_factory<T>` traits type.
+ */
+struct list_2d_ndarray_factory {
+  constexpr auto source_type() const noexcept
+  {
+    // string literal is in Python type annotation style
+    return "list[list[int | float]]";
+  }
+
+  auto operator()() const noexcept
+  {
+    // new list of lists of int + dbouel
+    auto list = Py_BuildValue("[[dd][id][ii]]", 1.22, 1.32, 4, 3.22, 6, 5);
+    npygl::py_error_exit();
+    // create 2D NumPy array (list owned for Py_DECREF)
+    auto ar = npygl::make_ndarray<double>(npygl::py_object{list});
+    npygl::py_error_exit();
+    return ar;
+  }
+};
+
+/**
+ * functor that satisfies `is_ndarray_object_factory<T>` but returns a tuple.
+ */
+struct tuple_factory {
+  constexpr auto source_type() const noexcept
+  {
+    // string literal is in Python type annotation style
+    return "tuple[int | double]";
+  }
+
+  auto operator()() const noexcept
+  {
+    return npygl::py_object{Py_BuildValue("diddi", 1.33, 9, 3.44, 2.22, 12)};
+  }
+};
 
 }  // namespace
 
@@ -168,7 +312,7 @@ int main()
         {{4.123, 1.998}, {8.99, 1.114}}
       };
       return cube;
-    }
+    }()
   );
   // create a NumPy array backed by an Armadillo float column vector
   make_ndarray_test(arma::fvec{1.f, 3.4f, 4.23f, 3.54f, 5.223f});
@@ -187,16 +331,14 @@ int main()
     }()
   );
 #endif  // NPYGL_HAS_LIBTORCH
-  // create a "normal" NumPy array
-  // TODO: extend make_ndarray_test to allow custom type formatting
-  auto ar_init = Py_BuildValue("ddddd", 3.4, 1.222, 6.745, 5.2, 5.66, 7.333);
-  npygl::py_error_exit();
-  // note: take ownership as we need to Py_DECREF the created object
-  auto ar = npygl::make_ndarray<double>(npygl::py_object{ar_init});
-  npygl::py_error_exit();
-  // get base object
-  auto base = PyArray_BASE(ar.as<PyArrayObject>());
-  // print the repr()
-  std::cout << "-- tuple[double] (" << base << ")\n" << ar << std::endl;
+  // create a 1D NumPy array from a tuple
+  make_ndarray_test(tuple_ndarray_factory{});
+  // create a 1D NumPy array from a list
+  make_ndarray_test(list_1d_ndarray_factory{});
+  // create a 2D NumPy array from a list of nested lists
+  make_ndarray_test(list_2d_ndarray_factory{});
+  // print an error because the functor doesn't create a NumPy array
+  // TODO: conditionally enable it?
+  make_ndarray_test(tuple_factory{});
   return EXIT_SUCCESS;
 }
