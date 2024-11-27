@@ -891,6 +891,61 @@ private:
     return type;
   }
 
+  /**
+   * Retrieve the dimensions and strides of the tensor in a pair.
+   *
+   * If `sizeof(npy_intp)` equals the size of the elements in the `sizes()` or
+   * `strides()` data of the PyTorch tensor, direct aliasing is used. Otherwise
+   * in case of a mismatch, copying and return as a `std::vector<npy_intp>` is
+   * required since we cannot directly alias a buffer.
+   *
+   * @param ten Tensor to get dimensions + strides for
+   */
+  auto retrieve_sizes(const torch::Tensor& ten) const
+  {
+    // number of dimensions in tensor (unused if sizeof conditions match)
+    [[maybe_unused]] auto n_dim = ten.dim();
+    // get dimensions from tensor
+    auto dims = [&ten, n_dim]
+    {
+      // direct alias if element sizes match
+      if constexpr (sizeof(npy_intp) == sizeof(decltype(ten.size(0))))
+        return ten.sizes();
+      // otherwise we are forced to copy
+      else {
+        // note: could we do a small vector optimization? for LP64 systems
+        // however this is a discarded code path as sizeof(npy_intp) will be
+        // equal to sizeof(int64_t), the element size of IntArrayRef
+NPYGL_MSVC_WARNING_PUSH()
+NPYGL_MSVC_WARNING_DISABLE(4365)  // signed/unsigned mismatch
+        std::vector<npy_intp> dims(n_dim);
+        for (decltype(n_dim) i = 0; i < n_dim; i++)
+          dims[i] = ten.size(i);
+        return dims;
+NPYGL_MSVC_WARNING_POP()
+      }
+    }();
+    // get strides from tensor
+    auto strides = [&ten, n_dim]
+    {
+      // direct alias if element sizes match
+      if constexpr (sizeof(npy_intp) == sizeof(decltype(ten.stride(0))))
+        return ten.strides();
+      // otherwise we are forced to copy
+      else {
+NPYGL_MSVC_WARNING_PUSH()
+NPYGL_MSVC_WARNING_DISABLE(4365)  // signed/unsigned mismatch
+        std::vector<npy_intp> strides(n_dim);
+        for (decltype(n_dim) i = 0; i < n_dim; i++)
+          strides[i] = ten.stride(i);
+        return strides;
+      }
+NPYGL_MSVC_WARNING_POP()
+    }();
+    // return
+    return std::make_pair(std::move(dims), std::move(strides));
+  }
+
 public:
   using object_type = torch::Tensor;
 
@@ -914,28 +969,15 @@ public:
       );
       return {};
     }
-    // get number of dimensions
-    auto n_dim = cap_ten->dim();
-    // TODO: can optimize for low-dimension tensor, e.g. d <= 4, by using a
-    // std::pmr::vector<npy_intp> allocated from a monotonic_buffer_resource
-    // where the initial buffer is a npy_intp[4] array
-NPYGL_MSVC_WARNING_PUSH()
-NPYGL_MSVC_WARNING_DISABLE(4365)  // signed/unsigned mismatch
-    std::vector<npy_intp> dims(n_dim);
-    for (decltype(n_dim) i = 0; i < n_dim; i++)
-      dims[i] = cap_ten->size(i);
-    // get strides
-    std::vector<npy_intp> strides(n_dim);
-    for (decltype(n_dim) i = 0; i < n_dim; i++)
-      strides[i] = cap_ten->stride(i);
-NPYGL_MSVC_WARNING_POP()
+    // get tensor dimensions and strides
+    auto [dims, strides] = retrieve_sizes(*cap_ten);
     // create new NumPy array from tensor
     py_object ar{
       PyArray_New(
         &PyArray_Type,                // subtype
 NPYGL_MSVC_WARNING_PUSH()
 NPYGL_MSVC_WARNING_DISABLE(4244)  // possible loss of data due to narrowing
-        n_dim,                        // nd
+        cap_ten->dim(),               // nd
 NPYGL_MSVC_WARNING_POP()
         // FIXME: if sizeof(npy_intp) == sizeof(decltype(cap_ten->size(0))),
         // which is typically int64_t, then we can alias directly and not copy
