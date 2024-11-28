@@ -296,7 +296,7 @@ inline T py_inner(ndarray_flat_view<T> v1, ndarray_flat_view<T> v2)
   return inner(v1, v2);
 }
 
-}  // testing
+}  // namespace testing
 }  // namespace npygl
 %}
 
