@@ -369,17 +369,24 @@ namespace testing {
  * @note SWIG's support for `auto` in the 4.0.x series is rather limited so we
  *  still have to spell out the return type in its full glory.
  *
- * @todo Still not really able to get SWIG to handle `std::optional<T>` so we
- *  use a hack where `UINT_MAX `is considered the "default" value.
+ * @note In order to get SWIG to generate optional arguments at the Python
+ *  level, e.g. in the kwargs of the Python wrapper method, we *must* ensure
+ *  that any default arguments used are either integral or boolean.
  */
 template <typename T>
-inline std::vector<T> py_uniform(
-  std::size_t n, rngs type = rngs::mersenne, unsigned int seed = UINT_MAX)
+inline std::vector<T> py_uniform(std::size_t n, int type = 0, int seed = -1)
 {
   return uniform<T>(
     n,
-    type,
-    (seed == UINT_MAX) ? optional_seed_type{} : optional_seed_type{seed}
+    //
+    // note:
+    //
+    // in the C++ layer an exception will be thrown (and caught, since we have
+    // the SWIG exception handler active), if this value is out of range
+    //
+    static_cast<rngs>(type),
+    // we treat negative values as the "default" because we want unsigned seeds
+    (seed < 0) ? optional_seed_type{} : optional_seed_type{seed}
   );
 }
 
@@ -410,6 +417,8 @@ namespace npygl::testing {
   "    Number of elements to generate\n"
   "type : rngs, default=PRNG_MERSENNE\n"
   "    PRNG generator to use\n"
+  "seed : int, default=-1\n"
+  "    PRNG generator seed to use. If negative, the argument is ignored.\n"
   "\n"
   NPYGL_NPYDOC_RETURNS
   "numpy.ndarray\n"
@@ -430,6 +439,8 @@ namespace npygl::testing {
   "    Number of elements to generate\n"
   "type : rngs, default=PRNG_MERSENNE\n"
   "    PRNG generator to use\n"
+  "seed : int, default=-1\n"
+  "    PRNG generator seed to use. If negative, the argument is ignored.\n"
   "\n"
   NPYGL_NPYDOC_RETURNS
   "numpy.ndarray\n"
