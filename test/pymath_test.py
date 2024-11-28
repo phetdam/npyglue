@@ -217,7 +217,7 @@ class TestUniform(unittest.TestCase):
     seed = 8
 
     @staticmethod
-    def swig_module(mod: "module") -> bool:
+    def swig_module(mod: "module") -> bool:  # type: ignore
         """Indicate via the module's name if it is SWIG-generated.
 
         Test modules have "_swig" as part of the module name.
