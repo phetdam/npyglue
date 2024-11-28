@@ -205,7 +205,7 @@ using driver_type = npygl::testing::traits_checker_driver<
       // some silly comparisons
       std::pair<
         std::array<int, 64>,
-        npygl::testing::traits_value_is_greater<int, 24>
+        npygl::testing::traits_value_is_greater<unsigned, 24>
       >,
       std::pair<
         unsigned[1024],

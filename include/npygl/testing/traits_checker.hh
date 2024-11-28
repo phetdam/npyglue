@@ -595,6 +595,7 @@ public:
    * The second type of the `std::pair` case is always `std::true_type`.
    */
   using failed_cases = std::conditional_t<
+    // note: may want to suppress MSVC C4388 (signed/unsigned mismatch)
     C{}(invoke_type::value, v_),
     std::tuple<>,
     std::tuple<traits_checker_case_t<Traits, input_type>>
