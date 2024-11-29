@@ -557,6 +557,40 @@ using rng_wrapper_builder_t = typename rng_wrapper_builder_traits<Ts...>::type;
 using optional_seed_type = std::optional<std::uint_fast32_t>;
 
 /**
+ * Create a `rng_wrapper<T>` instance given the specified PRNG type and seed.
+ *
+ * @param type PRNG type
+ * @param seed Seed value to use
+ */
+template <typename T>
+auto make_wrapped_rng(rngs type, optional_seed_type seed = {})
+{
+  using dist_type = std::uniform_real_distribution<T>;
+  // use random_device if no seed value
+  auto sv = (seed) ? *seed : std::random_device{}();
+  // switch over RNG type
+  switch (type) {
+    case rngs::mersenne:
+      return rng_wrapper_builder<dist_type, rng_type_t<rngs::mersenne>>{}
+        .dist()
+        .rng(sv)();
+    case rngs::mersenne64:
+      return rng_wrapper_builder<dist_type, rng_type_t<rngs::mersenne64>>{}
+        .dist()
+        .rng(sv)();
+    case rngs::ranlux48:
+      return rng_wrapper_builder<dist_type, rng_type_t<rngs::ranlux48>>{}
+        .dist()
+        .rng(sv)();
+    default:
+      throw std::logic_error{
+        NPYGL_PRETTY_FUNCTION_NAME +
+        std::string{": invalid PRNG type specifier"}
+      };
+  }
+}
+
+/**
  * Return a vector of random values drawn from `[0, 1]`.
  *
  * @todo Try directly exposing this to SWIG after creating typemaps for
@@ -572,32 +606,7 @@ template <typename T>
 auto uniform(std::size_t n, rngs type, optional_seed_type seed = {})
 {
   // produce generator based on PRNG type
-  auto gen = [type, seed]
-  {
-    using dist_type = std::uniform_real_distribution<T>;
-    // use random_device is no seed value
-    auto sv = (seed) ? *seed : std::random_device{}();
-    // switch over RNG type
-    switch (type) {
-      case rngs::mersenne:
-        return rng_wrapper_builder<dist_type, rng_type_t<rngs::mersenne>>{}
-          .dist()
-          .rng(sv)();
-      case rngs::mersenne64:
-        return rng_wrapper_builder<dist_type, rng_type_t<rngs::mersenne64>>{}
-          .dist()
-          .rng(sv)();
-      case rngs::ranlux48:
-        return rng_wrapper_builder<dist_type, rng_type_t<rngs::ranlux48>>{}
-          .dist()
-          .rng(sv)();
-      default:
-        throw std::logic_error{
-          NPYGL_PRETTY_FUNCTION_NAME +
-          std::string{": invalid PRNG type specifier"}
-        };
-    }
-  }();
+  auto gen = make_wrapped_rng<T>(type, seed);
   // allocate vector to return + populate
   std::vector<T> vec(n);
   for (auto& v : vec)
