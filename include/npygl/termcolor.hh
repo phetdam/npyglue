@@ -249,7 +249,7 @@ inline sgr_bg_color bg_color(unsigned short v)
  * Enable virtual terminal sequences for standard output.
  *
  * This provides an RAII wrapper to enabling/disabling VTS for standard output
- * on WIndows as ANSI control sequences are disabled by default.
+ * on Windows as ANSI control sequences are disabled by default.
  *
  * On POSIX systems this object is a no-op since control sequences are enabled.
  */
