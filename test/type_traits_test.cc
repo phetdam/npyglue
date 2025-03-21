@@ -35,6 +35,8 @@
 #if defined(NPYGL_USE_LLVM_DEMANGLE)
 // not strictly necessary but we do it for correctness
 #include <iostream>
+// for well-formed typeid() usage
+#include <typeinfo>
 #include "npygl/demangle.hh"
 #endif  // defined(NPYGL_USE_LLVM_DEMANGLE)
 
