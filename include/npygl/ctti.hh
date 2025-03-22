@@ -33,21 +33,19 @@ constexpr auto unknown_type_name = "(unknown)";
 template <typename T>
 constexpr std::string_view msvc_type_name() noexcept
 {
-  // begin iterator
+  // begin + end iterators
   auto begin = std::begin(__FUNCSIG__);
+  auto end = std::end(__FUNCSIG__);
   // for MSVC, the function signature is as follows:
   //
   //    class std::basic_string_view<char,struct std::char_traits<char> >
   //    __cdecl npygl::msvc_type_name<type-name>(void)
   //
-  // therefore, we advance forward to the first '('. we cannot go in reverse
-  // because *std::end(__FUNCSIG__) is undefined behavior
-  auto end = begin;
-  while (*end && *end != '(')
-    end++;
-  // this is too far, so bring it back to the rightmost '>'
-  while (begin != end && *end != '>')
-    end--;
+  // unlike the GCC or Clang sigantures, there are far less identifying chars
+  // we can use, in particular '=' to mark the beginning of the type. so we
+  // actually go in reverse here, pre-decrementing the end iterator to the
+  // rightmost '>' that we see to mark the one past the end of the type.
+  while (begin != end && *--end != '>');
   // it is harder to locate the beginning because the Microsoft format does
   // not have any special chars that cannot be used in type names. therefore,
   // our approach is to count the number of unmatched angle brackets. each
@@ -111,17 +109,17 @@ constexpr std::string_view gnu_type_name() noexcept
   // move to first char of type name (not ' ' or '=')
   while (*begin && (*begin == ' ' || *begin == '='))
     begin++;
-  // move end to ';' for GCC but to ']' for Clang
-  auto end = begin;
-  constexpr auto term =
+  // for Clang, since ']' can show up as part of an array type, we move
+  // backwards and pre-decrement to get to the rightmost ']'. for GCC, we can
+  // just keep moving rightwards from begin to the ';'
 #if defined(__clang__)
-    ']'
+  auto end = std::end(__PRETTY_FUNCTION__);
+  while (begin != end && *--end != ']');
 #else
-    ';'
-#endif  // !defined(__clang__)
-    ;
-  while (*end && *end != term)
+  auto end = begin;
+  while (*end && *end != ';')
     end++;
+#endif  // !defined(__clang__)
   // done
 #if NPYGL_HAS_CC_20
   return {begin, end};
