@@ -35,10 +35,24 @@
 #if defined(NPYGL_USE_LLVM_DEMANGLE)
 // not strictly necessary but we do it for correctness
 #include <iostream>
+#include <string_view>
 // for well-formed typeid() usage
 #include <typeinfo>
 #include "npygl/demangle.hh"
 #endif  // defined(NPYGL_USE_LLVM_DEMANGLE)
+
+// allow repurposing this test program as a smoke test for npygl::type_name<T>.
+// this is more efficient (possible compile-time computation) and does not
+// require any additional libraries to be included
+#ifdef NPYGL_USE_CTTI_DEMANGLE
+// not meaningful if both macros are defined
+#ifdef NPYGL_USE_LLVM_DEMANGLE
+#error "type_traits_test.cc: cannot define both NPYGL_USE_CTTI_DEMANGLE and " \
+  "NPYGL_USE_LLVM_DEMANGLE"
+#endif  // NPYGL_USE_LLVM_DEMANGLE
+// for npygl::type_name<T>
+#include "npygl/ctti.hh"
+#endif  // NPYGL_USE_CTTI_DEMANGLE
 
 namespace {
 
@@ -268,10 +282,10 @@ using driver_type = npygl::testing::traits_checker_driver<
     >
   >
 >;
-// test driver instance. but if testing LLVM demangling we won't be needing it
-#ifndef NPYGL_USE_LLVM_DEMANGLE
+// test driver instance. but if testing demangling we won't be needing it
+#if !defined(NPYGL_USE_LLVM_DEMANGLE) && !defined(NPYGL_USE_CTTI_DEMANGLE)
 constexpr driver_type driver;
-#endif  // NPYGL_USE_LLVM_DEMANGLE
+#endif  // !defined(NPYGL_USE_LLVM_DEMANGLE) || !defined(NPYGL_USE_CTTI_DEMANGLE)
 
 }  // namespace
 
@@ -280,6 +294,9 @@ int main()
 // smoke test for llvm::itaniumDemangle
 #if defined(NPYGL_USE_LLVM_DEMANGLE)
   std::cout << npygl::type_name(typeid(driver_type)) << std::endl;
+// smoke test for npygl::type_name<T>
+#elif defined(NPYGL_USE_CTTI_DEMANGLE)
+  std::cout << npygl::type_name<driver_type>() << std::endl;
 // standard traits checker driver main
 #else
   npygl::vts_stdout_context ctx;

@@ -328,3 +328,8 @@ if(TORCH_FOUND)
     endif()
     add_test(NAME torch_traits_test COMMAND torch_traits_test)
 endif()
+
+# ctti_demangle_test: test demangling of driver_type with npygl::type_name<T>
+add_executable(ctti_demangle_test type_traits_test.cc)
+target_compile_definitions(ctti_demangle_test PRIVATE NPYGL_USE_CTTI_DEMANGLE)
+add_test(NAME ctti_demangle_test COMMAND ctti_demangle_test)
