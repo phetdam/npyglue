@@ -297,9 +297,9 @@ add_test(NAME termcolors COMMAND termcolors)
 # note: only built when not on Windows since std::type_info::name() is not
 # mangled in the MSVC ABI. checking compiler ABI is the direct solution
 if(NOT WIN32 AND LLVM_FOUND)
-    add_executable(llvm_demangle_test type_traits_test.cc)
-    # opt-in is required since we need to link against LLVMDemangle
-    target_compile_definitions(llvm_demangle_test PRIVATE NPYGL_USE_LLVM_DEMANGLE)
+    # note: NPYGL_USE_LLVM_DEMANGLE already defined in source file. typically,
+    # one would just add this to the compiler's macro definitions
+    add_executable(llvm_demangle_test llvm_demangle_test.cc)
     target_link_libraries(llvm_demangle_test PRIVATE ${NPYGL_LLVM_DEMANGLE_LIB})
     add_test(NAME llvm_demangle_test COMMAND llvm_demangle_test)
 endif()
@@ -330,6 +330,5 @@ if(TORCH_FOUND)
 endif()
 
 # ctti_demangle_test: test demangling of driver_type with npygl::type_name<T>
-add_executable(ctti_demangle_test type_traits_test.cc)
-target_compile_definitions(ctti_demangle_test PRIVATE NPYGL_USE_CTTI_DEMANGLE)
+add_executable(ctti_demangle_test ctti_demangle_test.cc)
 add_test(NAME ctti_demangle_test COMMAND ctti_demangle_test)
