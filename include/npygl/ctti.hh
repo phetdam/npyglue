@@ -20,7 +20,7 @@ namespace detail {
 /**
  * `type_name<T>()` value when not compiling with MSVC, GCC, or Clang.
  */
-constexpr auto unsupported_type_name = "(unknown)";
+constexpr auto unknown_type_name = "(unknown)";
 
 #ifdef _MSC_VER
 /**
@@ -139,7 +139,7 @@ constexpr std::string_view gnu_type_name() noexcept
  *
  * This relies on compiler predefined string literals providing the function
  * signature. If the compiler used is not MSVC, GCC, or Clang, then
- * `detail::unsupported_type_name` is returned instead.
+ * `detail::unknown_type_name` is returned instead.
  *
  * @tparam T type
  */
@@ -154,7 +154,7 @@ constexpr std::string_view type_name() noexcept
   return detail::gnu_type_name<T>();
 // unsupported
 #else
-  return detail::unsupported_type_name;
+  return detail::unknown_type_name;
 #endif  // !defined(_MSC_VER) && !defined(__GNUC__)
 }
 
@@ -165,7 +165,7 @@ constexpr std::string_view type_name() noexcept
  */
 constexpr bool type_name_supported() noexcept
 {
-  return detail::unsupported_type_name != type_name<void*>();
+  return detail::unknown_type_name != type_name<void*>();
 }
 
 }  // namespace npygl
