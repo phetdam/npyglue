@@ -302,6 +302,12 @@ if(NOT WIN32 AND LLVM_FOUND)
     add_executable(llvm_demangle_test llvm_demangle_test.cc)
     target_link_libraries(llvm_demangle_test PRIVATE ${NPYGL_LLVM_DEMANGLE_LIB})
     add_test(NAME llvm_demangle_test COMMAND llvm_demangle_test)
+    # traits_checker_driver and the last traits in type_traits_test_driver
+    # should be part of the printed type name
+    set_tests_properties(
+        llvm_demangle_test PROPERTIES
+        PASS_REGULAR_EXPRESSION "traits_checker_driver<.+is_iterable,.+>"
+    )
 endif()
 
 # torch_test: test torch.hh LibTorch helpers
@@ -332,3 +338,9 @@ endif()
 # ctti_soak_test: npygl::type_name<T> soak test with type_traits_test_driver
 add_executable(ctti_soak_test ctti_soak_test.cc)
 add_test(NAME ctti_soak_test COMMAND ctti_soak_test)
+# like llvm_demangle_test traits_checker_driver and the last traits in
+# type_traits_test_driver should be part of the type name printed
+set_tests_properties(
+    ctti_soak_test PROPERTIES
+    PASS_REGULAR_EXPRESSION "traits_checker_driver<.+is_iterable,.+>"
+)
