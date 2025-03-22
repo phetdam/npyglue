@@ -17,14 +17,9 @@
 #include "npygl/demangle.hh"
 #include "npygl/testing/type_traits_test_driver.hh"
 
-namespace {
-
-using driver_type = npygl::testing::type_traits_test_driver;
-
-}  // namespace
-
 int main()
 {
+  using driver_type = npygl::testing::type_traits_test_driver;
   std::cout << npygl::type_name(typeid(driver_type)) << std::endl;
   return EXIT_SUCCESS;
 }
