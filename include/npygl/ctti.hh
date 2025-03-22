@@ -65,7 +65,7 @@ constexpr std::string_view msvc_type_name() noexcept
     else if (*it == '<')
       unmatched--;
     // if no unmatched, stop. for well-formed function signature, the next
-    // char should be the first char of the type name, as advance + breal
+    // char should be the first char of the type name, so advance + break
     if (!unmatched) {
       it++;
       break;
