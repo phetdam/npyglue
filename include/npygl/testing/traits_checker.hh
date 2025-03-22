@@ -9,6 +9,7 @@
 #define NPYGL_TESTING_TRAITS_CHECKER_HH_
 
 #include <cstdint>
+#include <functional>
 #include <iostream>
 #include <ostream>
 #include <tuple>
