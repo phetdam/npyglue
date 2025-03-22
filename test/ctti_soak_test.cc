@@ -1,5 +1,5 @@
 /**
- * @file ctti_demangle_test.cc
+ * @file ctti_soak_test.cc
  * @author Derek Huang
  * @brief C++ program testing `type_name<T>` on `type_traits_test_driver`
  * @copyright MIT License
@@ -16,8 +16,9 @@
 
 namespace {
 
-using driver_type = npygl::testing::type_traits_test_driver;
-constexpr auto driver_type_name = npygl::type_name<driver_type>();
+// ensure that type_name<T> cam be evaluated at compile-time
+constexpr auto driver_type_name = npygl::
+  type_name<npygl::testing::type_traits_test_driver>();
 
 }  // namespace
 

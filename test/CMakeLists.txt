@@ -293,7 +293,7 @@ endif()
 # smoke test. not super useful as we need to visually inspect for correctness
 add_test(NAME termcolors COMMAND termcolors)
 
-# llvm_demangle_test: test demangling of driver_type using LLVM
+# llvm_demangle_test: test demangling of type_traits_test_driver using LLVM
 # note: only built when not on Windows since std::type_info::name() is not
 # mangled in the MSVC ABI. checking compiler ABI is the direct solution
 if(NOT WIN32 AND LLVM_FOUND)
@@ -329,6 +329,6 @@ if(TORCH_FOUND)
     add_test(NAME torch_traits_test COMMAND torch_traits_test)
 endif()
 
-# ctti_demangle_test: test demangling of driver_type with npygl::type_name<T>
-add_executable(ctti_demangle_test ctti_demangle_test.cc)
-add_test(NAME ctti_demangle_test COMMAND ctti_demangle_test)
+# ctti_soak_test: npygl::type_name<T> soak test with type_traits_test_driver
+add_executable(ctti_soak_test ctti_soak_test.cc)
+add_test(NAME ctti_soak_test COMMAND ctti_soak_test)
