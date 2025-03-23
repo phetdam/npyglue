@@ -364,6 +364,8 @@ if(MSVC)
         /wd4625
         # C4626: assignment operator was implicitly defined as deleted
         /wd4626
+        # C4710: function not inlined
+        /wd4710
         # C4711: function selected for automatic inline expansion
         /wd4711
         # C4820: padding added after struct member
