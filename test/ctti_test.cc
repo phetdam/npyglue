@@ -238,6 +238,14 @@ struct test_template_type {};
 #else
 #define STD_OSTREAM_NAME "std::basic_ostream<char>"
 #endif  // !defined(_WIN32)
+// const void* const
+#if defined(_WIN32)
+#define VOID_C_PTR_C "const void*const " /* extra whitespace is not a typo */
+#elif defined(__clang__)
+#define VOID_C_PTR_C "const void *const"
+#else
+#define VOID_C_PTR_C "const void* const"
+#endif  // !defined(_WIN32) && !defined(__clang__)
 
 /**
  * Program main.
@@ -263,7 +271,9 @@ bool main()
 #define EXPECTED_NAME TEST_TEMPLATE_TYPE_STD_STRING_DOUBLE_CHAR_C_PTR_NAME
       .add<test_template_type<std::string, double, const char*>>(EXPECTED_NAME)
 #undef EXPECTED_NAME
-      .add<std::ostream>(STD_OSTREAM_NAME);
+      .add<std::ostream>(STD_OSTREAM_NAME)
+      // note: the runtime-demangled name omits the pointer const qualification
+      .add<const void* const>(VOID_C_PTR_C);
     // print result
     std::cout << type_tests() << std::endl;
     // success if none failed
