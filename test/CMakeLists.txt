@@ -335,6 +335,10 @@ if(TORCH_FOUND)
     add_test(NAME torch_traits_test COMMAND torch_traits_test)
 endif()
 
+# ctti_test: npygl::type_name<T> unit tests
+add_executable(ctti_test ctti_test.cc)
+add_test(NAME ctti_test COMMAND ctti_test)
+
 # ctti_soak_test: npygl::type_name<T> soak test with type_traits_test_driver
 add_executable(ctti_soak_test ctti_soak_test.cc)
 add_test(NAME ctti_soak_test COMMAND ctti_soak_test)
