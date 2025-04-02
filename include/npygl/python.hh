@@ -173,12 +173,12 @@ struct py_format_type<std::tuple<Ts...>> : py_format_type<Ts...> {};
 /**
  * Compile-time Python argument format string.
  *
- * @todo Consider making this a null-terminated array instead of a pointer.
+ * This provides a reference to a null-terminated character array.
  *
  * @tparam Ts... types
  */
 template <typename... Ts>
-inline constexpr const char* py_format = py_format_type<Ts...>::value;
+inline constexpr const auto& py_format = py_format_type<Ts...>::value;
 
 /**
  * Parse Python arguments into the given variadic arguments.
