@@ -280,7 +280,7 @@ bool main()
     return !type_tests().failed();
   }
   else {
-    std::cerr << "npygl::type_name<T> is not supported" << std::endl;
+    std::cerr << "SKIPPED: npygl::type_name<T> not supported" << std::endl;
     return true;
   }
 }

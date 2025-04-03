@@ -17,13 +17,16 @@
 namespace {
 
 // ensure that type_name<T> cam be evaluated at compile-time
-constexpr auto driver_type_name = npygl::
-  type_name<npygl::testing::type_traits_test_driver>();
+using driver_type = npygl::testing::type_traits_test_driver;
+constexpr auto driver_type_name = npygl::type_name<driver_type>();
 
 }  // namespace
 
 int main()
 {
-  std::cout << driver_type_name << std::endl;
+  if constexpr (npygl::type_name_supported())
+    std::cout << driver_type_name << std::endl;
+  else
+    std::cout << "SKIPPED: npygl::type_name<T> not supported" << std::endl;
   return EXIT_SUCCESS;
 }

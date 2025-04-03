@@ -338,6 +338,8 @@ endif()
 # ctti_test: npygl::type_name<T> unit tests
 add_executable(ctti_test ctti_test.cc)
 add_test(NAME ctti_test COMMAND ctti_test)
+# skip if not supported
+set_tests_properties(ctti_test PROPERTIES SKIP_REGULAR_EXPRESSION "SKIPPED")
 
 # ctti_soak_test: npygl::type_name<T> soak test with type_traits_test_driver
 add_executable(ctti_soak_test ctti_soak_test.cc)
@@ -347,4 +349,5 @@ add_test(NAME ctti_soak_test COMMAND ctti_soak_test)
 set_tests_properties(
     ctti_soak_test PROPERTIES
     PASS_REGULAR_EXPRESSION "traits_checker_driver<.+is_iterable,.+>"
+    SKIP_REGULAR_EXPRESSION "SKIPPED"
 )
