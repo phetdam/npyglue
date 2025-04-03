@@ -300,7 +300,7 @@ if(NOT WIN32 AND LLVM_FOUND)
     # note: NPYGL_USE_LLVM_DEMANGLE already defined in source file. typically,
     # one would just add this to the compiler's macro definitions
     add_executable(llvm_demangle_test llvm_demangle_test.cc)
-    target_link_libraries(llvm_demangle_test PRIVATE ${NPYGL_LLVM_DEMANGLE_LIB})
+    target_link_libraries(llvm_demangle_test PRIVATE npygl::llvm_demangle)
     add_test(NAME llvm_demangle_test COMMAND llvm_demangle_test)
     # traits_checker_driver and the last traits in type_traits_test_driver
     # should be part of the printed type name

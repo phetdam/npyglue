@@ -14,6 +14,12 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_C_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
+# set CMake module path and import CMake helpers
+list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
+
+include(npygl_llvm_library_target)
+include(npygl_target_helpers)
+
 # options
 option(BUILD_TESTS "Build ${PROJECT_NAME} tests" ON)
 option(PY_MSVC_ALWAYS_RELEASE "MSVC: Python targets use release runtimes" ON)
@@ -342,9 +348,8 @@ find_package(LLVM 14.0.0)
 if(LLVM_FOUND)
     # note: for LLVM 14.0.0, LLVM_VERSION should also work
     message(STATUS "LLVM version: ${LLVM_PACKAGE_VERSION}")
-    # add LLVM include directories + resolve LLVM demangle library
-    include_directories(SYSTEM ${LLVM_INCLUDE_DIRS})
-    llvm_map_components_to_libnames(NPYGL_LLVM_DEMANGLE_LIB demangle)
+    # add target for LLVMDemangle library
+    npygl_llvm_library_target(demangle)
 else()
     message(STATUS "LLVM version: None")
 endif()
@@ -380,10 +385,6 @@ if(MSVC)
 else()
     add_compile_options(-Wall)
 endif()
-
-# set CMake module path and import target helpers
-set(CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
-include(npygl_target_helpers)
 
 # project include directory
 set(NPYGL_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/include)
