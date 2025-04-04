@@ -2,11 +2,6 @@ cmake_minimum_required(VERSION ${CMAKE_MINIMUM_REQUIRED_VERSION})
 
 add_subdirectory(npygl_test)
 
-# note: we always use Armadillo in header-only mode, e.g. by defining
-# ARMA_DONT_USE_WRAPPER, as a convenience when compiling on Windows. this saves
-# use from needing a debug and release C runtime version of the wrapper
-add_compile_definitions(ARMA_DONT_USE_WRAPPER)
-
 # py_helpers_test: Python helpers tests
 if(Python3_Development_FOUND)
     npygl_add_py3_executable(
@@ -24,6 +19,10 @@ if(Python3_Development_FOUND)
         SOURCES py_capsule_test.cc
         USE_RELEASE_CRT ${NPYGL_PYTHON_USE_RELEASE_CRT}
     )
+    # enable Armadillo tests if available
+    if(Armadillo_FOUND)
+        target_link_libraries(py_capsule_test PRIVATE npyglue::Armadillo)
+    endif()
     # enable Eigen3 tests if available
     if(Eigen3_FOUND)
         target_link_libraries(py_capsule_test PRIVATE Eigen3::Eigen)
@@ -83,6 +82,10 @@ if(Python3_Development_FOUND AND Python3_NumPy_FOUND)
         LIBRARIES Python3::NumPy
         USE_RELEASE_CRT ${NPYGL_PYTHON_USE_RELEASE_CRT}
     )
+    # enable Armadillo features if available
+    if(Armadillo_FOUND)
+        target_link_libraries(npy_capsule_test PRIVATE npyglue::Armadillo)
+    endif()
     # enable Eigen features if available
     if(Eigen3_FOUND)
         target_link_libraries(npy_capsule_test PRIVATE Eigen3::Eigen)
@@ -104,6 +107,9 @@ if(Python3_Development_FOUND AND Python3_NumPy_FOUND)
         LIBRARIES Python3::NumPy
         USE_RELEASE_CRT ${NPYGL_PYTHON_USE_RELEASE_CRT}
     )
+    if(Armadillo_FOUND)
+        target_link_libraries(npy_traits_test PRIVATE npyglue::Armadillo)
+    endif()
     if(Eigen3_FOUND)
         target_link_libraries(npy_traits_test PRIVATE Eigen3::Eigen)
     endif()
@@ -135,8 +141,6 @@ if(Python3_Development_FOUND AND Python3_NumPy_FOUND)
 endif()
 
 # pyhelpers: Python helpers test module
-# TODO: consider allowing conditional compilation without NumPy, in which case
-# there will be a separate Python test script run for the NumPy tests
 if(Python3_Development_FOUND)
     npygl_add_py3_extension(
         TARGET pyhelpers
@@ -145,6 +149,9 @@ if(Python3_Development_FOUND)
     )
     if(Python3_NumPy_FOUND)
         target_link_libraries(pyhelpers PRIVATE Python3::NumPy)
+    endif()
+    if(Armadillo_FOUND)
+        target_link_libraries(pyhelpers PRIVATE npyglue::Armadillo)
     endif()
     if(Eigen3_FOUND)
         target_link_libraries(pyhelpers PRIVATE Eigen3::Eigen)
@@ -317,6 +324,9 @@ if(TORCH_FOUND)
     npygl_use_release_crt(torch_test ON)
     target_link_libraries(torch_test PRIVATE npygl::Torch)
     npygl_copy_torch_dlls(torch_test)
+    if(Armadillo_FOUND)
+        target_link_libraries(torch_test PRIVATE npyglue::Armadillo)
+    endif()
     if(Eigen3_FOUND)
         target_link_libraries(torch_test PRIVATE Eigen3::Eigen)
     endif()
@@ -329,6 +339,9 @@ if(TORCH_FOUND)
     npygl_use_release_crt(torch_traits_test ON)
     target_link_libraries(torch_traits_test PRIVATE npygl::Torch)
     npygl_copy_torch_dlls(torch_traits_test)
+    if(Armadillo_FOUND)
+        target_link_libraries(torch_traits_test PRIVATE npyglue::Armadillo)
+    endif()
     if(Eigen3_FOUND)
         target_link_libraries(torch_traits_test PRIVATE Eigen3::Eigen)
     endif()
