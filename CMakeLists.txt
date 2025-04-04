@@ -250,14 +250,32 @@ endif()
 # Armadillo in header-only mode without requiring BLAS/LAPACK/ARPACK/HDF5
 set(NPYGL_ARMADILLO_MINVER 10.8.2)
 if(WIN32)
-    # find Armadillo include directory like in FindArmadillo.cmake
-    find_path(
-        ARMADILLO_INCLUDE_DIR
-        NAMES armadillo
-        PATHS "$ENV{ProgramFiles}/Armadillo/include"
+    # search paths for Armadillo
+    set(
+        _arma_paths
+        ENV Armadillo_ROOT ENV Armadillo_DIR
+        "$ENV{ProgramFiles}/Armadillo/include"  # used by FindArmadillo
     )
-    # include directory exists so grab version info
-    if(ARMADILLO_INCLUDE_DIR)
+    # use Armadillo_DIR and Armadillo_ROOT if possible
+    foreach(_prefix Armadillo_DIR Armadillo_ROOT)
+        if(${_prefix})
+            list(PREPEND _arma_paths ${${_prefix}})
+        endif()
+    endforeach()
+    # find Armadillo header using search paths
+    find_file(
+        _arma_header
+        NAMES armadillo
+        PATHS ${_arma_paths}
+        PATH_SUFFIXES include
+        NO_CACHE
+    )
+    # if header exists, grab version info
+    if(NOT _arma_header)
+        message(STATUS "Could NOT find Armadillo header armadillo")
+    else()
+        # back up to get include directory
+        cmake_path(GET _arma_header PARENT_PATH ARMADILLO_INCLUDE_DIR)
         # CMake sources say old Armadillo versions didn't have
         # armadillo_bits/arma_version.hpp so default to 0.0.0
         set(ARMADILLO_VERSION_MAJOR 0)
@@ -305,6 +323,8 @@ if(WIN32)
             ${ARMADILLO_VERSION_MAJOR}.${ARMADILLO_VERSION_MINOR}.${ARMADILLO_VERSION_PATCH}
         )
     endif()
+    unset(_arma_header)
+    unset(_arma_paths)
     # set result variables like FindArmadillo does as appropriate
     if(ARMADILLO_VERSION_STRING VERSION_GREATER_EQUAL NPYGL_ARMADILLO_MINVER)
         set(Armadillo_FOUND TRUE)
