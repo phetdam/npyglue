@@ -345,16 +345,14 @@ if(Armadillo_FOUND)
     message(STATUS "Armadillo version: ${ARMADILLO_VERSION_STRING}")
     # convenience interface target to manage Armadillo include
     add_library(npyglue::Armadillo INTERFACE IMPORTED)
-    # always use header-only mode
+    # note: we always use Armadillo in header-only mode, e.g. by defining
+    # ARMA_DONT_USE_WRAPPER, as a convenience when compiling on Windows. this
+    # saves use from needing debug and release CRT versions of the wrapper
     target_compile_definitions(npyglue::Armadillo INTERFACE ARMA_DONT_USE_WRAPPER)
     target_include_directories(
         npyglue::Armadillo
         SYSTEM INTERFACE ${ARMADILLO_INCLUDE_DIRS}
     )
-    # TODO: replace broad usage of ARMA_DONT_USE_WRAPPER and Armadillo includes
-    # with direct linking to the npyglue::Armadillo target
-    # need to manually add ARMADILLO_INCLUDE_DIRS if non-system install
-    include_directories(SYSTEM ${ARMADILLO_INCLUDE_DIRS})
 else()
     message(STATUS "Armadillo version: None")
 endif()
