@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.20)
 
 project(
     npyglue
-    VERSION 0.0.1
+    VERSION 0.1.0
     DESCRIPTION "C++ glue code simplifying Python/C++ interop."
     HOMEPAGE_URL https://github.com/phetdam/npyglue
     LANGUAGES C CXX
@@ -21,8 +21,8 @@ include(npygl_llvm_library_target)
 include(npygl_target_helpers)
 
 # options
-option(BUILD_TESTS "Build ${PROJECT_NAME} tests" ON)
-option(PY_MSVC_ALWAYS_RELEASE "MSVC: Python targets use release runtimes" ON)
+option(NPYGL_BUILD_TESTS "Build ${PROJECT_NAME} tests" ON)
+option(NPYGL_PYTHON_USE_RELEASE_CRT "MSVC: Python targets use release CRT" ON)
 option(
     NPYGL_TORCH_PRECOMPILE
     "Precompile torch/torch.h for faster incremental builds" OFF
@@ -324,15 +324,15 @@ endif()
 if(Armadillo_FOUND)
     message(STATUS "Armadillo version: ${ARMADILLO_VERSION_STRING}")
     # convenience interface target to manage Armadillo include
-    add_library(npygl::Armadillo INTERFACE IMPORTED)
+    add_library(npyglue::Armadillo INTERFACE IMPORTED)
     # always use header-only mode
-    target_compile_definitions(npygl::Armadillo INTERFACE ARMA_DONT_USE_WRAPPER)
+    target_compile_definitions(npyglue::Armadillo INTERFACE ARMA_DONT_USE_WRAPPER)
     target_include_directories(
-        npygl::Armadillo
+        npyglue::Armadillo
         SYSTEM INTERFACE ${ARMADILLO_INCLUDE_DIRS}
     )
     # TODO: replace broad usage of ARMA_DONT_USE_WRAPPER and Armadillo includes
-    # with direct linking to the npygl::Armadillo target
+    # with direct linking to the npyglue::Armadillo target
     # need to manually add ARMADILLO_INCLUDE_DIRS if non-system install
     include_directories(SYSTEM ${ARMADILLO_INCLUDE_DIRS})
 else()
@@ -388,17 +388,20 @@ endif()
 
 # project include directory
 set(NPYGL_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/include)
-include_directories(${NPYGL_INCLUDE_DIR})
+# include generated header files as well
+# note: we don't have any config-specific generated headers yet
+include_directories(${NPYGL_INCLUDE_DIR} ${CMAKE_CURRENT_BINARY_DIR}/include)
 
 # generate version header. only replace @VAR@ and keep LF newlines
-set(NPYGL_VERSION_HEADER ${NPYGL_INCLUDE_DIR}/npygl/version.h)
-cmake_path(GET NPYGL_VERSION_HEADER FILENAME NPYGL_VERSION_HEADER_NAME)
+set(NPYGL_VERSION_HEADER include/npygl/version.h)
 configure_file(${NPYGL_VERSION_HEADER}.in ${NPYGL_VERSION_HEADER} @ONLY LF)
-message(STATUS "Generated ${NPYGL_VERSION_HEADER_NAME}")
+message(STATUS "Generated ${NPYGL_VERSION_HEADER}")
 
 # enable testing with CTest
 include(CTest)
 
-if(BUILD_TESTS)
+if(NPYGL_BUILD_TESTS)
     add_subdirectory(test)
+else()
+    message(WARNING "Skipping test directory")
 endif()

@@ -12,7 +12,7 @@ if(Python3_Development_FOUND)
     npygl_add_py3_executable(
         TARGET py_helpers_test
         SOURCES py_helpers_test.cc
-        USE_RELEASE_CRT ${PY_MSVC_ALWAYS_RELEASE}
+        USE_RELEASE_CRT ${NPYGL_PYTHON_USE_RELEASE_CRT}
     )
     add_test(NAME py_helpers_test COMMAND py_helpers_test)
 endif()
@@ -22,7 +22,7 @@ if(Python3_Development_FOUND)
     npygl_add_py3_executable(
         TARGET py_capsule_test
         SOURCES py_capsule_test.cc
-        USE_RELEASE_CRT ${PY_MSVC_ALWAYS_RELEASE}
+        USE_RELEASE_CRT ${NPYGL_PYTHON_USE_RELEASE_CRT}
     )
     # enable Eigen3 tests if available
     if(Eigen3_FOUND)
@@ -42,7 +42,7 @@ if(Python3_Development_FOUND)
     npygl_add_py3_executable(
         TARGET py_format_test
         SOURCES py_format_test.cc
-        USE_RELEASE_CRT ${PY_MSVC_ALWAYS_RELEASE}
+        USE_RELEASE_CRT ${NPYGL_PYTHON_USE_RELEASE_CRT}
     )
     add_test(NAME py_format_test COMMAND py_format_test)
 endif()
@@ -59,7 +59,7 @@ if(Python3_Development_FOUND AND Python3_NumPy_FOUND)
         TARGET npy_helpers_test
         SOURCES npy_helpers_test.cc
         LIBRARIES Python3::NumPy
-        USE_RELEASE_CRT ${PY_MSVC_ALWAYS_RELEASE}
+        USE_RELEASE_CRT ${NPYGL_PYTHON_USE_RELEASE_CRT}
     )
     add_test(NAME npy_helpers_test COMMAND npy_helpers_test)
     # C++20
@@ -68,7 +68,7 @@ if(Python3_Development_FOUND AND Python3_NumPy_FOUND)
             TARGET npy_helpers_test_cc20
             SOURCES npy_helpers_test.cc
             LIBRARIES Python3::NumPy
-            USE_RELEASE_CRT ${PY_MSVC_ALWAYS_RELEASE}
+            USE_RELEASE_CRT ${NPYGL_PYTHON_USE_RELEASE_CRT}
         )
         npygl_require_cc_std(TARGET npy_helpers_test_cc20 CC_STD 20)
         add_test(NAME npy_helpers_test_cc20 COMMAND npy_helpers_test_cc20)
@@ -81,7 +81,7 @@ if(Python3_Development_FOUND AND Python3_NumPy_FOUND)
         TARGET npy_capsule_test
         SOURCES npy_capsule_test.cc
         LIBRARIES Python3::NumPy
-        USE_RELEASE_CRT ${PY_MSVC_ALWAYS_RELEASE}
+        USE_RELEASE_CRT ${NPYGL_PYTHON_USE_RELEASE_CRT}
     )
     # enable Eigen features if available
     if(Eigen3_FOUND)
@@ -102,7 +102,7 @@ if(Python3_Development_FOUND AND Python3_NumPy_FOUND)
         TARGET npy_traits_test
         SOURCES npy_traits_test.cc
         LIBRARIES Python3::NumPy
-        USE_RELEASE_CRT ${PY_MSVC_ALWAYS_RELEASE}
+        USE_RELEASE_CRT ${NPYGL_PYTHON_USE_RELEASE_CRT}
     )
     if(Eigen3_FOUND)
         target_link_libraries(npy_traits_test PRIVATE Eigen3::Eigen)
@@ -124,7 +124,7 @@ if(Python3_Development_FOUND AND Python3_NumPy_FOUND)
         TARGET npy_views_test
         SOURCES npy_views_test.cc
         LIBRARIES Python3::NumPy
-        USE_RELEASE_CRT ${PY_MSVC_ALWAYS_RELEASE}
+        USE_RELEASE_CRT ${NPYGL_PYTHON_USE_RELEASE_CRT}
     )
     # reduce compile time since we don't need Eigen3/Armadillo
     target_compile_definitions(
@@ -141,7 +141,7 @@ if(Python3_Development_FOUND)
     npygl_add_py3_extension(
         TARGET pyhelpers
         SOURCES pyhelpers.cc
-        USE_RELEASE_CRT ${PY_MSVC_ALWAYS_RELEASE}
+        USE_RELEASE_CRT ${NPYGL_PYTHON_USE_RELEASE_CRT}
     )
     if(Python3_NumPy_FOUND)
         target_link_libraries(pyhelpers PRIVATE Python3::NumPy)
@@ -179,7 +179,7 @@ if(Python3_Development_FOUND AND Python3_NumPy_FOUND)
         TARGET pymath
         SOURCES pymath.cc
         LIBRARIES Python3::NumPy
-        USE_RELEASE_CRT ${PY_MSVC_ALWAYS_RELEASE}
+        USE_RELEASE_CRT ${NPYGL_PYTHON_USE_RELEASE_CRT}
     )
     # unittest test script
     add_test(
@@ -194,7 +194,7 @@ if(Python3_Development_FOUND AND Python3_NumPy_FOUND)
             TARGET pymath_cc20
             SOURCES pymath.cc
             LIBRARIES Python3::NumPy
-            USE_RELEASE_CRT ${PY_MSVC_ALWAYS_RELEASE}
+            USE_RELEASE_CRT ${NPYGL_PYTHON_USE_RELEASE_CRT}
         )
         npygl_require_cc_std(TARGET pymath_cc20 CC_STD 20)
         # unittest test script
@@ -214,7 +214,7 @@ if(SWIG_FOUND AND Python3_Development_FOUND AND Python3_NumPy_FOUND)
         INTERFACE pymath_swig.i
         SWIG_CC ON
         LIBRARIES Python3::NumPy
-        USE_RELEASE_CRT ${PY_MSVC_ALWAYS_RELEASE}
+        USE_RELEASE_CRT ${NPYGL_PYTHON_USE_RELEASE_CRT}
     )
     # not using Armadillo/Eigen3 currently (may change later)
     target_compile_definitions(
@@ -237,7 +237,7 @@ if(SWIG_FOUND AND Python3_Development_FOUND AND Python3_NumPy_FOUND)
             # enable SWIG to see the C++20 declarations in math.hh
             SWIG_DEFINES NPYGL_SWIG_CC_20
             LIBRARIES Python3::NumPy
-            USE_RELEASE_CRT ${PY_MSVC_ALWAYS_RELEASE}
+            USE_RELEASE_CRT ${NPYGL_PYTHON_USE_RELEASE_CRT}
         )
         npygl_require_cc_std(TARGET pymath_swig_cc20 CC_STD 20)
         # not using Armadillo/Eigen3 currently (may change later)
