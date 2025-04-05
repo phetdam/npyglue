@@ -479,8 +479,12 @@ set_target_properties(
     EXPORT_NAME use_llvm_demangle
 )
 
+# TODO: add npyglue_sil target and npyglue::SIL alias for the SWIG library
+
 # prefix-relative directory for CMake files on installation
 set(NPYGL_CMAKE_INSTALL_DIR lib/cmake/${PROJECT_NAME})
+# name of the CMake target exports script
+set(NPYGL_CMAKE_TARGETS_FILE ${PROJECT_NAME}-targets.cmake)
 
 # install rules for all interface targets + export
 install(
@@ -496,7 +500,7 @@ install(
     EXPORT npyglue_exports
     DESTINATION ${NPYGL_CMAKE_INSTALL_DIR}
     NAMESPACE ${PROJECT_NAME}::
-    FILE ${PROJECT_NAME}-targets.cmake
+    FILE ${NPYGL_CMAKE_TARGETS_FILE}
 )
 
 # enable testing with CTest
@@ -511,3 +515,28 @@ if(NPYGL_BUILD_TESTS)
 else()
     message(WARNING "Skipping npyglue test directory")
 endif()
+
+# name of the CMake package config script + version config script
+set(NPYGL_CMAKE_CONFIG_FILE ${PROJECT_NAME}-config.cmake)
+set(NPYGL_CMAKE_VERSION_CONFIG_FILE ${PROJECT_NAME}-config-version.cmake)
+
+include(CMakePackageConfigHelpers)
+
+# configure package config file + version resolution script
+configure_package_config_file(
+    cmake/${NPYGL_CMAKE_CONFIG_FILE}.in ${NPYGL_CMAKE_CONFIG_FILE}
+    INSTALL_DESTINATION ${NPYGL_CMAKE_INSTALL_DIR}
+)
+# note: PROJECT_VERSION is used as the version
+write_basic_package_version_file(
+    ${NPYGL_CMAKE_VERSION_CONFIG_FILE}
+    COMPATIBILITY AnyNewerVersion
+    ARCH_INDEPENDENT
+)
+# install rules for the package and version config scripts
+install(
+    FILES
+        ${CMAKE_CURRENT_BINARY_DIR}/${NPYGL_CMAKE_CONFIG_FILE}
+        ${CMAKE_CURRENT_BINARY_DIR}/${NPYGL_CMAKE_VERSION_CONFIG_FILE}
+    DESTINATION ${NPYGL_CMAKE_INSTALL_DIR}
+)
