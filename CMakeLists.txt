@@ -492,9 +492,9 @@ install(
 include(CTest)
 
 # build tests
-# TODO: refactor conditional compilation in tests by not using NPYGL_USE_<A>
-# macros directly. define NPYGL_<A>_ENABLED to 1 or 0 for each feature A if
-# NPYGL_USE_<A> is 1 and if NPYGL_NO_<A> is not defined
+# TODO: consider changing the semantics of NPYGL_HAS_<A> to also include
+# whether or not NPYGL_NO_<A> is defined or not, e.g. it NPYGL_HAS_<A> is 1
+# only when both the relevant header is available and no NPYGL_NO_<A> defined
 if(NPYGL_BUILD_TESTS)
     add_subdirectory(test)
 else()
