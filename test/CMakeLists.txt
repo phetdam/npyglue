@@ -7,6 +7,7 @@ if(Python3_Development_FOUND)
     npygl_add_py3_executable(
         TARGET py_helpers_test
         SOURCES py_helpers_test.cc
+        LIBRARIES npyglue
         USE_RELEASE_CRT ${NPYGL_PYTHON_USE_RELEASE_CRT}
     )
     add_test(NAME py_helpers_test COMMAND py_helpers_test)
@@ -17,6 +18,7 @@ if(Python3_Development_FOUND)
     npygl_add_py3_executable(
         TARGET py_capsule_test
         SOURCES py_capsule_test.cc
+        LIBRARIES npyglue
         USE_RELEASE_CRT ${NPYGL_PYTHON_USE_RELEASE_CRT}
     )
     # enable Armadillo tests if available
@@ -41,6 +43,7 @@ if(Python3_Development_FOUND)
     npygl_add_py3_executable(
         TARGET py_format_test
         SOURCES py_format_test.cc
+        LIBRARIES npyglue
         USE_RELEASE_CRT ${NPYGL_PYTHON_USE_RELEASE_CRT}
     )
     add_test(NAME py_format_test COMMAND py_format_test)
@@ -48,16 +51,17 @@ endif()
 
 # npy_helpers_test: NumPy Python helpers tests
 if(Python3_Development_FOUND AND Python3_NumPy_FOUND)
-    # reduce compile time since we don't need Eigen3/Armadillo
-    set_property(
-        SOURCE npy_helpers_test.cc PROPERTY COMPILE_DEFINITIONS
-        NPYGL_NO_ARMADILLO NPYGL_NO_EIGEN3
+    # libraries used by npy_helpers_test. we don't need Eigen3 and Armadillo so
+    # we specify the interface targets that disable including their headers
+    set(
+        npy_helpers_test_libs
+        Python3::NumPy npyglue npyglue_no_armadillo npyglue_no_eigen3
     )
     # C++17
     npygl_add_py3_executable(
         TARGET npy_helpers_test
         SOURCES npy_helpers_test.cc
-        LIBRARIES Python3::NumPy
+        LIBRARIES ${npy_helpers_test_libs}
         USE_RELEASE_CRT ${NPYGL_PYTHON_USE_RELEASE_CRT}
     )
     add_test(NAME npy_helpers_test COMMAND npy_helpers_test)
@@ -66,7 +70,7 @@ if(Python3_Development_FOUND AND Python3_NumPy_FOUND)
         npygl_add_py3_executable(
             TARGET npy_helpers_test_cc20
             SOURCES npy_helpers_test.cc
-            LIBRARIES Python3::NumPy
+            LIBRARIES ${npy_helpers_test_libs}
             USE_RELEASE_CRT ${NPYGL_PYTHON_USE_RELEASE_CRT}
         )
         npygl_require_cc_std(TARGET npy_helpers_test_cc20 CC_STD 20)
@@ -79,7 +83,7 @@ if(Python3_Development_FOUND AND Python3_NumPy_FOUND)
     npygl_add_py3_executable(
         TARGET npy_capsule_test
         SOURCES npy_capsule_test.cc
-        LIBRARIES Python3::NumPy
+        LIBRARIES Python3::NumPy npyglue
         USE_RELEASE_CRT ${NPYGL_PYTHON_USE_RELEASE_CRT}
     )
     # enable Armadillo features if available
@@ -104,7 +108,7 @@ if(Python3_Development_FOUND AND Python3_NumPy_FOUND)
     npygl_add_py3_executable(
         TARGET npy_traits_test
         SOURCES npy_traits_test.cc
-        LIBRARIES Python3::NumPy
+        LIBRARIES Python3::NumPy npyglue
         USE_RELEASE_CRT ${NPYGL_PYTHON_USE_RELEASE_CRT}
     )
     if(Armadillo_FOUND)
@@ -129,13 +133,9 @@ if(Python3_Development_FOUND AND Python3_NumPy_FOUND)
     npygl_add_py3_executable(
         TARGET npy_views_test
         SOURCES npy_views_test.cc
-        LIBRARIES Python3::NumPy
+        # reduce compile time since we don't need Eigen3/Armadillo
+        LIBRARIES Python3::NumPy npyglue npyglue_no_armadillo npyglue_no_eigen3
         USE_RELEASE_CRT ${NPYGL_PYTHON_USE_RELEASE_CRT}
-    )
-    # reduce compile time since we don't need Eigen3/Armadillo
-    target_compile_definitions(
-        npy_views_test PRIVATE
-        NPYGL_NO_ARMADILLO NPYGL_NO_EIGEN3
     )
     add_test(NAME npy_views_test COMMAND npy_views_test)
 endif()
@@ -145,6 +145,7 @@ if(Python3_Development_FOUND)
     npygl_add_py3_extension(
         TARGET pyhelpers
         SOURCES pyhelpers.cc
+        LIBRARIES npyglue
         USE_RELEASE_CRT ${NPYGL_PYTHON_USE_RELEASE_CRT}
     )
     if(Python3_NumPy_FOUND)
@@ -176,16 +177,17 @@ endif()
 
 # pymath: Python math functions module
 if(Python3_Development_FOUND AND Python3_NumPy_FOUND)
-    # not using Armadillo/Eigen3 currently (may change later)
-    set_property(
-        SOURCE pymath.cc PROPERTY COMPILE_DEFINITIONS
-        NPYGL_NO_ARMADILLO NPYGL_NO_EIGEN3
+    # libraries used by pymath. we don't need Eigen3 and Armadillo so we
+    # specify the interface targets that disable including their headers
+    set(
+        pymath_libs
+        Python3::NumPy npyglue npyglue_no_armadillo npyglue_no_eigen3
     )
     # C++17
     npygl_add_py3_extension(
         TARGET pymath
         SOURCES pymath.cc
-        LIBRARIES Python3::NumPy
+        LIBRARIES ${pymath_libs}
         USE_RELEASE_CRT ${NPYGL_PYTHON_USE_RELEASE_CRT}
     )
     # unittest test script
@@ -200,7 +202,7 @@ if(Python3_Development_FOUND AND Python3_NumPy_FOUND)
         npygl_add_py3_extension(
             TARGET pymath_cc20
             SOURCES pymath.cc
-            LIBRARIES Python3::NumPy
+            LIBRARIES ${pymath_libs}
             USE_RELEASE_CRT ${NPYGL_PYTHON_USE_RELEASE_CRT}
         )
         npygl_require_cc_std(TARGET pymath_cc20 CC_STD 20)
@@ -220,13 +222,10 @@ if(SWIG_FOUND AND Python3_Development_FOUND AND Python3_NumPy_FOUND)
         TARGET pymath_swig
         INTERFACE pymath_swig.i
         SWIG_CC ON
-        LIBRARIES Python3::NumPy
+        # not using Armadillo/Eigen3 currently (may change later) so we
+        # explicitly disable inclusion of those headers for faster compile
+        LIBRARIES Python3::NumPy npyglue npyglue_no_armadillo npyglue_no_eigen3
         USE_RELEASE_CRT ${NPYGL_PYTHON_USE_RELEASE_CRT}
-    )
-    # not using Armadillo/Eigen3 currently (may change later)
-    target_compile_definitions(
-        pymath_swig PRIVATE
-        NPYGL_NO_ARMADILLO NPYGL_NO_EIGEN3
     )
     # unittest test script
     add_test(
@@ -243,15 +242,15 @@ if(SWIG_FOUND AND Python3_Development_FOUND AND Python3_NumPy_FOUND)
             SWIG_CC ON
             # enable SWIG to see the C++20 declarations in math.hh
             SWIG_DEFINES NPYGL_SWIG_CC_20
-            LIBRARIES Python3::NumPy
+            LIBRARIES
+                Python3::NumPy
+                npyglue
+                # not using Armadillo/Eigen3 currently (may change later)
+                npyglue_no_armadillo
+                npyglue_no_eigen3
             USE_RELEASE_CRT ${NPYGL_PYTHON_USE_RELEASE_CRT}
         )
         npygl_require_cc_std(TARGET pymath_swig_cc20 CC_STD 20)
-        # not using Armadillo/Eigen3 currently (may change later)
-        target_compile_definitions(
-            pymath_swig_cc20 PRIVATE
-            NPYGL_NO_ARMADILLO NPYGL_NO_EIGEN3
-        )
         # unittest test script
         add_test(
             NAME pymath_swig_cc20_test
@@ -265,10 +264,12 @@ endif()
 
 # type_traits_test: C++ type traits tests
 add_executable(type_traits_test type_traits_test.cc)
+target_link_libraries(type_traits_test PRIVATE npyglue)
 add_test(NAME type_traits_test COMMAND type_traits_test)
 
 # ostream_test: C++ ostream extensions test
 add_executable(ostream_test ostream_test.cc)
+target_link_libraries(ostream_test PRIVATE npyglue)
 add_test(NAME ostream_test COMMAND ostream_test)
 add_test(
     NAME ostream_test_with_concurrent
@@ -294,6 +295,7 @@ set_tests_properties(
 
 # termcolors: program to print the SGR values and 8-bit terminal colors
 add_executable(termcolors termcolors.cc)
+target_link_libraries(termcolors PRIVATE npyglue)
 if(WIN32)
     target_link_libraries(termcolors PRIVATE kernel32)
 endif()
@@ -305,9 +307,13 @@ add_test(NAME termcolors COMMAND termcolors)
 # mangled in the MSVC ABI. checking compiler ABI is the direct solution
 if(NOT WIN32 AND LLVM_FOUND)
     # note: NPYGL_USE_LLVM_DEMANGLE already defined in source file. typically,
-    # one would just add this to the compiler's macro definitions
+    # one would just add this to the compiler's macro definitions or for CMake,
+    # use the npyglue::use_llvm_demangle INTERFACE target
     add_executable(llvm_demangle_test llvm_demangle_test.cc)
-    target_link_libraries(llvm_demangle_test PRIVATE npyglue::llvm_demangle)
+    target_link_libraries(
+        llvm_demangle_test PRIVATE
+        npyglue npyglue::llvm_demangle
+    )
     add_test(NAME llvm_demangle_test COMMAND llvm_demangle_test)
     # traits_checker_driver and the last traits in type_traits_test_driver
     # should be part of the printed type name
@@ -320,6 +326,7 @@ endif()
 # torch_test: test torch.hh LibTorch helpers
 if(TORCH_FOUND)
     add_executable(torch_test torch_test.cc)
+    target_link_libraries(torch_test PRIVATE npyglue)
     # Torch C++ DLLs are linked against release C runtime
     npygl_use_release_crt(torch_test ON)
     target_link_libraries(torch_test PRIVATE npyglue::Torch)
@@ -337,7 +344,7 @@ endif()
 if(TORCH_FOUND)
     add_executable(torch_traits_test torch_traits_test.cc)
     npygl_use_release_crt(torch_traits_test ON)
-    target_link_libraries(torch_traits_test PRIVATE npyglue::Torch)
+    target_link_libraries(torch_traits_test PRIVATE npyglue::Torch npyglue)
     npygl_copy_torch_dlls(torch_traits_test)
     if(Armadillo_FOUND)
         target_link_libraries(torch_traits_test PRIVATE npyglue::Armadillo)
@@ -350,12 +357,14 @@ endif()
 
 # ctti_test: npygl::type_name<T> unit tests
 add_executable(ctti_test ctti_test.cc)
+target_link_libraries(ctti_test PRIVATE npyglue)
 add_test(NAME ctti_test COMMAND ctti_test)
 # skip if not supported
 set_tests_properties(ctti_test PROPERTIES SKIP_REGULAR_EXPRESSION "SKIPPED")
 
 # ctti_soak_test: npygl::type_name<T> soak test with type_traits_test_driver
 add_executable(ctti_soak_test ctti_soak_test.cc)
+target_link_libraries(ctti_soak_test PRIVATE npyglue)
 add_test(NAME ctti_soak_test COMMAND ctti_soak_test)
 # like llvm_demangle_test traits_checker_driver and the last traits in
 # type_traits_test_driver should be part of the type name printed

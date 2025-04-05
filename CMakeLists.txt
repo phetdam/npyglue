@@ -409,20 +409,94 @@ endif()
 
 # project include directory
 set(NPYGL_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/include)
-# include generated header files as well
-# note: we don't have any config-specific generated headers yet
-include_directories(${NPYGL_INCLUDE_DIR} ${CMAKE_CURRENT_BINARY_DIR}/include)
 
 # generate version header. only replace @VAR@ and keep LF newlines
 set(NPYGL_VERSION_HEADER include/npygl/version.h)
 configure_file(${NPYGL_VERSION_HEADER}.in ${NPYGL_VERSION_HEADER} @ONLY LF)
 message(STATUS "Generated ${NPYGL_VERSION_HEADER}")
 
+# npyglue: C++ library facilitating C++/Python NumPy array interop
+add_library(npyglue INTERFACE)
+add_library(npyglue::npyglue ALIAS npyglue)
+target_include_directories(
+    npyglue INTERFACE
+    $<BUILD_INTERFACE:${NPYGL_INCLUDE_DIR}>
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/include>
+    $<INSTALL_INTERFACE:include>
+)
+# install rule for headers (including generated)
+# TODO: add targets for the npyglue headers and SWIG files
+install(
+    DIRECTORY ${NPYGL_INCLUDE_DIR}/npygl ${CMAKE_CURRENT_BINARY_DIR}/include/npygl
+    TYPE INCLUDE
+    FILES_MATCHING PATTERN "*.h" PATTERN "*.hh"
+)
+
+# interface targest for disabling third-party header inclusion. by default, the
+# features.h header allows conditional inclusion of other library headers, but
+# using these targets is helpful for explicitly disabling inclusion if desired,
+# e.g. to speed up compile time when not using one of the libraries' headers.
+
+# npyglue_no_armadillo: disable inclusion of Armadillo headers
+add_library(npyglue_no_armadillo INTERFACE)
+add_library(npyglue::no_armadillo ALIAS npyglue_no_armadillo)
+target_compile_definitions(npyglue_no_armadillo INTERFACE NPYGL_NO_ARMADILLO)
+# allow exported target to be used the same as the alias target
+set_target_properties(npyglue_no_armadillo PROPERTIES EXPORT_NAME no_armadillo)
+
+# npyglue_no_eigen3: disable inclusion of Eigen3 headers
+add_library(npyglue_no_eigen3 INTERFACE)
+add_library(npyglue::no_eigen3 ALIAS npyglue_no_eigen3)
+target_compile_definitions(npyglue_no_eigen3 INTERFACE NPYGL_NO_EIGEN3)
+set_target_properties(npyglue_no_eigen3 PROPERTIES EXPORT_NAME no_eigen3)
+
+# npyglue_no_torch: disable inclusion of LibTorch headers
+add_library(npyglue_no_torch INTERFACE)
+add_library(npyglue::no_torch ALIAS npyglue_no_torch)
+target_compile_definitions(npyglue_no_torch INTERFACE NPYGL_NO_TORCH)
+set_target_properties(npyglue_no_torch PROPERTIES EXPORT_NAME no_torch)
+
+# npyglue_use_llvm_demangle: enable use of LLVMDemangle in demangle.hh
+add_library(npyglue_use_llvm_demangle INTERFACE)
+add_library(npyglue::use_llvm_demangle ALIAS npyglue_use_llvm_demangle)
+target_compile_definitions(
+    npyglue_use_llvm_demangle INTERFACE
+    NPYGL_USE_LLVM_DEMANGLE
+)
+set_target_properties(
+    npyglue_use_llvm_demangle PROPERTIES
+    EXPORT_NAME use_llvm_demangle
+)
+
+# prefix-relative directory for CMake files on installation
+set(NPYGL_CMAKE_INSTALL_DIR lib/cmake/${PROJECT_NAME})
+
+# install rules for all interface targets + export
+install(
+    TARGETS
+        npyglue
+        npyglue_no_armadillo
+        npyglue_no_eigen3
+        npyglue_no_torch
+        npyglue_use_llvm_demangle
+    EXPORT npyglue_exports
+)
+install(
+    EXPORT npyglue_exports
+    DESTINATION ${NPYGL_CMAKE_INSTALL_DIR}
+    NAMESPACE ${PROJECT_NAME}::
+    FILE ${PROJECT_NAME}-targets.cmake
+)
+
 # enable testing with CTest
 include(CTest)
 
+# build tests
+# TODO: refactor conditional compilation in tests by not using NPYGL_USE_<A>
+# macros directly. define NPYGL_<A>_ENABLED to 1 or 0 for each feature A if
+# NPYGL_USE_<A> is 1 and if NPYGL_NO_<A> is not defined
 if(NPYGL_BUILD_TESTS)
     add_subdirectory(test)
 else()
-    message(WARNING "Skipping test directory")
+    message(WARNING "Skipping npyglue test directory")
 endif()
