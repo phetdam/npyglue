@@ -303,9 +303,9 @@ endif()
 add_test(NAME termcolors COMMAND termcolors)
 
 # llvm_demangle_test: test demangling of type_traits_test_driver using LLVM
-# note: only built when not on Windows since std::type_info::name() is not
-# mangled in the MSVC ABI. checking compiler ABI is the direct solution
-if(NOT WIN32 AND LLVM_FOUND)
+# note: only applies to compilers that follow the Itanium C++ ABI. nowadays
+# this is all the major compilers except for MSVC
+if(NPYGL_ITANIUM_ABI AND LLVM_FOUND)
     # note: NPYGL_USE_LLVM_DEMANGLE already defined in source file. typically,
     # one would just add this to the compiler's macro definitions or for CMake,
     # use the npyglue::use_llvm_demangle INTERFACE target

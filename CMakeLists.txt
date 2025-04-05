@@ -52,6 +52,17 @@ set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
 
+# check if compiler follows the Itanium ABI by seeing if cxxabi.h is available
+try_compile(
+    NPYGL_ITANIUM_ABI ${CMAKE_CURRENT_BINARY_DIR}
+    SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/cmake/abi_check.cc
+)
+if(NPYGL_ITANIUM_ABI)
+    message(STATUS "cxxabi.h found: Yes")
+else()
+    message(STATUS "cxxabi.h found: No")
+endif()
+
 # check if we have C++20 available
 if(cxx_std_20 IN_LIST CMAKE_CXX_COMPILE_FEATURES)
     set(NPYGL_HAS_CC_20 ON)
