@@ -440,7 +440,10 @@ target_include_directories(
 install(
     DIRECTORY ${NPYGL_INCLUDE_DIR}/npygl ${CMAKE_CURRENT_BINARY_DIR}/include/npygl
     TYPE INCLUDE
-    FILES_MATCHING PATTERN "*.h" PATTERN "*.hh"
+    FILES_MATCHING
+        PATTERN "*.h"
+        PATTERN "*.hh"
+        PATTERN testing EXCLUDE  #  no testing headers
 )
 
 # interface targest for disabling third-party header inclusion. by default, the
