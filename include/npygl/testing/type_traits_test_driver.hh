@@ -259,6 +259,9 @@ using type_traits_test_driver = traits_checker_driver<
       std::pair<std::string, std::false_type>,
       std::pair<std::map<std::string, unsigned>, std::false_type>,
       int[2][3][4],
+      // FIXME: cannot have flexible array members in a struct. we should have
+      // some sort of abstract pair- or tuple-like pack type whose sole purpose
+      // is to store types, e.g. has sizeof == 1, to avoid this issue.
       std::pair<double[], std::false_type>
     >
   >,
