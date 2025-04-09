@@ -72,10 +72,13 @@ else()
     message(STATUS "C++20 support: No")
 endif()
 
-# check if CUDA is available
+# check if CUDA is available. if so, enable and set standards
 find_package(CUDAToolkit)
 if(CUDAToolkit_FOUND)
     message(STATUS "CUDA version: ${CUDAToolkit_VERSION}")
+    enable_language(CUDA)
+    set(CMAKE_CUDA_STANDARD ${CMAKE_CXX_STANDARD})
+    set(CMAKE_CUDA_STANDARD_REQUIRED ON)
 else()
     message(STATUS "CUDA version: None")
 endif()
@@ -197,12 +200,28 @@ if(NPYGL_PYTORCH_FOUND)
     # *every* program that uses Torch headers this really becomes a PITA
     add_library(npyglue::Torch INTERFACE IMPORTED)
     if(MSVC)
+        # note: to ensure each of the C++ flags makes it to CUDA, we have to
+        # prepend each with -Xcompiler=. it is a bit clunky unfortunately
+        # note: some warnings were first emitted during CUDA compilation. when
+        # /Wall is enabled, we see C4242, C4365, C4582, C4583, C4619, C4800,
+        # C5219, C5246, C5262 all start to crop up
         target_compile_options(
             npyglue::Torch INTERFACE
+            # C4100: unreferenced formal parameter (from c10/core/SymNodeImpl.h)
+            $<$<COMPILE_LANGUAGE:CUDA>:-Xcompiler=/wd4100>
+            # C4127: conditional expression constant (from c10/util/Half.h)
+            $<$<COMPILE_LANGUAGE:CUDA>:-Xcompiler=/wd4127>
+            # C4244: possible loss of data in conversion (from
+            # c10/util/BFloat16-inl.h, Float8_e4m3fn[uz]-inl.h, etc.)
+            $<$<COMPILE_LANGUAGE:CUDA>:-Xcompiler=/wd4244>
+            # C4251: class member needs dll-interface (c10/util/Exception.h, etc.)
+            $<$<COMPILE_LANGUAGE:CUDA>:-Xcompiler=/wd4251>
             # C4267: conversion from size_t to int (various Torch headers)
-            /wd4267
+            $<$<COMPILE_LANGUAGE:CUDA>:-Xcompiler=>/wd4267
+            # C4275: non-dll interface class used as base (c10/util/Exception.h)
+            $<$<COMPILE_LANGUAGE:CUDA>:-Xcompiler=/wd4275>
             # C4702: unreachable code (from c10/util/irange.h)
-            /wd4702
+            $<$<COMPILE_LANGUAGE:CUDA>:-Xcompiler=>/wd4702
         )
         # NOMINMAX must be defined for MSVC since Torch headers use std::min +
         # std::max inline which of course results in a compilation nightmare
@@ -387,35 +406,43 @@ else()
 endif()
 
 # compile flags. we do this after any FetchContent calls so that we don't
-# interfere with any compile flags that dependency targets require
+# interfere with any compile flags that dependency targets require and we use
+# the COMPILE_LANGUAGE generator expression so we don't pass C++ flags to CUDA.
+# some of the warnings are CUDA-specific as the CUDA headers are a bit messy
 if(MSVC)
     add_compile_options(
-        /Wall
+        # note: nvcc doesn't provide a way to mark include directories as
+        # external so we live with a lower warning level to avoid drowning
+        $<$<COMPILE_LANGUAGE:C,CXX>:/Wall>
+        $<$<COMPILE_LANGUAGE:CUDA>:-Xcompiler=/W4>
         # C4061: enum value not explicitly handled by case label
-        /wd4061
+        $<$<COMPILE_LANGUAGE:CUDA>:-Xcompiler=>/wd4061
+        # C4324: struct was padded due to alignment specifier (from
+        # Thrust header thrust/detail/alignment.h)
+        $<$<COMPILE_LANGUAGE:CUDA>:-Xcompiler=/wd4324>
         # C4514: unreferenced inline function has been removed
-        /wd4514
+        $<$<COMPILE_LANGUAGE:CUDA>:-Xcompiler=>/wd4514
         # C4623: default ctor was implicitly defined as deleted
-        /wd4623
+        $<$<COMPILE_LANGUAGE:CUDA>:-Xcompiler=>/wd4623
         # C4625: copy ctor was implicitly defined as deleted
-        /wd4625
+        $<$<COMPILE_LANGUAGE:CUDA>:-Xcompiler=>/wd4625
         # C4626: assignment operator was implicitly defined as deleted
-        /wd4626
+        $<$<COMPILE_LANGUAGE:CUDA>:-Xcompiler=>/wd4626
         # C4710: function not inlined
-        /wd4710
+        $<$<COMPILE_LANGUAGE:CUDA>:-Xcompiler=>/wd4710
         # C4711: function selected for automatic inline expansion
-        /wd4711
+        $<$<COMPILE_LANGUAGE:CUDA>:-Xcompiler=>/wd4711
         # C4820: padding added after struct member
-        /wd4820
+        $<$<COMPILE_LANGUAGE:CUDA>:-Xcompiler=>/wd4820
         # C5026: move ctor was implicitly defined as deleted
-        /wd5026
+        $<$<COMPILE_LANGUAGE:CUDA>:-Xcompiler=>/wd5026
         # C5027: move assignment operator was implicitly defined as deleted
-        /wd5027
+        $<$<COMPILE_LANGUAGE:CUDA>:-Xcompiler=>/wd5027
         # C5045: compiler will insert Spectre mitigation if using /QSpectre
-        /wd5045
+        $<$<COMPILE_LANGUAGE:CUDA>:-Xcompiler=>/wd5045
     )
 else()
-    add_compile_options(-Wall)
+    add_compile_options($<$<COMPILE_LANGUAGE:CUDA>:-Xcompiler=>-Wall)
 endif()
 
 # project include directory

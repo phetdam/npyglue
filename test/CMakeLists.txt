@@ -38,6 +38,18 @@ if(Python3_Development_FOUND)
     add_test(NAME py_capsule_test COMMAND py_capsule_test)
 endif()
 
+# py_capsule_cutorch_test: Python capsule test with CUDA Torch tensors
+if(CUDAToolkit_FOUND AND Python3_Development_FOUND AND TORCH_FOUND)
+    npygl_add_py3_executable(
+        TARGET py_capsule_cutorch_test
+        SOURCES py_capsule_cutorch_test.cu
+        LIBRARIES npyglue CUDA::cudart npyglue::Torch
+        USE_RELEASE_CRT ${NPYGL_PYTHON_USE_RELEASE_CRT}
+    )
+    npygl_copy_torch_dlls(py_capsule_cutorch_test)
+    add_test(NAME py_capsule_cutorch_test COMMAND py_capsule_cutorch_test)
+endif()
+
 # py_format_test: Python compile-time format strings test
 if(Python3_Development_FOUND)
     npygl_add_py3_executable(
