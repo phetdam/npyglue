@@ -473,7 +473,7 @@ install(
         PATTERN testing EXCLUDE  #  no testing headers
 )
 
-# interface targest for disabling third-party header inclusion. by default, the
+# interface targets for disabling third-party header inclusion. by default, the
 # features.h header allows conditional inclusion of other library headers, but
 # using these targets is helpful for explicitly disabling inclusion if desired,
 # e.g. to speed up compile time when not using one of the libraries' headers.
