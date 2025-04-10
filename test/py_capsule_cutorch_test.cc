@@ -1,7 +1,7 @@
 /**
- * @file py_capsule_cutorch_test.cu
+ * @file py_capsule_cutorch_test.cc
  * @author Derek Huabg
- * @brief CUDA C++ program to test PyCapsule creation from GPU-backed objects
+ * @brief C++ program to test PyCapsule creation from GPU-backed Torch tensors
  * @copyright MIT License
  */
 

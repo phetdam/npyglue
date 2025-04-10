@@ -42,8 +42,8 @@ endif()
 if(CUDAToolkit_FOUND AND Python3_Development_FOUND AND TORCH_FOUND)
     npygl_add_py3_executable(
         TARGET py_capsule_cutorch_test
-        SOURCES py_capsule_cutorch_test.cu
-        LIBRARIES npyglue CUDA::cudart npyglue::Torch
+        SOURCES py_capsule_cutorch_test.cc
+        LIBRARIES npyglue npyglue::Torch
         USE_RELEASE_CRT ${NPYGL_PYTHON_USE_RELEASE_CRT}
     )
     npygl_copy_torch_dlls(py_capsule_cutorch_test)
