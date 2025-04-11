@@ -620,6 +620,9 @@ struct is_accessible_as : std::false_type {};
 /**
  * True specialization where `U` is accessible as `T`.
  *
+ * @note cv-qualifiers are discarded so `is_accessible_as_v<const int, char>`
+ *  will still evaluate to the expected result.
+ *
  * @tparam U Underlying type
  * @tparam T Desired type to access `U` as
  */
@@ -629,9 +632,9 @@ struct is_accessible_as<
   T,
   std::enable_if_t<
     // 1. T is char, std::byte, or unsigned char
-    std::is_same_v<T, char> ||
-    std::is_same_v<T, std::byte> ||
-    std::is_same_v<T, unsigned char> ||
+    std::is_same_v<std::remove_cv_t<T>, char> ||
+    std::is_same_v<std::remove_cv_t<T>, std::byte> ||
+    std::is_same_v<std::remove_cv_t<T>, unsigned char> ||
     // 2. T and U are the same type ignoring cv-qualifiers
     std::is_same_v<std::remove_cv_t<T>, std::remove_cv_t<U>> ||
     // 3. T and U are the same type ignoring cv-qualifiers and signedness
