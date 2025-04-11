@@ -8,6 +8,8 @@
 #ifndef NPYGL_TESTING_TYPE_TRAITS_TEST_DRIVER_HH_
 #define NPYGL_TESTING_TYPE_TRAITS_TEST_DRIVER_HH_
 
+#include <cstddef>  // for std::byte
+#include <cstdint>
 #include <map>
 // GCC requires <memory_resource> for std::pmr::allocator to be complete
 #include <memory_resource>
@@ -346,6 +348,55 @@ using type_traits_test_driver = traits_checker_driver<
       std::string,
       std::pair<not_ostreamable_type, std::false_type>,
       std::pair<std::tuple<double, int, std::string>, std::false_type>
+    >
+  >,
+  // is_accessible_as<double, T>
+  traits_checker<
+    partially_fixed<is_accessible_as, double>::type,
+    std::tuple<
+      std::pair<int, std::false_type>,
+      // char, std::byte, or unsigned char are allowed (with cv-qualifiers)
+      char,
+      unsigned char,
+      // signed char is not allowed
+      std::pair<signed char, std::false_type>,
+      std::byte,
+      const char,
+      const unsigned char,
+      // access as self or cv-qualified self
+      double,
+      const double,
+      std::pair<void*, std::false_type>
+    >
+  >,
+#ifdef INTPTR_MAX
+  // is_accesible_as<std::intptr_t, T>
+  traits_checker<
+    partially_fixed<is_accessible_as, std::intptr_t>::type,
+    std::tuple<
+      const char,
+      std::byte,
+      // not type-accessible (not similar) despite same sizeof
+      std::pair<void*, std::false_type>,
+      // same with other pointer types
+      std::pair<const char*, std::false_type>
+    >
+  >,
+#endif  // INTPTR_MAX
+  // is_accessible_as<const int, T>
+  traits_checker<
+    partially_fixed<is_accessible_as, const int>::type,
+    std::tuple<unsigned int, std::pair<short, std::false_type>, char>
+  >,
+  // is_accessible_as<unsigned char, T>
+  traits_checker<
+    partially_fixed<is_accessible_as, unsigned char>::type,
+    std::tuple<
+      // signed char allowed
+      signed char,
+      const char,
+      std::pair<int, std::false_type>,
+      const std::byte
     >
   >
 >;
