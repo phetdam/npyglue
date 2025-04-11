@@ -15,6 +15,8 @@
 #include <type_traits>
 #include <utility>
 
+#include "npygl/warnings.h"
+
 namespace npygl {
 
 /**
@@ -545,6 +547,108 @@ constexpr bool is_iterable_v = is_iterable<T>::value;
  */
 template <typename T>
 using iterable_range_t = std::enable_if_t<is_iterable_v<T>>;
+
+/**
+ * Traits type to convert a type to its unsigned equivalent if possible.
+ *
+ * This has the same semantics as `std::make_unsigned<T>` except that if `T` is
+ * `bool`, not integral, or not an enum type, the type member if just `T`
+ * instead of the program being ill-formed (C++20) or undefined.
+ *
+ * @tparam T type
+ */
+template <typename T, typename = void>
+struct make_unsigned {
+  using type = T;
+};
+
+// note: cannot use these macros inside template angle brackets
+NPYGL_GNU_WARNING_PUSH()
+NPYGL_GNU_WARNING_DISABLE(parentheses)
+/**
+ * Partial specialization for non-`bool` integral or enum types.
+ *
+ * This has the same semantics as `std::make_unsigned<T>`.
+ *
+ * @tparam T type
+ */
+template <typename T>
+struct make_unsigned<
+  T,
+  std::enable_if_t<
+    std::is_enum_v<T> ||
+    std::is_integral_v<T> && !std::is_same_v<std::remove_cv_t<T>, bool>
+  > > {
+NPYGL_GNU_WARNING_POP()
+  using type = std::make_unsigned_t<T>;
+};
+
+/**
+ * Provide the unsigned version of `T` if possible else provide `T`.
+ *
+ * @tparam T type
+ */
+template <typename T>
+using make_unsigned_t = typename make_unsigned<T>::type;
+
+/**
+ * Traits to indicate if two types satisfy the notion of type-accessibility.
+ *
+ * For efficiency one may want to `reinterpret_cast<T*>` a `void*` or `char*`
+ * buffer where the underlying element type is `U`. However, the strict
+ * aliasing rules states that dereferencing as a `T` is undefined behavior if
+ * `T` and `U` are *not* type accessible. That is, one of the following
+ * conditions involving `T` and `U` must be true:
+ *
+ * 1. `T` is `char`, `std::byte` (since C++17), or `unsigned char`
+ * 2. `T` and `U` are the same type ignoring cv-qualifiers
+ * 3. `T` and `U` are the same type ignoring cv-qualifiers modulo signedness
+ *
+ * If one of these conditions is true, then a `U*` can be dereferenced as a `T`
+ * lvalue without breaking the strict aliasing rule.
+ *
+ * @note This traits doesn't provide a fully-rigorous reading of type
+ *  accessibility by not supporting the full range of similarity comparisons.
+ *  Howeverm, it should suffice for the majority of (simple) cases.
+ *
+ * @tparam U Underlying type
+ * @tparam T Desired type to access `U` as
+ */
+template <typename U, typename T, typename = void>
+struct is_accessible_as : std::false_type {};
+
+/**
+ * True specialization where `U` is accessible as `T`.
+ *
+ * @tparam U Underlying type
+ * @tparam T Desired type to access `U` as
+ */
+template <typename U, typename T>
+struct is_accessible_as<
+  U,
+  T,
+  std::enable_if_t<
+    // 1. T is char, std::byte, or unsigned char
+    std::is_same_v<T, char> ||
+    std::is_same_v<T, std::byte> ||
+    std::is_same_v<T, unsigned char> ||
+    // 2. T and U are the same type ignoring cv-qualifiers
+    std::is_same_v<std::remove_cv_t<T>, std::remove_cv_t<U>> ||
+    // 3. T and U are the same type ignoring cv-qualifiers and signedness
+    std::is_same_v<
+      make_unsigned_t<std::remove_cv_t<T>>,
+      make_unsigned_t<std::remove_cv_t<U>>
+    >
+  > > : std::true_type {};
+
+/**
+ * Indicate that type `U` is accessible as type `T`.
+ *
+ * @tparam U Underlying type
+ * @tparam T Desired type to access `U` as
+ */
+template <typename U, typename T>
+constexpr bool is_accessible_as_v = is_accessible_as<U, T>::value;
 
 }  // namespace npygl
 
