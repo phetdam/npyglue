@@ -63,6 +63,7 @@
 #include "npygl/features.h"
 #include "npygl/python.hh"
 #include "npygl/range_views.hh"
+#include "npygl/type_traits.hh"
 #include "npygl/warnings.h"
 
 // C++20
@@ -447,7 +448,7 @@ struct ndarray_capsule_builder_traits<
  *
  * We use CRTP here as a form of static polymorphism.
  *
- * @tparam
+ * @tparam `ndarray_capsule_builder<T>` specialization
  */
 template <typename Builder>
 struct ndarray_capsule_builder_base {
@@ -894,10 +895,10 @@ private:
   /**
    * Retrieve the dimensions and strides of the tensor in a pair.
    *
-   * If `sizeof(npy_intp)` equals the size of the elements in the `sizes()` or
-   * `strides()` data of the PyTorch tensor, direct aliasing is used. Otherwise
-   * in case of a mismatch, copying and return as a `std::vector<npy_intp>` is
-   * required since we cannot directly alias a buffer.
+   * If integral type (`int64_t`) used to index the Torch tensor via `sizes()`,
+   * an `IntArrayRef`, is type-accessible as an `npy_intp`, we directly alias
+   * the data of the `IntArrayRef`. Otherwise, to satisfy the strict aliasing
+   * rule, we copy and return the values as a `std::vector<npy_intp>`.
    *
    * @param ten Tensor to get dimensions + strides for
    */
@@ -908,8 +909,8 @@ private:
     // get dimensions from tensor
     auto dims = [&ten, n_dim]
     {
-      // direct alias if element sizes match
-      if constexpr (sizeof(npy_intp) == sizeof(decltype(ten.size(0))))
+      // direct alias if type-accessible
+      if constexpr (is_accessible_as_v<decltype(ten.size(0)), npy_intp>)
         return ten.sizes();
       // otherwise we are forced to copy
       else {
@@ -928,8 +929,8 @@ NPYGL_MSVC_WARNING_POP()
     // get strides from tensor
     auto strides = [&ten, n_dim]
     {
-      // direct alias if element sizes match
-      if constexpr (sizeof(npy_intp) == sizeof(decltype(ten.stride(0))))
+      // direct alias if type-accessible
+      if constexpr (is_accessible_as_v<decltype(ten.stride(0)), npy_intp>)
         return ten.strides();
       // otherwise we are forced to copy
       else {
@@ -979,12 +980,10 @@ NPYGL_MSVC_WARNING_PUSH()
 NPYGL_MSVC_WARNING_DISABLE(4244)  // possible loss of data due to narrowing
         cap_ten->dim(),               // nd
 NPYGL_MSVC_WARNING_POP()
-        // FIXME: if sizeof(npy_intp) == sizeof(decltype(cap_ten->size(0))),
-        // which is typically int64_t, then we can alias directly and not copy
+        // may be direct alias or copy depending on type accessibility
         dims.data(),                  // dims
         type,                         // type_num
-        // FIXME: like with dims, if sizeof(npy_intp) ==
-        // sizeof(decltype(cap_ten->stride(0))), we can alias directly
+        // may be direct alias or copy depending on type accessibility
         strides.data(),               // strides
         cap_ten->mutable_data_ptr(),  // data
         0,                            // itemsize (ignored)
@@ -1053,9 +1052,9 @@ struct ndarray_capsule_builder<std::tuple<Ts...>>
     if (!ar) {
        // note: technically does not provide noexcept guarantee
       std::stringstream ss;
-      // TODO: need utility to get joined type list from pack of types
       ss << NPYGL_PRETTY_FUNCTION_NAME << ": capsule backed by " <<
-        type_name(view.info()) << " is not supported";
+        type_name(view.info()) << " is not one of supported " <<
+        type_name_list<Ts...>();
       PyErr_SetString(PyExc_TypeError, ss.str().c_str());
     }
     // return (empty on error)
