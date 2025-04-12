@@ -39,9 +39,9 @@ endfunction()
 #       Indicate whether or not dynamic release C runtime should be used
 #
 function(npygl_use_release_crt target cond)
-    if(MSVC AND ${ARGV1})
+    if(MSVC AND ${cond})
         set_target_properties(
-            ${ARGV0} PROPERTIES
+            ${target} PROPERTIES
             MSVC_RUNTIME_LIBRARY MultiThreadedDLL
         )
     endif()
