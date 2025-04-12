@@ -399,6 +399,10 @@ if(Python3_NumPy_FOUND AND TORCH_FOUND)
         Python3::NumPy npyglue npyglue::Torch
     )
     npygl_copy_torch_dlls(npy_intp_alias_test)
-    # note: despite
     add_test(NAME npy_intp_alias_test COMMAND npy_intp_alias_test)
+    # skips when sizeof(npt_intp) != sizeof(torch_dim_type)
+    set_tests_properties(
+        npy_intp_alias_test PROPERTIES
+        SKIP_REGULAR_EXPRESSION "SKIPPED"
+    )
 endif()

@@ -28,9 +28,11 @@ constexpr auto maybe_neg = (aliasable) ? "" : "NOT ";
 int main()
 {
   // Torch tensor stride type is same size as npy_intp
-  if constexpr (sizeof(torch_dim_type) == sizeof(npy_intp))
+  if constexpr (sizeof(torch_dim_type) == sizeof(npy_intp)) {
     std::cout << status << ": torch_dim_type " << maybe_neg <<
       "accessible as npy_intp" << std::endl;
+    return (aliasable) ? EXIT_SUCCESS : EXIT_FAILURE;
+  }
   // skip
   else
     std::cout << "SKIPPED: sizeof(torch_dim_type) != sizeof(npy_intp)" <<
