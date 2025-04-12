@@ -378,6 +378,10 @@ using type_traits_test_driver = traits_checker_driver<
       std::byte,
       // not type-accessible (not similar) despite same sizeof
       std::pair<void*, std::false_type>,
+#ifdef UINTPTR_MAX
+      // type-accessible with different sign
+      std::uintptr_t,
+#endif  // UINTPTR_MAX
       // same with other pointer types
       std::pair<const char*, std::false_type>
     >
