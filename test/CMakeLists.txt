@@ -385,3 +385,20 @@ set_tests_properties(
     PASS_REGULAR_EXPRESSION "traits_checker_driver<.+is_iterable,.+>"
     SKIP_REGULAR_EXPRESSION "SKIPPED"
 )
+
+# npy_intp_alias_test: test when npy_intp can alias different types
+if(Python3_NumPy_FOUND AND TORCH_FOUND)
+    add_executable(npy_intp_alias_test npy_intp_alias_test.cc)
+    # note: the included Torch header requires some externally-defined symbols
+    # and thus needs to link against the Torch libraries. Python3::NumPy also
+    # transitively links against the Python 3 runtime. therefore, we still have
+    # to (for completeness) copy Torch DLLs and use the release CRT
+    npygl_use_release_crt(npy_intp_alias_test ON)
+    target_link_libraries(
+        npy_intp_alias_test PRIVATE
+        Python3::NumPy npyglue npyglue::Torch
+    )
+    npygl_copy_torch_dlls(npy_intp_alias_test)
+    # note: despite
+    add_test(NAME npy_intp_alias_test COMMAND npy_intp_alias_test)
+endif()
