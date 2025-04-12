@@ -388,16 +388,17 @@ set_tests_properties(
 
 # npy_intp_alias_test: test when npy_intp can alias different types
 if(Python3_NumPy_FOUND AND TORCH_FOUND)
-    add_executable(npy_intp_alias_test npy_intp_alias_test.cc)
-    # note: the included Torch header requires some externally-defined symbols
-    # and thus needs to link against the Torch libraries. Python3::NumPy also
-    # transitively links against the Python 3 runtime. therefore, we still have
-    # to (for completeness) copy Torch DLLs and use the release CRT
-    npygl_use_release_crt(npy_intp_alias_test ON)
-    target_link_libraries(
-        npy_intp_alias_test PRIVATE
-        Python3::NumPy npyglue npyglue::Torch
+    npygl_add_py3_executable(
+        TARGET npy_intp_alias_test
+        SOURCES npy_intp_alias_test.cc
+        # note: the included Torch header requires some externally-defined
+        # symbols and thus needs to link against the Torch libraries.
+        # Python3::NumPy also transitively links against the Python 3 runtime
+        LIBRARIES Python3::NumPy npyglue npyglue::Torch
+        # using release CRT unconditionally to match with Torch DLLs
+        USE_RELEASE_CRT ON
     )
+    # still need to copy Torch DLLs for completeness
     npygl_copy_torch_dlls(npy_intp_alias_test)
     add_test(NAME npy_intp_alias_test COMMAND npy_intp_alias_test)
     # skips when sizeof(npt_intp) != sizeof(torch_dim_type)
@@ -405,4 +406,16 @@ if(Python3_NumPy_FOUND AND TORCH_FOUND)
         npy_intp_alias_test PROPERTIES
         SKIP_REGULAR_EXPRESSION "SKIPPED"
     )
+endif()
+
+# npy_capsule_cutorch_test: NumPy test using Torch GPU tensors to back arrays
+if(CUDAToolkit_FOUND AND Python3_NumPy_FOUND AND TORCH_FOUND)
+    npygl_add_py3_executable(
+        TARGET npy_capsule_cutorch_test
+        SOURCES npy_capsule_cutorch_test.cc
+        LIBRARIES Python3::NumPy npyglue npyglue::Torch
+        USE_RELEASE_CRT ON
+    )
+    npygl_copy_torch_dlls(npy_capsule_cutorch_test)
+    add_test(NAME npy_capsule_cutorch_test COMMAND npy_capsule_cutorch_test)
 endif()

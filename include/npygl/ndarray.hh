@@ -441,6 +441,80 @@ struct ndarray_capsule_builder_traits<
   ndarray_capsule_builder<std::tuple<Ts...>> > {};
 
 /**
+ * Global builder for creating a NumPy array from a Python capsule.
+ *
+ * This provides a functional interface to the `ndarray_capsule_builder<Ts...>`.
+ *
+ * @tparam Ts... Target C++ types
+ */
+template <typename... Ts>
+inline constexpr ndarray_capsule_builder<Ts...> make_ndarray_from_capsule;
+
+/**
+ * Create a NumPy array from an appropriate C++ object.
+ *
+ * On error the `py_object` is empty and a Python exception is set.
+ *
+ * Construction involves using `py_object::create()` to create a `PyCapsule`
+ * from the C++ object and then creating a NumPy array backed by this capsule
+ * via the appropriate `make_ndarray_from_capsule` partial specialization.
+ *
+ * For details on how the NumPy array is constructed for a particular type see
+ * the appropriate `ndarray_capsule_builder<...>` documentation comments.
+ *
+ * @tparam T C++ object interpretable as a multidimensional array
+ *
+ * @param obj C++ object to create a NumPy array from
+ */
+template <typename T, typename = std::enable_if_t<!std::is_reference_v<T>>>
+py_object make_ndarray(T&& obj) noexcept
+{
+  // create capsule
+  auto capsule = py_object::create(std::move(obj));
+  if (!capsule)
+    return {};
+  // capsule view (should not error)
+  cc_capsule_view view{capsule};
+  if (!view)
+    return {};
+  // create NumPy array from capsule using builder
+  return make_ndarray_from_capsule<T>(std::move(capsule), view.as<T>());
+}
+
+/**
+ * Traits type to indicate if a NumPy array can be created from a C++ type.
+ *
+ * @tparam T type
+ */
+template <typename T, typename = void>
+struct can_make_ndarray : std::false_type {};
+
+/**
+ * True specialization for C++ types `make_ndarray(T&&)` accepts.
+ *
+ * @note Since `make_ndarray(T&&)` does not restrict the template type we rely
+ *  on the invokability of the builder specialization.
+ *
+ * @tparam T type
+ */
+template <typename T>
+struct can_make_ndarray<
+  T,
+  std::void_t<
+    decltype(
+      make_ndarray_from_capsule<T>(std::declval<py_object>(), std::declval<T*>())
+    )> >
+  : std::true_type {};
+
+/**
+ * Helper to indicate if a NumPy arary can be created from a C++ type.
+ *
+ * @tparam T type
+ */
+template <typename T>
+inline constexpr bool can_make_ndarray_v = can_make_ndarray<T>::value;
+
+/**
  * NumPy array builder CRTP base class.
  *
  * This provides a safe, end-user invocable `operator()` that performs the
@@ -960,6 +1034,11 @@ public:
    */
   py_object operator()(py_object&& cap, object_type* cap_ten) const noexcept
   {
+    // NumPy arrays can only be backed by CPU memory. if the tensor is not a
+    // CPU tensor, e.g. on GPU, we need to convert it to a CPU tensor. we just
+    // call make_ndarray recursively with a new CPU tensor
+    if (!cap_ten->is_cpu())
+      return make_ndarray(cap_ten->cpu());
     // get tensor type as NumPy type
     auto type = convert_type(cap_ten->dtype());
     // ensure strided (NumPy only works with strided, dense representations)
@@ -1061,80 +1140,6 @@ struct ndarray_capsule_builder<std::tuple<Ts...>>
     return ar;
   }
 };
-
-/**
- * Global builder for creating a NumPy array from a Python capsule.
- *
- * This provides a functional interface to the `ndarray_capsule_builder<Ts...>`.
- *
- * @tparam Ts... Target C++ types
- */
-template <typename... Ts>
-inline constexpr ndarray_capsule_builder<Ts...> make_ndarray_from_capsule;
-
-/**
- * Create a NumPy array from an appropriate C++ object.
- *
- * On error the `py_object` is empty and a Python exception is set.
- *
- * Construction involves using `py_object::create()` to create a `PyCapsule`
- * from the C++ object and then creating a NumPy array backed by this capsule
- * via the appropriate `make_ndarray_from_capsule` partial specialization.
- *
- * For details on how the NumPy array is constructed for a particular type see
- * the appropriate `ndarray_capsule_builder<...>` documentation comments.
- *
- * @tparam T C++ object interpretable as a multidimensional array
- *
- * @param obj C++ object to create a NumPy array from
- */
-template <typename T, typename = std::enable_if_t<!std::is_reference_v<T>>>
-py_object make_ndarray(T&& obj) noexcept
-{
-  // create capsule
-  auto capsule = py_object::create(std::move(obj));
-  if (!capsule)
-    return {};
-  // capsule view (should not error)
-  cc_capsule_view view{capsule};
-  if (!view)
-    return {};
-  // create NumPy array from capsule using builder
-  return make_ndarray_from_capsule<T>(std::move(capsule), view.as<T>());
-}
-
-/**
- * Traits type to indicate if a NumPy array can be created from a C++ type.
- *
- * @tparam T type
- */
-template <typename T, typename = void>
-struct can_make_ndarray : std::false_type {};
-
-/**
- * True specialization for C++ types `make_ndarray(T&&)` accepts.
- *
- * @note Since `make_ndarray(T&&)` does not restrict the template type we rely
- *  on the invokability of the builder specialization.
- *
- * @tparam T type
- */
-template <typename T>
-struct can_make_ndarray<
-  T,
-  std::void_t<
-    decltype(
-      make_ndarray_from_capsule<T>(std::declval<py_object>(), std::declval<T*>())
-    )> >
-  : std::true_type {};
-
-/**
- * Helper to indicate if a NumPy arary can be created from a C++ type.
- *
- * @tparam T type
- */
-template <typename T>
-inline constexpr bool can_make_ndarray_v = can_make_ndarray<T>::value;
 
 /**
  * Lightweight flat view of a NumPy array.
