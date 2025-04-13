@@ -28,6 +28,7 @@
 #endif  // NPYGL_HAS_EIGEN3
 #if NPYGL_HAS_LIBTORCH
 #include <torch/torch.h>
+#include "npygl/torch.hh"
 #endif  // NPYGL_HAS_LIBTORCH
 
 // TODO: consider having this not be a giant main() function
@@ -330,6 +331,21 @@ int main()
       return torch::randn({2, 3, 4}, gen);
     }()
   );
+#if NPYGL_HAS_EIGEN3
+  // create a NumPy array backed by a PyTorch double tensor constructed from an
+  // Eigen3 double matrix (a lot of words but very little copying)
+  make_ndarray_test(
+    []
+    {
+      Eigen::MatrixXd mat{
+        {4., 1.55, 3.2, 23.1},
+        {4.33, 2.145, 34.123, 7.455},
+        {6.545, 1.32, 6.444, 8.75}
+      };
+      return npygl::make_tensor(std::move(mat));
+    }()
+  );
+#endif  // NPYGL_HAS_EIGEN3
 #endif  // NPYGL_HAS_LIBTORCH
   // create a 1D NumPy array from a tuple
   make_ndarray_test(tuple_ndarray_factory{});
