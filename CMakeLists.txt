@@ -17,6 +17,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 # set CMake module path and import CMake helpers
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
 
+include(npygl_get_build_info)
 include(npygl_llvm_library_target)
 include(npygl_target_helpers)
 
@@ -27,6 +28,15 @@ option(
     NPYGL_TORCH_PRECOMPILE
     "Precompile torch/torch.h for faster incremental builds" OFF
 )
+option(NPYGL_BUILD_RELEASE "Build an official release version" OFF)
+
+# find Git
+find_package(Git)
+if(Git_FOUND)
+    message(STATUS "Git version: ${GIT_VERSION_STRING}")
+else()
+    message(STATUS "Git version: None")
+endif()
 
 # check if generator is multi-config
 get_property(NPYGL_MULTI_CONFIG_GENERATOR GLOBAL PROPERTY GENERATOR_IS_MULTI_CONFIG)
@@ -44,6 +54,15 @@ else()
         set(CMAKE_BUILD_TYPE Debug)
     endif()
     message(STATUS "Build config: ${CMAKE_BUILD_TYPE}")
+endif()
+
+# get and print build info
+# note: empty string if official release
+npygl_get_build_info(NPYGL_BUILD_INFO IS_RELEASE ${NPYGL_BUILD_RELEASE})
+if(NPYGL_BUILD_RELEASE)
+    message(STATUS "Build info: Release")
+else()
+    message(STATUS "Build info: ${NPYGL_BUILD_INFO}")
 endif()
 
 # flat output directory with per-config subdirectories
@@ -448,8 +467,28 @@ endif()
 # project include directory
 set(NPYGL_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/include)
 
+# set version-related variables
+# note: should use NPYGLUE_ prefix but NPYGL_ has already been established
+set(NPYGL_VERSION_MAJOR ${PROJECT_VERSION_MAJOR})
+set(NPYGL_VERSION_MINOR ${PROJECT_VERSION_MINOR})
+set(NPYGL_VERSION_PATCH ${PROJECT_VERSION_PATCH})
+# non-official releases have extra build info
+set(NPYGL_VERSION ${PROJECT_VERSION})
+if(NOT NPYGL_BUILD_RELEASE)
+    string(APPEND NPYGL_VERSION "-${NPYGL_BUILD_INFO}")
+endif()
+message(STATUS "Build version: ${NPYGL_VERSION}")
+
 # generate version header. only replace @VAR@ and keep LF newlines
 set(NPYGL_VERSION_HEADER include/npygl/version.h)
+# variables consumed:
+#
+#   NPYGL_VERSION_MAJOR
+#   NPYGL_VERSION_MINOR
+#   NPYGL_VERSION_PATCH
+#   NPYGL_VERSION
+#   NPYGL_BUILD_INFO
+#
 configure_file(${NPYGL_VERSION_HEADER}.in ${NPYGL_VERSION_HEADER} @ONLY LF)
 message(STATUS "Generated ${NPYGL_VERSION_HEADER}")
 

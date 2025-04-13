@@ -1,7 +1,7 @@
 /**
  * @file version.h
  * @author Derek Huang
- * @brief C/C++ header with version information
+ * @brief C/C++ header with npyglue version information
  * @copyright MIT License
  */
 
@@ -9,18 +9,30 @@
 #define NPYGL_VERSION_H_
 
 /**
- * Project major version number.
+ * npyglue major version number.
  */
-#define NPYGL_VERSION_MAJOR @PROJECT_VERSION_MAJOR@
+#define NPYGL_VERSION_MAJOR @NPYGL_VERSION_MAJOR@
 
 /**
- * Project minor version number.
+ * npyglue minor version number.
  */
-#define NPYGL_VERSION_MINOR @PROJECT_VERSION_MINOR@
+#define NPYGL_VERSION_MINOR @NPYGL_VERSION_MINOR@
 
 /**
- * Project patch version number.
+ * npyglue patch version number.
  */
-#define NPYGL_VERSION_PATCH @PROJECT_VERSION_PATCH@
+#define NPYGL_VERSION_PATCH @NPYGL_VERSION_PATCH@
+
+/**
+ * npyglue full version string.
+ */
+#define NPYGL_VERSION "@NPYGL_VERSION@"
+
+/**
+ * npyglue build info.
+ *
+ * THis is `""` for releases but is `"DEV"` or a Git build hash otherwise.
+ */
+#define NPYGL_BUILD_INFO "@NPYGL_BUILD_INFO@"
 
 #endif  // NPYGL_VERSION_H_
