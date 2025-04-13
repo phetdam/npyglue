@@ -974,6 +974,10 @@ private:
    * the data of the `IntArrayRef`. Otherwise, to satisfy the strict aliasing
    * rule, we copy and return the values as a `std::vector<npy_intp>`.
    *
+   * @note NumPy array strides are in *bytes*, not the number of elements,
+   *  which means that we always needs to make a copy of the tensor strides so
+   *  we can scale them by the size of the tensor's element type.
+   *
    * @param ten Tensor to get dimensions + strides for
    */
   auto retrieve_sizes(const torch::Tensor& ten) const
@@ -1000,21 +1004,16 @@ NPYGL_MSVC_WARNING_DISABLE(4365)  // signed/unsigned mismatch
 NPYGL_MSVC_WARNING_POP()
       }
     }();
-    // get strides from tensor
+    // get strides from tensor. always copy because we need to scale to bytes
+    // for NumPy and so use element_size() for this
     auto strides = [&ten, n_dim]
     {
-      // direct alias if type-accessible
-      if constexpr (is_accessible_as_v<decltype(ten.stride(0)), npy_intp>)
-        return ten.strides();
-      // otherwise we are forced to copy
-      else {
 NPYGL_MSVC_WARNING_PUSH()
 NPYGL_MSVC_WARNING_DISABLE(4365)  // signed/unsigned mismatch
-        std::vector<npy_intp> strides(n_dim);
-        for (decltype(n_dim) i = 0; i < n_dim; i++)
-          strides[i] = ten.stride(i);
-        return strides;
-      }
+      std::vector<npy_intp> strides(n_dim);
+      for (decltype(n_dim) i = 0; i < n_dim; i++)
+        strides[i] = ten.element_size() * ten.stride(i);
+      return strides;
 NPYGL_MSVC_WARNING_POP()
     }();
     // return
@@ -1062,7 +1061,7 @@ NPYGL_MSVC_WARNING_POP()
         // may be direct alias or copy depending on type accessibility
         dims.data(),                  // dims
         type,                         // type_num
-        // may be direct alias or copy depending on type accessibility
+        // always a copy since we have to multiply by the element size
         strides.data(),               // strides
         cap_ten->mutable_data_ptr(),  // data
         0,                            // itemsize (ignored)
