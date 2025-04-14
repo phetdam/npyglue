@@ -31,7 +31,7 @@
 /**
  * npyglue build info.
  *
- * THis is `""` for releases but is `"DEV"` or a Git build hash otherwise.
+ * This is `""` for releases but is `"DEV"` or a Git build hash otherwise.
  */
 #define NPYGL_BUILD_INFO "@NPYGL_BUILD_INFO@"
 
