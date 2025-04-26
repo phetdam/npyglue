@@ -3,7 +3,7 @@
 npyglue
 =======
 
-Repository for C++ glue code simplifying Python/C++ interop.
+A header-only C++ library simplifying Python/C++ interop.
 
 TBD. Requires C++17, has extra features with C++20, and simplifies manual or
 SWIG_-based wrapping of C++ functions in CPython `extension modules`__ that

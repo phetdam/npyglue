@@ -3,7 +3,7 @@ cmake_minimum_required(VERSION 3.20)
 project(
     npyglue
     VERSION 0.1.0
-    DESCRIPTION "C++ glue code simplifying Python/C++ interop."
+    DESCRIPTION "A header-only C++ library simplifying Python/C++ interop."
     HOMEPAGE_URL https://github.com/phetdam/npyglue
     LANGUAGES C CXX
 )
