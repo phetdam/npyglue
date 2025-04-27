@@ -502,7 +502,7 @@ target_include_directories(
     $<INSTALL_INTERFACE:include>
 )
 # install rule for headers (including generated)
-# TODO: add targets for the npyglue headers and SWIG files
+# TODO: add target + install rule for the npyglue SWIG files
 install(
     DIRECTORY ${NPYGL_INCLUDE_DIR}/npygl ${CMAKE_CURRENT_BINARY_DIR}/include/npygl
     TYPE INCLUDE
