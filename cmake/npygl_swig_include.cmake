@@ -16,7 +16,7 @@ cmake_minimum_required(VERSION 3.15)
 # The following INTERFACE properties will be consumed:
 #
 #   INTERFACE_INCLUDE_DIRECTORIES
-#   INTERFACE_COMPILE_DEFNIITIONS
+#   INTERFACE_COMPILE_DEFINITIONS
 #   INTERFACE_COMPILE_OPTIONS
 #
 # These will be appended to the corresponding SWIG_* properties for the target.
