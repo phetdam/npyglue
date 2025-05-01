@@ -5,5 +5,7 @@
 
 @PACKAGE_INIT@
 
+# include exported modules
+@NPYGL_INCLUDE_EXPORTED_CMAKE_MODULES@
 # include target exports module
 include("${CMAKE_CURRENT_LIST_DIR}/@NPYGL_CMAKE_TARGETS_FILE@")

@@ -595,6 +595,23 @@ install(
     FILE ${NPYGL_CMAKE_TARGETS_FILE}
 )
 
+# list of CMake modules to provide to downstream consumers
+set(NPYGL_EXPORTED_CMAKE_MODULES npygl_swig_include)
+# convert list of modules into file names + includes for CMake config script
+foreach(module ${NPYGL_EXPORTED_CMAKE_MODULES})
+    list(
+        APPEND _exported_modules
+        ${CMAKE_CURRENT_SOURCE_DIR}/cmake/${module}.cmake
+    )
+    list(
+        APPEND NPYGL_INCLUDE_EXPORTED_CMAKE_MODULES
+        "include(\"\${CMAKE_CURRENT_LIST_DIR}/${module}.cmake\")\n"
+    )
+endforeach()
+# install rule for any CMake modules to provide to downstream consumers
+install(FILES ${_exported_modules} DESTINATION ${NPYGL_CMAKE_INSTALL_DIR})
+unset(_exported_modules)
+
 # enable testing with CTest
 include(CTest)
 
@@ -615,6 +632,13 @@ set(NPYGL_CMAKE_VERSION_CONFIG_FILE ${PROJECT_NAME}-config-version.cmake)
 include(CMakePackageConfigHelpers)
 
 # configure package config file + version resolution script
+#
+# variables consumed:
+#
+#   PROJECT_NAME
+#   NPYGL_CMAKE_TARGETS_FILE
+#   NPYGL_INCLUDE_EXPORTED_CMAKE_MODULES
+#
 configure_package_config_file(
     cmake/${NPYGL_CMAKE_CONFIG_FILE}.in ${NPYGL_CMAKE_CONFIG_FILE}
     INSTALL_DESTINATION ${NPYGL_CMAKE_INSTALL_DIR}
