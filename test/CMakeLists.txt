@@ -234,7 +234,6 @@ if(SWIG_FOUND AND Python3_Development_FOUND AND Python3_NumPy_FOUND)
         TARGET pymath_swig
         INTERFACE pymath_swig.i
         SWIG_CXX ON
-        SWIG_INCLUDE_DIRS ${NPYGL_SIL_INCLUDE_DIR}
         # not using Armadillo/Eigen3 currently (may change later) so we
         # explicitly disable inclusion of those headers for faster compile
         LIBRARIES Python3::NumPy npyglue npyglue_no_armadillo npyglue_no_eigen3
@@ -255,7 +254,6 @@ if(SWIG_FOUND AND Python3_Development_FOUND AND Python3_NumPy_FOUND)
             SWIG_CXX ON
             # enable SWIG to see the C++20 declarations in math.hh
             SWIG_DEFINES NPYGL_SWIG_CC_20
-            SWIG_INCLUDE_DIRS ${NPYGL_SIL_INCLUDE_DIR}
             LIBRARIES
                 Python3::NumPy
                 npyglue

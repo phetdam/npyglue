@@ -217,11 +217,14 @@ function(npygl_add_swig_py3_module)
     if(HOST_SWIG_CXX)
         set(SWIG_BASE_OPTIONS ${SWIG_BASE_OPTIONS} -c++)
     endif()
-    # user include directory added by default
-    # TODO: consider disabling this
-    set(SWIG_BASE_OPTIONS ${SWIG_BASE_OPTIONS} -I${NPYGL_INCLUDE_DIR})
+    # user + SIL include directories added by default
+    list(
+        APPEND SWIG_BASE_OPTIONS
+        -I${NPYGL_INCLUDE_DIR} -I${NPYGL_SIL_INCLUDE_DIR}
+    )
+    # add any specified SWIG include directories
     if(HOST_SWIG_INCLUDE_DIRS)
-        set(SWIG_BASE_OPTIONS ${SWIG_BASE_OPTIONS} ${HOST_SWIG_INCLUDE_DIRS})
+        list(APPEND SWIG_BASE_OPTIONS ${HOST_SWIG_INCLUDE_DIRS})
     endif()
     # use target name as module name
     # note: probably don't need it when running deps command
