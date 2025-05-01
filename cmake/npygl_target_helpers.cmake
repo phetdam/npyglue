@@ -140,14 +140,14 @@ endfunction()
 #       Name of the SWIG-generated Python extension module target
 #   INTERFACE
 #       SWIG interface input file for wrapper generation
-#   SWIG_CC (ON|OFF)
+#   CXX (ON|OFF)
 #       Enabled/disable SWIG C++ mode (defaults to OFF)
 #   SWIG_DEFINES macro1...
 #       SWIG macros to define when running SWIG
 #   SWIG_OPTIONS option1...
 #       Additional options to pass to SWIG
 #   SWIG_INCLUDE_DIRS dir1...
-#       Additional C/C++/SWIG include directories to pass to SWIG
+#       Additional SWIG include directories to pass to SWIG
 #   USE_TARGET_NAME (ON|OFF)
 #       Indicate whether CMake target name should be used as the module name.
 #       This can be convenient to map the same source to different modules.
@@ -166,7 +166,7 @@ function(npygl_add_swig_py3_module)
     # module name, use release C runtime on Windows
     set(
         SINGLE_VALUE_ARGS
-        TARGET INTERFACE SWIG_CC USE_TARGET_NAME USE_RELEASE_CRT
+        TARGET INTERFACE CXX USE_TARGET_NAME USE_RELEASE_CRT
     )
     # source list + libraries to link against and include directories
     set(
@@ -182,6 +182,10 @@ function(npygl_add_swig_py3_module)
     if(HOST_SWIG_DEFINES)
         list(TRANSFORM HOST_SWIG_DEFINES PREPEND -D)
     endif()
+    # prepend -I to SWIG include directories if any
+    if(HOST_SWIG_INCLUDE_DIRS)
+        list(TRANSFORM HOST_SWIG_INCLUDE_DIRS PREPEND -I)
+    endif()
     # intermediate output directory + make if it does not exist
     set(OUTFILE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/${HOST_TARGET})
     file(MAKE_DIRECTORY ${OUTFILE_DIR})
@@ -194,7 +198,7 @@ function(npygl_add_swig_py3_module)
     # happens now is that since the files are overwritten, although the C++
     # extension modules are recompiled, SWIG is not run again to generate the
     # Python wrapper layer again, which means the build ends up stale.
-    if(HOST_SWIG_CC)
+    if(HOST_CXX)
         set(OUTFILE_NAME ${HOST_TARGET}PYTHON_wrap${SWIG_VERSION}.cxx)
     else()
         set(OUTFILE_NAME ${HOST_TARGET}PYTHON_wrap${SWIG_VERSION}.c)
@@ -210,10 +214,11 @@ function(npygl_add_swig_py3_module)
         set(SWIG_BASE_OPTIONS ${SWIG_BASE_OPTIONS} -py3)
     endif()
     # enable SWIG C++ mode
-    if(HOST_SWIG_CC)
+    if(HOST_CXX)
         set(SWIG_BASE_OPTIONS ${SWIG_BASE_OPTIONS} -c++)
     endif()
     # user include directory added by default
+    # TODO: consider disabling this
     set(SWIG_BASE_OPTIONS ${SWIG_BASE_OPTIONS} -I${NPYGL_INCLUDE_DIR})
     if(HOST_SWIG_INCLUDE_DIRS)
         set(SWIG_BASE_OPTIONS ${SWIG_BASE_OPTIONS} ${HOST_SWIG_INCLUDE_DIRS})
@@ -231,9 +236,9 @@ function(npygl_add_swig_py3_module)
         WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
         RESULT_VARIABLE DEPS_RESULT
     )
-    # warn on error
+    # fail if error
     if(DEPS_RESULT)
-        message(WARNING "Unable to generate dependencies for ${HOST_TARGET}")
+        message(FATAL_ERROR "Unable to generate dependencies for ${HOST_TARGET}")
     endif()
     # read dependencies file lines as strings
     file(STRINGS ${DEPS_FILE} DEPS_LIST)
@@ -311,11 +316,11 @@ function(npygl_copy_torch_dlls target)
     if(MSVC)
         file(GLOB TORCH_DLLS "${TORCH_INSTALL_PREFIX}/lib/*.dll")
         add_custom_command(
-            TARGET ${ARGV0}
+            TARGET ${target}
             POST_BUILD
                 COMMAND ${CMAKE_COMMAND} -E copy_if_different ${TORCH_DLLS}
-                    $<TARGET_FILE_DIR:${ARGV0}>
-            COMMENT "Copying Torch DLLs for ${ARGV0}"
+                    $<TARGET_FILE_DIR:${target}>
+            COMMENT "Copying Torch DLLs for ${target}"
             COMMAND_EXPAND_LISTS
         )
     endif()

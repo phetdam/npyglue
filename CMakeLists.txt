@@ -19,6 +19,7 @@ list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
 
 include(npygl_get_build_info)
 include(npygl_llvm_library_target)
+include(npygl_swig_include)
 include(npygl_target_helpers)
 
 # options
@@ -502,7 +503,6 @@ target_include_directories(
     $<INSTALL_INTERFACE:include>
 )
 # install rule for headers (including generated)
-# TODO: add target + install rule for the npyglue SWIG files
 install(
     DIRECTORY ${NPYGL_INCLUDE_DIR}/npygl ${CMAKE_CURRENT_BINARY_DIR}/include/npygl
     TYPE INCLUDE
@@ -548,7 +548,30 @@ set_target_properties(
     EXPORT_NAME use_llvm_demangle
 )
 
-# TODO: add npyglue_sil target and npyglue::SIL alias for the SWIG library
+# location of SIL SWIG interface files in build tree
+set(NPYGL_SIL_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/sil)
+# prefix-relative directory for SIL SWIG interface files on install
+set(NPYGL_SIL_INSTALL_DIR share/${PROJECT_NAME}/sil)
+
+# npyglue_sil: SWIG interface files for C++/Python NumPy array interop
+# this is *not* to be used via target_link_libraries but rather via the
+# npygl_swig_include CMake function to populate the SWIG_* compile properties
+add_library(npyglue_sil INTERFACE)
+add_library(npyglue::SIL ALIAS npyglue_sil)
+# TODO: not sure if swig_add_library likes generator expressions here
+target_include_directories(
+    npyglue_sil INTERFACE
+    $<BUILD_INTERFACE:${NPYGL_SIL_INCLUDE_DIR}>
+    $<INSTALL_INTERFACE:${NPYGL_SIL_INSTALL_DIR}>
+)
+# install rule for the SWIG interface files
+install(
+    DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/sil/npygl
+    DESTINATION ${NPYGL_SIL_INSTALL_DIR}
+    FILES_MATCHING PATTERN "*.i"
+)
+
+# TODO: add install rule for npygl_swig_include
 
 # prefix-relative directory for CMake files on installation
 set(NPYGL_CMAKE_INSTALL_DIR lib/cmake/${PROJECT_NAME})
