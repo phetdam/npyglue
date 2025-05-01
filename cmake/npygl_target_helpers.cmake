@@ -140,7 +140,7 @@ endfunction()
 #       Name of the SWIG-generated Python extension module target
 #   INTERFACE
 #       SWIG interface input file for wrapper generation
-#   CXX (ON|OFF)
+#   SWIG_CXX (ON|OFF)
 #       Enabled/disable SWIG C++ mode (defaults to OFF)
 #   SWIG_DEFINES macro1...
 #       SWIG macros to define when running SWIG
@@ -166,7 +166,7 @@ function(npygl_add_swig_py3_module)
     # module name, use release C runtime on Windows
     set(
         SINGLE_VALUE_ARGS
-        TARGET INTERFACE CXX USE_TARGET_NAME USE_RELEASE_CRT
+        TARGET INTERFACE SWIG_CXX USE_TARGET_NAME USE_RELEASE_CRT
     )
     # source list + libraries to link against and include directories
     set(
@@ -198,7 +198,7 @@ function(npygl_add_swig_py3_module)
     # happens now is that since the files are overwritten, although the C++
     # extension modules are recompiled, SWIG is not run again to generate the
     # Python wrapper layer again, which means the build ends up stale.
-    if(HOST_CXX)
+    if(HOST_SWIG_CXX)
         set(OUTFILE_NAME ${HOST_TARGET}PYTHON_wrap${SWIG_VERSION}.cxx)
     else()
         set(OUTFILE_NAME ${HOST_TARGET}PYTHON_wrap${SWIG_VERSION}.c)
@@ -214,7 +214,7 @@ function(npygl_add_swig_py3_module)
         set(SWIG_BASE_OPTIONS ${SWIG_BASE_OPTIONS} -py3)
     endif()
     # enable SWIG C++ mode
-    if(HOST_CXX)
+    if(HOST_SWIG_CXX)
         set(SWIG_BASE_OPTIONS ${SWIG_BASE_OPTIONS} -c++)
     endif()
     # user include directory added by default
