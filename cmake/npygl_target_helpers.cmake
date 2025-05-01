@@ -211,11 +211,11 @@ function(npygl_add_swig_py3_module)
     # FIXME: SWIG 4.1+ will not have the C++ type annotations
     # note: probably don't need it when running deps command either
     if(SWIG_VERSION VERSION_LESS 4.1)
-        set(SWIG_BASE_OPTIONS ${SWIG_BASE_OPTIONS} -py3)
+        list(APPEND SWIG_BASE_OPTIONS -py3)
     endif()
     # enable SWIG C++ mode
     if(HOST_SWIG_CXX)
-        set(SWIG_BASE_OPTIONS ${SWIG_BASE_OPTIONS} -c++)
+        list(APPEND SWIG_BASE_OPTIONS -c++)
     endif()
     # user + SIL include directories added by default
     list(
@@ -229,7 +229,7 @@ function(npygl_add_swig_py3_module)
     # use target name as module name
     # note: probably don't need it when running deps command
     if(HOST_USE_TARGET_NAME)
-        set(SWIG_BASE_OPTIONS ${SWIG_BASE_OPTIONS} -module ${HOST_TARGET})
+        list(APPEND SWIG_BASE_OPTIONS -module ${HOST_TARGET})
     endif()
     # generate list of interface dependencies
     execute_process(
