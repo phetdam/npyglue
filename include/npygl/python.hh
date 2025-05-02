@@ -334,7 +334,7 @@ inline constexpr const char* empty_string = "";
  * @param req_is Unused index sequence to deduce indices
  * @param kws Optional keywords argument names
  * @param kwargs Python keyword optional arguments
- * @param opts Varuable references to parse optional keywords arguments into
+ * @param opts Variable references to parse optional keywords arguments into
  * @param req_is Unused index sequence to deduce indices
  * @returns `true` on success, `false` on error
  */
