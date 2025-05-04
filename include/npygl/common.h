@@ -1,5 +1,5 @@
 /**
- * @file common.g
+ * @file common.h
  * @author Derek Huang
  * @brief C/C++ header for common shared macros
  * @copyright MIT License
