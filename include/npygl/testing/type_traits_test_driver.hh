@@ -1,5 +1,5 @@
 /**
- * @file testing/type_tratis_test_driver.hh
+ * @file testing/type_traits_test_driver.hh
  * @author Derek Huang
  * @brief C++ header for the type_traits_test.cc test driver type
  * @copyright MIT License
