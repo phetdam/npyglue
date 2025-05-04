@@ -3,7 +3,7 @@ cmake_minimum_required(VERSION 3.20)
 project(
     npyglue
     VERSION 0.1.0
-    DESCRIPTION "A header-only C++ library simplifying Python/C++ interop."
+    DESCRIPTION "A header-only C++ library simplifying Python/C++ interop"
     HOMEPAGE_URL https://github.com/phetdam/npyglue
     LANGUAGES C CXX
 )
@@ -425,6 +425,14 @@ else()
     message(STATUS "LLVM version: None")
 endif()
 
+# find Doxygen
+find_package(Doxygen 1.10)
+if(DOXYGEN_FOUND)
+    message(STATUS "Doxygen version: ${DOXYGEN_VERSION}")
+else()
+    message(STATUS "Doxygen version: None")
+endif()
+
 # compile flags. we do this after any FetchContent calls so that we don't
 # interfere with any compile flags that dependency targets require and we use
 # the COMPILE_LANGUAGE generator expression so we don't pass C++ flags to CUDA.
@@ -622,7 +630,30 @@ include(CTest)
 if(NPYGL_BUILD_TESTS)
     add_subdirectory(test)
 else()
-    message(WARNING "Skipping npyglue test directory")
+    message(STATUS "Skipping ${PROJECT_NAME} test directory")
+endif()
+
+# add Doxygen documentation target
+if(DOXYGEN_FOUND)
+    # set configuration options
+    # TODO: set these using a CMake macro instead
+    set(DOXYGEN_QUIET YES)
+    set(DOXYGEN_WARN_IF_UNDOCUMENTED NO)
+    set(DOXYGEN_JAVADOC_AUTOBRIEF YES)
+    # use NPYGL_VERSION instead of PROJECT_VERSION
+    set(DOXYGEN_PROJECT_NUMBER ${NPYGL_VERSION})
+    set(DOXYGEN_HTML_EXTRA_STYLESHEET doc/npyglue.css)
+    set(DOXYGEN_HTML_DYNAMIC_SECTIONS YES)
+    # TODO: rewrite README.rst as Markdown for use with Doxygen
+    # add Doxygen target
+    doxygen_add_docs(
+        ${PROJECT_NAME}_doc
+        ${NPYGL_INCLUDE_DIR}
+        # TODO: can we automatically document SWIG macros? or document by hand
+        COMMENT "Generating ${PROJECT_NAME} HTML documentation"
+    )
+else()
+    message(STATUS "Skipping ${PROJECT_NAME} documentation generation")
 endif()
 
 # name of the CMake package config script + version config script

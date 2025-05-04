@@ -1,0 +1,24 @@
+/**
+ * npyglue.css
+ *
+ * Doxygen CSS stylesheet overrides.
+ *
+ * Author: Derek Huang
+ * Copyright: MIT License
+ */
+
+div.contents {
+	/* shorten content lines for easier reading */
+	width: 800px;
+	/* auto left + right margin enables centering of div content */
+	margin-left: auto;
+	margin-right: auto;
+}
+
+.title {
+	/* make same width as div contents */
+	width: 800px;
+	/* use auto left and right margin to center title */
+	margin-left: auto;
+	margin-right: auto;
+}
