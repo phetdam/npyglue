@@ -10,6 +10,7 @@
 <doxygenlayout version="1.0">
   <!-- Navigation index tabs for HTML output -->
   <navindex>
+    <!-- TODO: maybe set title to "" to use default "Main Page" again -->
     <tab type="mainpage" visible="yes" title="Home"/>
     <!-- custom navigation tabs begin -->
     <tab type="user" url="@ref doc/npyglue-sil.md" title="SWIG Library" />
