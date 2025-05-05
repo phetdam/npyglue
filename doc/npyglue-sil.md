@@ -25,10 +25,22 @@ Library (SIL).
 
 Currently, the npyglue SIL consists of the following SWIG `.i` files:
 
+<!--
+    note:
+
+    originally, the "exception handler" link reference text was `%exception`,
+    but Doxygen's Markdown parser kept discarding the `%`. by the CommonMark
+    standard, backslash escapes do *not* work in code blocks. using \%exception
+    actually worked fine; we just could not encase it in backticks.
+
+    so we just decided to drop the typewriter formatting and use
+    "exception handler" as the link text.
+-->
+
 * `ndarray.i`, which provides NumPy array SWIG
   [typemap](https://www.swig.org/Doc4.0/Python.html#Python_nn53) macros
 * `python.i`, which provides a SWIG C++
-  [`%exception`](https://www.swig.org/Doc4.0/Python.html#Python_nn44) handler
+  [exception handler](https://www.swig.org/Doc4.0/Python.html#Python_nn44)
 
 Please read the Doxygen-style comment blocks in each `.i` file for detailed
 documentation.
