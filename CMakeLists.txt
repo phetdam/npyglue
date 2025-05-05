@@ -646,6 +646,8 @@ if(DOXYGEN_FOUND)
     set(DOXYGEN_HTML_DYNAMIC_SECTIONS YES)
     set(DOXYGEN_STRIP_FROM_INC_PATH ${CMAKE_CURRENT_SOURCE_DIR}/include)
     set(DOXYGEN_PREDEFINED __cplusplus)
+    # Doxygen layout file used to customize HTML page layout
+    set(DOXYGEN_LAYOUT_FILE doc/layout.xml)
     # TODO: rewrite README.rst as Markdown for use with Doxygen
     # add Doxygen target
     doxygen_add_docs(
