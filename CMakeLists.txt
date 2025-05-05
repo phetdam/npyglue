@@ -650,7 +650,10 @@ if(DOXYGEN_FOUND)
     # add Doxygen target
     doxygen_add_docs(
         ${PROJECT_NAME}_doc
+        # headers
         ${NPYGL_INCLUDE_DIR}
+        # docs
+        doc/npyglue-sil.md
         # TODO: can we automatically document SWIG macros? or document by hand
         COMMENT "Generating ${PROJECT_NAME} HTML documentation"
     )
