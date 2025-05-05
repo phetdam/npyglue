@@ -38,9 +38,9 @@ documentation.
 > view of a NumPy array, and is not sufficient for functions that expected a
 > certain NumPy array dimensionality as input. This is a later planned feature.
 
-## Quickstart
+## Walkthrough
 
-Here is a quickstart example. Suppose we have a C++ function [template] called
+Let's walk through an example. Suppose we have a C++ function [template] called
 `xmath::normal` that will return a `std::vector<T>` of standard normal variates.
 It is defined in `xmath/random.hh`, whose contents are as follows:
 
