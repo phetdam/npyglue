@@ -26,10 +26,9 @@ Library (SIL).
 Currently, the npyglue SIL consists of the following SWIG `.i` files:
 
 * `ndarray.i`, which provides NumPy array SWIG
-  [typemap](https://www.swig.org/Doc4.0/SWIGDocumentation.html#Python_nn53) macros
+  [typemap](https://www.swig.org/Doc4.0/Python.html#Python_nn53) macros
 * `python.i`, which provides a SWIG C++
-  [`%exception`](https://www.swig.org/Doc4.0/SWIGDocumentation.html#Python_nn44)
-  handler
+  [`%exception`](https://www.swig.org/Doc4.0/Python.html#Python_nn44) handler
 
 Please read the Doxygen-style comment blocks in each `.i` file for detailed
 documentation.
