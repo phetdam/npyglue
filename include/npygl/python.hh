@@ -1157,8 +1157,12 @@ private:
  *  interpreter in a C/C++ application as Python extension modules are loaded
  *  by an existing Python interpreter process.
  *
+ * @par
+ *
  * @note Having more than one `py_instance` alive at a time is meaningless
  *  because `Py_Initialize` is a no-op unless `Py_Finalize[Ex]` was called.
+ *
+ * @par
  *
  * @note `Py_NewInterpreter` and `Py_EndInterpreter` can be used to create and
  *  destroy sub-interpreters that are managed by the main interpreter.
@@ -1666,8 +1670,8 @@ inline bool py_repr(std::ostream& out, PyObject* obj)
 /**
  * Stream the string representation of the Python object as with `repr()`.
  *
- * On error the Python exception trace is printed with `PyErr_Print`. Note that
- * this will also clear the error indicator so use with care.
+ * On error the Python exception trace is printed with `PyErr_Print`.This
+ * function will clear the error indicator so use with care.
  *
  * @note In order for ADL to work this is defined in the top-level namespace.
  *
@@ -1684,13 +1688,15 @@ inline auto& operator<<(std::ostream& out, PyObject* obj)
 /**
  * Stream the string representation of the Python type object as with `repr()`.
  *
- * On error the Python exception trace is printed with `PyErr_Print`. Note that
- * this will also clear the error indicator so use with care.
+ * On error the Python exception trace is printed with `PyErr_Print`. This
+ * function will clear the error indicator so use with care.
  *
  * @note In order for ADL to work this is defined in the top-level namespace.
  *
- * @note This overload removes the need for a `PyObject*` cast when using the
- *  `Py_TYPE()` macro or a function returning a `PyTypeObject*`.
+ * @par
+ *
+ * @note This overload removes the need to cast a `PyTypeObject*` to a
+ *  `PyObject*`, e.g. when using the `Py_TYPE()` macro.
  *
  * @param out Output stream
  * @param obj Python type object to stream
