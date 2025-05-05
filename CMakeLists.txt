@@ -644,6 +644,7 @@ if(DOXYGEN_FOUND)
     set(DOXYGEN_PROJECT_NUMBER ${NPYGL_VERSION})
     set(DOXYGEN_HTML_EXTRA_STYLESHEET doc/npyglue.css)
     set(DOXYGEN_HTML_DYNAMIC_SECTIONS YES)
+    set(DOXYGEN_STRIP_FROM_INC_PATH ${CMAKE_CURRENT_SOURCE_DIR}/include)
     # TODO: rewrite README.rst as Markdown for use with Doxygen
     # add Doxygen target
     doxygen_add_docs(
