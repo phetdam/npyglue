@@ -34,7 +34,9 @@ Currently, the npyglue SIL consists of the following SWIG `.i` files:
     actually worked fine; we just could not encase it in backticks.
 
     so we just decided to drop the typewriter formatting and use
-    "exception handler" as the link text.
+    "exception handler" as the link text. note that using doubld %, e.g. with
+    `%%exception`, Doxygen managed to preserve one %, but this doesn't seem to
+    be expected behavior per the CommonMark standard.
 -->
 
 * `ndarray.i`, which provides NumPy array SWIG
