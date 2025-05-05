@@ -93,8 +93,8 @@ class ndarray_flat_view;
  * This is intended to be applied to a view through which changes are made.
  */
 %typemap(in) npygl::ndarray_flat_view<type> AR_INOUT (npygl::py_object res) {
-  // attempt to create new output array to modify through view
-  res = npygl::make_ndarray<type>($input);
+  // attempt to create new inout array view to modify (writes back if copy)
+  res = npygl::make_ndarray<type>($input, NPY_ARRAY_INOUT_ARRAY);
   if (!res)
     SWIG_fail;
   // create view
@@ -106,6 +106,8 @@ class ndarray_flat_view;
  */
 %typemap(argout) npygl::ndarray_flat_view<type> AR_INOUT {
   // release value back to Python
+  // TODO: consider removing as semantics are strange, especially if there are
+  // multiple in/out ndarray_flat_view<T> arguments provided
   $result = res$argnum.release();
 }
 %enddef  // NPYGL_FLAT_VIEW_INOUT_TYPEMAP(type)
@@ -239,8 +241,8 @@ class ndarray_flat_view;
  * This is intended to be applied to a view through which changes are made.
  */
 %typemap(in) std::span<type> AR_INOUT (npygl::py_object res) {
-  // attempt to create new output array to modify through view
-  res = npygl::make_ndarray<type>($input);
+  // attempt to create new inout array view to modify (writes back if copy)
+  res = npygl::make_ndarray<type>($input, NPY_ARRAY_INOUT_ARRAY);
   if (!res)
     SWIG_fail;
   // create STL span
@@ -252,6 +254,8 @@ class ndarray_flat_view;
  */
 %typemap(argout) std::span<type> AR_INOUT {
   // release value back to Python
+  // TODO: consider removing as semantics are strange, especially if there are
+  // multiple in/out ndarray_flat_view<T> arguments provided
   $result = res$argnum.release();
 }
 %enddef  // NPYGL_STD_SPAN_INOUT_TYPEMAP(type)
