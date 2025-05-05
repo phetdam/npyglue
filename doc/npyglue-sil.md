@@ -155,9 +155,9 @@ std::vector<T> normal(std::size_t n, int seed = -1)
 namespace xmath {
 
 // each template must be instantiated
-%template(normal) uniform<double>;
-%template(fnormal) uniform<float>;
-%template(ldnormal) uniform<long double>;
+%template(normal) normal<double>;
+%template(fnormal) normal<float>;
+%template(ldnormal) normal<long double>;
 
 }  // namespace xmath
 ```
