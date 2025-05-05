@@ -166,7 +166,7 @@ class ndarray_flat_view;
 %typemap(out) type {
   $result = npygl::make_ndarray(std::move($1)).release();
 }
-%enddef  // NPYGL_APPLYNDARRAY_OUT_TYPEMAP(type, allocator)
+%enddef  // NPYGL_APPLY_NDARRAY_OUT_TYPEMAP(type, allocator)
 
 /**
  * Typemap clearing macro for a C++ object being returned as a NumPy array.
