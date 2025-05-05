@@ -22,3 +22,12 @@ div.contents {
 	margin-left: auto;
 	margin-right: auto;
 }
+
+blockquote {
+	/* provide miniscule vertical padding to expand the box area */
+	padding-top: 1px;
+	padding-bottom: 1px;
+	/* expand vertical margins to prevent adjacent boxes from merging */
+	margin-top: 12px;
+	margin-bottom: 12px;
+}

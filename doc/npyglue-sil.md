@@ -33,14 +33,14 @@ Currently, the npyglue SIL consists of the following SWIG `.i` files:
 Please read the Doxygen-style comment blocks in each `.i` file for detailed
 documentation.
 
-> Note:
+> **Note**
 >
 > npyglue's NumPy interop functionality in SWIG interfaces is still rather
 > limited. The `ndarray_flat_view<T>` template only provides a flat, unstrided
 > view of a NumPy array, and is not sufficient for functions that expected a
 > certain NumPy array dimensionality as input. This is a later planned feature.
 
-> Warning:
+> **Warning**
 >
 > Do *not* use the `ndarray_flat_view<T>` in/out typemaps as their semantics
 > are somewhat confusing. The current semantics were likely from an early stage
