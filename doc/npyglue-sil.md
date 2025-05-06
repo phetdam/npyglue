@@ -23,6 +23,8 @@ extension modules with SWIG. These SWIG interface files work in tandem with the
 C++ headers and are collectively referred to as the npyglue SWIG Interface
 Library (SIL).
 
+[SWIG]: https://www.swig.org/
+
 Currently, the npyglue SIL consists of the following SWIG `.i` files:
 
 <!--
@@ -64,9 +66,9 @@ documentation.
 
 ## Walkthrough
 
-Let's walk through an example. Suppose we have a C++ function [template] called
-`xmath::normal` that will return a `std::vector<T>` of standard normal variates.
-It is defined in `xmath/random.hh`, whose contents are as follows:
+Let's walk through an example. Suppose we have a C++ function \[template\]
+called `xmath::normal` that will return a `std::vector<T>` of standard normal
+variates. It is defined in `xmath/random.hh`, whose contents are as follows:
 
 <!--
     note:
@@ -131,6 +133,8 @@ extension module, which is greatly simplified with npyglue, but some projects
 prefer to use SWIG for wholesale target language wrapper generation. This is
 where the npyglue SIL comes into play.
 
+[NumPy]: https://numpy.org/doc/stable
+
 Let's write a simple SWIG interface file called `xmath_random.i`:
 
 ```cpp
@@ -186,7 +190,57 @@ namespace xmath {
 }  // namespace xmath
 ```
 
-TBD, add content for SWIG/CMake integration.
+This `.i` file essentially does the following few things:
 
-[SWIG]: https://www.swig.org/
-[NumPy]: https://numpy.org/doc/stable
+1. Enables the provided C++ exception handler
+2. Enables ["out" typemaps](https://www.swig.org/Doc4.0/Typemaps.html#Typemaps_nn28)
+   that convert appropriate C++ objects into NumPy arrays
+3. Individually wrap function template instantiations using the SWIG C++
+   [template directive](https://www.swig.org/Doc4.0/SWIGPlus.html#SWIGPlus_template_directive)
+
+Now let's prepare to build our SWIG-generated Python extension module. There
+are a few ways to do this, but we will use [CMake], as from experience it is
+easier to integrate Python extension module building into an existing CMake C++
+build than to attempt the reverse via [setuptools], for example.
+
+[CMake]: https://cmake.org/cmake/help/latest/
+[setuptools]: https://setuptools.pypa.io/en/latest/
+
+For simplicity we make the following assumptions:
+
+1. `xmath` is a separately installed library with `find_package` support,
+   exporting an `INTERFACE` header-only library target `xmath::xmath`.
+2. We are using a
+   [single-config](https://cmake.org/cmake/help/latest/manual/cmake-buildsystem.7.html#build-configurations)
+   CMake generator, e.g. Make or Ninja
+
+To this end, let's write the following bare-bones `CMakeLists.txt`:
+
+```cmake
+cmake_minimum_required(VERSION 3.20)
+
+project(xmath-python VERSION 0.1.0 LANGUAGES CXX)
+
+# find Python 3 development artifacts + ensure the environment has NumPy
+find_package(Python3 3.8 REQUIRED COMPONENTS Development NumPy)
+# locate SWIG >= 4.0 with Python wrapping support + enable
+find_package(SWIG 4.0 REQUIRED COMPONENTS python)
+include(UseSWIG)
+# find npyglue
+# TODO: not sure if SIL should be considered a separate compontn
+find_package(npyglue 0.1.0 REQUIRED)
+# add Python C++ extension module generated via SWIG
+set_property(SOURCE xmath_random.i PROPERTY CPLUSPLUS ON)
+swig_add_library(
+    xmath_random
+    LANGUAGE python
+    # write xmath_random.py and the generated C++ source in the build directory
+    OUTPUT_DIR ${CMAKE_CURRENT_SOURCE_DIR}
+    OUTFILE_DIR ${CMAKE_CURRENT_SOURCE_DIR}
+    SOURCES xmath_random.i
+)
+# ensure SWIG picks up npyglue .i include path
+npygl_swig_include(xmath_random TARGETS npyglue::SIL)
+```
+
+TBD
