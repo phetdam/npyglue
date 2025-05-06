@@ -216,7 +216,9 @@ For simplicity we make the following assumptions:
 
 To this end, let's write the following bare-bones `CMakeLists.txt`:
 
-```cmake
+<!-- note: seems like no CMake Markdown code block highlighting -->
+
+```bash
 cmake_minimum_required(VERSION 3.20)
 
 project(xmath-python VERSION 0.1.0 LANGUAGES CXX)
