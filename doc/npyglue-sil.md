@@ -216,9 +216,50 @@ For simplicity we make the following assumptions:
 
 To this end, let's write the following bare-bones `CMakeLists.txt`:
 
-<!-- note: seems like no CMake Markdown code block highlighting -->
+<!--
+    note:
 
-```bash
+    Doxygen only supports Markdown code block highlighting for the languages it
+    knows how to process. we therefore have some choices which are ranked from
+    hackiest/easiest to most work/best Doxygen integration.
+
+    1. highlight CMake as Python so comments are at least a different color.
+       this means that browsing the Markdown files will look weird, however.
+    2. use Pygments' pygmentize to generate a CSS stylesheet and inject HTML
+       to load the stylesheet and HTML fragment into a Markdown file. this is a
+       infile-pygmentized.md file generated from a infile.md file.
+
+       to generate the CSS stylesheet we use:
+
+          pygmentize -S one-dark -f html
+
+       to convert a CMake snippet from a file we use:
+
+          pygmentize -l cmake -f html -O nowrap -o outfile infile
+
+       we use nowrap option to not use a <div> and <pre> and instead use the
+       <pre class="fragment">, whose formatting is provided by Doxygen, to wrap
+       the HTML that we intend to embed into the Markdown file.
+
+       this produces Pygments highlighting whose style we can control with the
+       CSS stylesheet (differen -S option) that essentially looks like a
+       Doxygen code block but without links and with different highlighting.
+
+       we can have a filtering Python script that even uses Pygments API to
+       transform infile.md to infile-pygmentized.md via the HTML injection and
+       just need to add the CSS sheet to HTML_EXTRA_STYLESHEET. there will be a
+       CMake add_custom_command to invoke this transform step and hang it as
+       part of the overall build system. there can be a finalization target
+       that depends on all the outputs that the Doxygen target depends on.
+
+    3. write our own Doxygen filter to translate CMake into pseudo-C. this
+       seems like a decent amount of work and it is not clear if Doxygen will
+       even be able to apply the filter to fenced code blocks.
+-->
+
+<!-- pygmentize -->
+
+```cmake
 cmake_minimum_required(VERSION 3.20)
 
 project(xmath-python VERSION 0.1.0 LANGUAGES CXX)
@@ -229,7 +270,7 @@ find_package(Python3 3.8 REQUIRED COMPONENTS Development NumPy)
 find_package(SWIG 4.0 REQUIRED COMPONENTS python)
 include(UseSWIG)
 # find npyglue
-# TODO: not sure if SIL should be considered a separate compontn
+# TODO: not sure if SIL should be considered a separate component
 find_package(npyglue 0.1.0 REQUIRED)
 # add Python C++ extension module generated via SWIG
 set_property(SOURCE xmath_random.i PROPERTY CPLUSPLUS ON)
