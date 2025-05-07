@@ -433,6 +433,42 @@ else()
     message(STATUS "Doxygen version: None")
 endif()
 
+# find Pygments (for syntax highlighting languages Doxygen doesn't support)
+if(Python3_FOUND)
+    execute_process(
+        COMMAND pip show pygments
+        RESULT_VARIABLE _pygments_res
+        OUTPUT_VARIABLE _pygments_out
+        ERROR_QUIET
+        OUTPUT_STRIP_TRAILING_WHITESPACE
+    )
+    # zero exit code
+    if(NOT _pygments_res)
+        set(NPYGL_HAS_PYGMENTS TRUE)
+    endif()
+    unset(_pygments_res)
+endif()
+# if not defined, set to FALSE
+if(NOT DEFINED NPYGL_HAS_PYGMENTS)
+    set(NPYGL_HAS_PYGMENTS FALSE)
+endif()
+# if Pygments is available, get the version
+if(NPYGL_HAS_PYGMENTS)
+    # convert _pygments_out to list
+    string(REPLACE "\n" ";" NPYGL_PYGMENTS_VERSION "${_pygments_out}")
+    unset(_pygments_out)
+    # keep only the Version: element + remove to get version
+    list(FILTER NPYGL_PYGMENTS_VERSION INCLUDE REGEX "Version\:[ ]+[0-9]+.+")
+    string(
+        REGEX REPLACE "Version\:[ ]+" ""
+        NPYGL_PYGMENTS_VERSION "${NPYGL_PYGMENTS_VERSION}"
+    )
+    # print status
+    message(STATUS "Pygments version: ${NPYGL_PYGMENTS_VERSION}")
+else()
+    message(STATUS "Pygments version: None")
+endif()
+
 # compile flags. we do this after any FetchContent calls so that we don't
 # interfere with any compile flags that dependency targets require and we use
 # the COMPILE_LANGUAGE generator expression so we don't pass C++ flags to CUDA.
