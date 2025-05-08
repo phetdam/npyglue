@@ -231,7 +231,7 @@ To this end, let's write the following bare-bones `CMakeLists.txt`:
 
        to generate the CSS stylesheet we use:
 
-          pygmentize -S one-dark -f html
+          pygmentize -S one-dark -f html -O classprefix=pygments-
 
        to convert a CMake snippet from a file we use:
 
@@ -257,7 +257,7 @@ To this end, let's write the following bare-bones `CMakeLists.txt`:
        even be able to apply the filter to fenced code blocks.
 -->
 
-<!-- pygmentize -->
+<!-- pygmentize: on -->
 
 ```cmake
 cmake_minimum_required(VERSION 3.20)
@@ -285,5 +285,7 @@ swig_add_library(
 # ensure SWIG picks up npyglue .i include path
 npygl_swig_include(xmath_random TARGETS npyglue::SIL)
 ```
+
+<!-- pygmentize: off -->
 
 TBD
