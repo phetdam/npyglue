@@ -209,7 +209,7 @@ build than to attempt the reverse via [setuptools], for example.
 For simplicity we make the following assumptions:
 
 1. `xmath` is a separately installed library with `find_package` support,
-   exporting an `INTERFACE` target `xmath::xmath`.
+   exporting an `INTERFACE` target `xmath::xmath`
 2. We are using a
    [single-config](https://cmake.org/cmake/help/latest/manual/cmake-buildsystem.7.html#build-configurations)
    CMake generator, e.g. Make or Ninja
