@@ -245,9 +245,10 @@ To this end, let's write the following bare-bones `CMakeLists.txt`:
        CSS stylesheet (differen -S option) that essentially looks like a
        Doxygen code block but without links and with different highlighting.
 
-       we can have a filtering Python script that even uses Pygments API to
-       transform infile.md to infile-pygmentized.md via the HTML injection and
-       just need to add the CSS sheet to HTML_EXTRA_STYLESHEET. there will be a
+       we curently can accomplish this with the tools/pyginject.py script. it
+       must be run with the -w doxygen option for correct code block formatting
+       but still has some issues with escaping % for example. the generated CSS
+       stylesheet can then be added to HTML_EXTRA_STYLESHEET. there will be a
        CMake add_custom_command to invoke this transform step and hang it as
        part of the overall build system. there can be a finalization target
        that depends on all the outputs that the Doxygen target depends on.
