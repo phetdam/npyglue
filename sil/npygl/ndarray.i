@@ -20,6 +20,10 @@
 #include <npygl/python.hh>
 %}
 
+// TODO: fix ndarray_flat_view<T> semantics. we need const T only for the in
+// typemaps and to ensure that the inout typemaps require an existing writable
+// NumPy array instead of creating a possibly-lost copy of the input
+
 // forward declaration of the ndarray_flat_view template in the npygl namespace
 // so that SWIG can properly match typemaps against unqualified use of the type
 // name inside a namespace in processed C++ code without us needing to %include
