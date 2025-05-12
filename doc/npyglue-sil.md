@@ -270,6 +270,8 @@ find_package(Python3 3.8 REQUIRED COMPONENTS Development NumPy)
 # locate SWIG >= 4.0 with Python wrapping support + enable
 find_package(SWIG 4.0 REQUIRED COMPONENTS python)
 include(UseSWIG)
+# find xmath
+find_package(xmath REQUIRED)
 # find npyglue
 # TODO: not sure if SIL should be considered a separate component
 find_package(npyglue 0.1.0 REQUIRED)
@@ -284,7 +286,7 @@ swig_add_library(
     SOURCES xmath_random.i
 )
 # ensure SWIG picks up npyglue .i include path
-npygl_swig_include(xmath_random TARGETS npyglue::SIL)
+npygl_swig_include(xmath_random TARGETS npyglue::SIL xmath::xmath)
 ```
 
 <!-- pygmentize: off -->
