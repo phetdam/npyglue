@@ -86,6 +86,10 @@ NPYGL_APPLY_FLAT_VIEW_INOUT_TYPEMAPS(float)
 %feature("python:annotations", "c");
 #endif  // SWIG_VERSION >= 0X040200
 
+// use old-style default arguments wrapping to avoid generating an overload for
+// each default argument in a function (which interacts poorly with autodoc)
+%feature("compactdefaultargs");
+
 // note: %feature not tagging correctly when namespaces are involved. we just
 // globally apply the docstring each time and overwrite it with the next
 %feature(
