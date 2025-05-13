@@ -16,11 +16,12 @@
 #endif  // SWIGPYTHON
 
 %{
+#include <cstdint>
 #include <exception>
-#include <stdexcept>
 #include <limits>
 #include <optional>
 #include <sstream>
+#include <stdexcept>
 #include <string>
 #include <type_traits>
 
@@ -33,7 +34,7 @@ namespace npygl {
  *
  * This is conditionally enabled for integral values.
  *
- * @todo Unable to get SWIG to recognize the `std::optional<T>` typemaps.
+ * @todo This can be made more generic as a wrapper around a `T` conversion.
  *
  * @tparam T Integral type
  * @returns `true` on success, `false` on failure with Python exception set
@@ -99,45 +100,16 @@ bool get(std::optional<T>& out, PyObject* in) noexcept
 /**
  * Typemap macro for converting Python input into a `std::optional<T>`.
  *
- * @note Currently this is only supported for inetgral types.
+ * @note Currently this is only supported for integral types.
  *
  * @param type C/C++ type
  */
 %define NPYGL_OPTIONAL_IN_TYPEMAP(type)
-%typemap(in) std::optional<type> OPT_IN {
+%typemap(in) std::optional<type> {
   if (!npygl::get($1, $input))
     SWIG_fail;
 }
 %enddef  // NPYGL_OPTIONAL_IN_TYPEMAP(type)
-
-/**
- * Typemap application macro for applying a `std::optional<T>` input typemap.
- *
- * @param type C/C++ type
- * @param name Parameter name to apply typemap to
- */
-%define NPYGL_APPLY_OPTIONAL_IN_TYPEMAP(type, name)
-%apply std::optional<type> OPT_IN { std::optional<type> name };
-%enddef  // NPYGL_APPLY_OPTIONAL_IN_TYPEMAP(type, name)
-
-/**
- * Typemap cleaning macro for a single `std::optional<T>` typemap.
- *
- * @param type C/C++ type
- * @param name Parameter name to apply typemap to
- */
-%define NPYGL_CLEAR_OPTIONAL_TYPEMAP(type, name)
-%clear std::optional<type> name;
-%enddef  // NPYGL_CLEAR_OPTIONAL_TYPEMAP(type, name)
-
-/**
- * Typemap cleaning macro for `std::optional<T>` typemaps.
- *
- * @param type C/C++ type
- */
-%define NPYGL_CLEAR_OPTIONAL_TYPEMAPS(type)
-%clear std::optional<type>;
-%enddef  // NPYGL_CLEAR_OPTIONAL_TYPEMAPS(type)
 
 // supported std::optional<T> typemaps
 NPYGL_OPTIONAL_IN_TYPEMAP(short)
