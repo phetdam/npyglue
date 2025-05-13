@@ -86,9 +86,10 @@ NPYGL_APPLY_FLAT_VIEW_INOUT_TYPEMAPS(float)
 %feature("python:annotations", "c");
 #endif  // SWIG_VERSION >= 0X040200
 
-// use old-style default arguments wrapping to avoid generating an overload for
-// each default argument in a function (which interacts poorly with autodoc)
-%feature("compactdefaultargs");
+// note: may just -doxygen flag to create crude docstrings using Doxygen output
+// on the C++ comments since with default arguments, which create overloads,
+// SWIG is generating multiple docstrings for each function (one per overload).
+// neither compactdefaultargs helps with this but then we can't use kwargs.
 
 // note: %feature not tagging correctly when namespaces are involved. we just
 // globally apply the docstring each time and overwrite it with the next
