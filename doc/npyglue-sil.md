@@ -113,7 +113,7 @@ template <typename T, typename = std_float_t<T>>
 auto normal(std::size_t n, optional_seed_type seed = {})
 {
     // PRNG generator
-    std::mt19937 rng{seed ? *seed : std::random_device{}()};
+    std::mt19937 rng{seed.value_or(std::random_device{}())};
     // construct distribution and fill vector
     std::normal_distribution dist;
     std::vector<T> values(n);
