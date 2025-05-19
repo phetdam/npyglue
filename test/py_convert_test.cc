@@ -256,8 +256,8 @@ using test_cases = converter_test_list<
 
 int main()
 {
-  npygl::vts_stdout_context ctx;
   // initialize + execute tests
+  npygl::vts_stdout_context ctx;
   npygl::py_init();
   converter_test_runner<test_cases> runner;
   return (runner()) ? EXIT_SUCCESS : EXIT_FAILURE;
