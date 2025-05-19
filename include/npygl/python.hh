@@ -1894,6 +1894,122 @@ NPYGL_MSVC_WARNING_POP()
   npygl::make_method_def<flags>( \
     NPYGL_STRINGIFY(name), name, NPYGL_CONCAT(name, _doc))
 
+////////////////////////////////////////////////////////////////////////////////
+// Python -> C++ conversion                                                   //
+////////////////////////////////////////////////////////////////////////////////
+
+/**
+ * Functor to convert a `PyObject*` to a C++ object.
+ *
+ * Each `T` specialization must have at least the following member defined:
+ *
+ * @code{.cc}
+ * T operator()(PyObject* obj) noexcept
+ * @endcode
+ *
+ * This member function can be `const` as appropriate. On error, it should
+ * return a `T` in a valid but unspecified state and set a Python exception.
+ * Therefore, `PyErr_Occurred` should always be called after invocatio.
+ *
+ * @tparam T type
+ */
+template <typename T, typename = void>
+struct py_converter;
+
+/**
+ * Convert a Python object to the given target type.
+ *
+ * On error a Python exception is set and the returned C++ object will be in a
+ * valid but unspecified state, e.g. a value-initialized state. You should use
+ * `PyErr_Occurred` to determine if there was an error or not.
+ *
+ * @tparam T Target type
+ *
+ * @param obj Python object
+ */
+template <typename T>
+auto as(PyObject* obj) noexcept
+{
+  return py_converter<T>{}(obj);
+}
+
+/**
+ * Traits class to deterine if a `PyObject*` can be converted to a target type.
+ *
+ * @tparam T Target type
+ */
+template <typename T, typename = void>
+struct is_py_convertible : std::false_type {};
+
+/**
+ * True specialization that matches when `as<T>()` can be instantiated.
+ *
+ * @tparam T Target type
+ */
+template <typename T>
+struct is_py_convertible<
+  T,
+  std::void_t<decltype(as<T>(std::declval<PyObject*>()))> > : std::true_type {};
+
+/**
+ * Indicate if a `PyObject*` can be converted to the target type.
+ *
+ * @tparam T Target type
+ */
+template <typename T>
+constexpr bool is_py_convertible_v = is_py_convertible<T>::value;
+
+/**
+ * Specialization to convert floating-point values.
+ *
+ * Python floats are IEEE `double` and are silently truncated.
+ *
+ * @tparam T Floating type
+ */
+template <typename T>
+struct py_converter<T, std::enable_if_t<std::is_floating_point_v<T>> > {
+  /**
+   * Convert the Python object to a floating type.
+   *
+   * @param obj Python object to convert
+   */
+  T operator()(PyObject* obj) const noexcept
+  {
+    return static_cast<T>(PyFloat_AsDouble(obj));
+  }
+};
+
+/**
+ * Specialization to convert booleans.
+ *
+ * Conversion is relatively strict, e.g. the `PyObject*` must be `Py_True` or
+ * `Py_False` for the conversion to succeed.
+ */
+template <>
+struct py_converter<bool, void> {
+  /**
+   * Convert the Python object to a boolean value.
+   *
+   * If the object is not `True` or `False` a Python exception is set.
+   *
+   * @param obj Python object to convert
+   */
+  bool operator()(PyObject* obj) const noexcept
+  {
+    // if not bool, error
+    if (!PyBool_Check(obj)) {
+      PyErr_SetString(PyExc_TypeError, "Expected bool object");
+      return false;
+    }
+    // otherwise, check if True
+#if PY_VERSION_HEX >= NPYGL_PY_VERSION(3, 10, 0)
+    return !!Py_IsTrue(obj);
+#else
+    return obj == Py_True;
+#endif  // PY_VERSION_HEX < NPYGL_PY_VERSION(3, 10, 0)
+  }
+};
+
 }  // namespace npygl
 
 #endif  // NPYGL_PYTHON_HH_

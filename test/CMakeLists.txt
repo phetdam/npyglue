@@ -61,6 +61,17 @@ if(Python3_Development_FOUND)
     add_test(NAME py_format_test COMMAND py_format_test)
 endif()
 
+# py_convert_test: test as<> conversion specializations
+if(Python3_Development_FOUND)
+    npygl_add_py3_executable(
+        TARGET py_convert_test
+        SOURCES py_convert_test.cc
+        LIBRARIES npyglue
+        USE_RELEASE_CRT ${NPYGL_PYTHON_USE_RELEASE_CRT}
+    )
+    add_test(NAME py_convert_test COMMAND py_convert_test)
+endif()
+
 # npy_helpers_test: NumPy Python helpers tests
 if(Python3_Development_FOUND AND Python3_NumPy_FOUND)
     # libraries used by npy_helpers_test. we don't need Eigen3 and Armadillo so
