@@ -242,7 +242,7 @@ To this end, let's write the following bare-bones `CMakeLists.txt`:
        the HTML that we intend to embed into the Markdown file.
 
        this produces Pygments highlighting whose style we can control with the
-       CSS stylesheet (differen -S option) that essentially looks like a
+       CSS stylesheet (different -S option) that essentially looks like a
        Doxygen code block but without links and with different highlighting.
 
        we curently can accomplish this with the tools/pyginject.py script. it
@@ -281,8 +281,8 @@ swig_add_library(
     xmath_random
     LANGUAGE python
     # write xmath_random.py and the generated C++ source in the build directory
-    OUTPUT_DIR ${CMAKE_CURRENT_SOURCE_DIR}
-    OUTFILE_DIR ${CMAKE_CURRENT_SOURCE_DIR}
+    OUTPUT_DIR ${CMAKE_CURRENT_BINARY_DIR}
+    OUTFILE_DIR ${CMAKE_CURRENT_BINARY_DIR}
     SOURCES xmath_random.i
 )
 # ensure SWIG picks up npyglue .i include path
@@ -290,5 +290,18 @@ npygl_swig_include(xmath_random TARGETS npyglue::SIL xmath::xmath)
 ```
 
 <!-- pygmentize: off -->
+
+We might configure and build using the following command-line invocation:
+
+```shell
+cmake -S . -B build && cmake --build build -j
+```
+
+Note that the above invocation assumes that packages have been installed in the
+standard system paths. Otherwise,
+[``CMAKE_PREFIX_PATH``](https://cmake.org/cmake/help/latest/variable/CMAKE_PREFIX_PATH.html)
+or the other appropriate
+[``find_package``](https://cmake.org/cmake/help/latest/command/find_package.html)
+hint variables, e.g. ``npyglue_ROOT``, may need to be set.
 
 TBD
