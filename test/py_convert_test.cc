@@ -19,6 +19,8 @@
 
 namespace {
 
+// TODO: delete or move type_at and type_at_t as they are unused
+
 /**
  * Traits type for getting the `i`th input test case.
  *
