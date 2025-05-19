@@ -9,6 +9,7 @@
 #define NPYGL_CTTI_HH_
 
 #include <cstddef>
+#include <string_view>
 
 #include "npygl/features.h"
 
