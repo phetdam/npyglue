@@ -676,6 +676,9 @@ if(DOXYGEN_FOUND)
     set(DOXYGEN_QUIET YES)
     set(DOXYGEN_WARN_IF_UNDOCUMENTED NO)
     set(DOXYGEN_JAVADOC_AUTOBRIEF YES)
+    # for Doxygen >= 1.13.0 capatibility since defaults were changed to YES
+    set(DOXYGEN_DISABLE_INDEX NO)
+    set(DOXYGEN_GENERATE_TREEVIEW NO)
     # use NPYGL_VERSION instead of PROJECT_VERSION
     set(DOXYGEN_PROJECT_NUMBER ${NPYGL_VERSION})
     set(DOXYGEN_HTML_EXTRA_STYLESHEET doc/npyglue.css)
