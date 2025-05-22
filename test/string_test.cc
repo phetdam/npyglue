@@ -100,6 +100,12 @@ constexpr constexpr_strlen_test strlen_tests[] = {
   {"despair not till your last breath / make your death count", 57u}
 };
 
+// dirty check for fixed_string ==
+// TODO: replace with constexpr test cases later
+static_assert(npygl::fixed_string{"abc"} == npygl::fixed_string{"abc"});
+static_assert(npygl::fixed_string{"12345"} != npygl::fixed_string{"abc"});
+static_assert(npygl::fixed_string{"def"} != npygl::fixed_string{"abc"});
+
 }  // namespace
 
 int main()
