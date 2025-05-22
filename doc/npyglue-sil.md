@@ -201,7 +201,7 @@ This `.i` file essentially does the following few things:
 Now let's prepare to build our SWIG-generated Python extension module. There
 are a few ways to do this, but we will use [CMake], as from experience it is
 easier to integrate Python extension module building into an existing CMake C++
-build than to attempt the reverse via [setuptools], for example.
+build configuration than to attempt the reverse via [setuptools], for example.
 
 [CMake]: https://cmake.org/cmake/help/latest/
 [setuptools]: https://setuptools.pypa.io/en/latest/
