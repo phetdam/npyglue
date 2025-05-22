@@ -110,6 +110,9 @@ static_assert(npygl::fixed_string{"def"} != npygl::fixed_string{"abc"});
 
 int main()
 {
+  // note: on Windows Terminal virtual terminal sequences are already enabled.
+  // this is still necessary for the old Windows CMD shell however
+  npygl::vts_stdout_context ctx;
   // number of failed tests
   std::size_t n_failed = 0u;
   // report strlen tests + update failed
