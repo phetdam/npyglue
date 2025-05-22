@@ -36,9 +36,10 @@ constexpr auto strlen(const char* str) noexcept
  * Class template for a fixed-length string.
  *
  * This is used to represent a copyable string literal, modeling a character
- * array of fixed size that is the only member of the class. The array member
- * includes a null terminator to enable compatibility with C functions that
- * expect string literals or other null-terminated character buffers.
+ * array of fixed size that is the only member of the class. For compatibility
+ * with C functions that expect null-terminated strings, the array member
+ * includes a null terminator and an implicit conversion to
+ * `const char (&)[N + 1]` with decay to `const char*` exists.
  *
  * @tparam N String length excluding null terminator
  */
