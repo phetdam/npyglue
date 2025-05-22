@@ -678,12 +678,12 @@ if(DOXYGEN_FOUND)
         ${PROJECT_NAME}_doc
         SOURCES ${NPYGL_INCLUDE_DIR} doc/npyglue-sil.md
         COMMENT "Generating ${PROJECT_NAME} HTML documentation"
+        VERBOSE
         # Doxygen configuration
         HTML_EXTRA_STYLESHEET doc/npyglue.css
         PREDEFINED __cplusplus
         # Doxygen layout file used to customize HTML page layout
         LAYOUT_FILE doc/layout.xml
-        VERBOSE
     )
 else()
     message(STATUS "Skipping ${PROJECT_NAME} documentation generation")
