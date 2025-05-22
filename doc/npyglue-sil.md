@@ -293,9 +293,13 @@ npygl_swig_include(xmath_random TARGETS npyglue::SIL xmath::xmath)
 
 We might configure and build using the following command-line invocation:
 
+<!-- pygmentize: on -->
+
 ```shell
 cmake -S . -B build && cmake --build build -j
 ```
+
+<!-- pygmentize: off -->
 
 Note that the above invocation assumes that packages have been installed in the
 standard system paths. Otherwise,
