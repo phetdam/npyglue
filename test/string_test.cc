@@ -12,6 +12,8 @@
 #include "npygl/string.hh"
 #include "npygl/termcolor.hh"
 
+// TODO: add fixed_string tests
+
 namespace {
 
 /**
@@ -104,7 +106,7 @@ int main()
 {
   // number of failed tests
   std::size_t n_failed = 0u;
-  // evaluate strlen tests
+  // report strlen tests + update failed
   for (const auto& test : strlen_tests)
     n_failed += !test();
   return (n_failed) ? EXIT_FAILURE : EXIT_SUCCESS;
