@@ -17,6 +17,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 # set CMake module path and import CMake helpers
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
 
+include(npygl_doxygen_add_docs)
 include(npygl_get_build_info)
 include(npygl_llvm_library_target)
 include(npygl_swig_include)
@@ -671,32 +672,18 @@ endif()
 
 # add Doxygen documentation target
 if(DOXYGEN_FOUND)
-    # set configuration options
-    # TODO: set these using a CMake macro instead
-    set(DOXYGEN_QUIET YES)
-    set(DOXYGEN_WARN_IF_UNDOCUMENTED NO)
-    set(DOXYGEN_JAVADOC_AUTOBRIEF YES)
-    # for Doxygen >= 1.13.0 capatibility since defaults were changed to YES
-    set(DOXYGEN_DISABLE_INDEX NO)
-    set(DOXYGEN_GENERATE_TREEVIEW NO)
-    # use NPYGL_VERSION instead of PROJECT_VERSION
-    set(DOXYGEN_PROJECT_NUMBER ${NPYGL_VERSION})
-    set(DOXYGEN_HTML_EXTRA_STYLESHEET doc/npyglue.css)
-    set(DOXYGEN_HTML_DYNAMIC_SECTIONS YES)
-    set(DOXYGEN_STRIP_FROM_INC_PATH ${CMAKE_CURRENT_SOURCE_DIR}/include)
-    set(DOXYGEN_PREDEFINED __cplusplus)
-    # Doxygen layout file used to customize HTML page layout
-    set(DOXYGEN_LAYOUT_FILE doc/layout.xml)
     # TODO: rewrite README.rst as Markdown for use with Doxygen
-    # add Doxygen target
-    doxygen_add_docs(
+    # add Doxygen target with presets
+    npygl_doxygen_add_docs(
         ${PROJECT_NAME}_doc
-        # headers
-        ${NPYGL_INCLUDE_DIR}
-        # docs
-        doc/npyglue-sil.md
-        # TODO: can we automatically document SWIG macros? or document by hand
+        SOURCES ${NPYGL_INCLUDE_DIR} doc/npyglue-sil.md
         COMMENT "Generating ${PROJECT_NAME} HTML documentation"
+        # Doxygen configuration
+        HTML_EXTRA_STYLESHEET doc/npyglue.css
+        PREDEFINED __cplusplus
+        # Doxygen layout file used to customize HTML page layout
+        LAYOUT_FILE doc/layout.xml
+        VERBOSE
     )
 else()
     message(STATUS "Skipping ${PROJECT_NAME} documentation generation")
