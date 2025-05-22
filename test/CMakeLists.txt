@@ -292,6 +292,11 @@ if(SWIG_FOUND AND Python3_Development_FOUND AND Python3_NumPy_FOUND)
     )
 endif()
 
+# string_test: C++ string helpers test
+add_executable(string_test string_test.cc)
+target_link_libraries(string_test PRIVATE npyglue)
+add_test(NAME string_test COMMAND string_test)
+
 # type_traits_test: C++ type traits tests
 add_executable(type_traits_test type_traits_test.cc)
 target_link_libraries(type_traits_test PRIVATE npyglue)
