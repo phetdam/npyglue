@@ -56,8 +56,6 @@ public:
    *
    * This enables construction from multiple string literals.
    *
-   * @todo Allow construction from `const char*` and `std::string_view`.
-   *
    * @tparam Ns Null-terminated character array sizes
    *
    * @param strs String literals to construct from
