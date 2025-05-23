@@ -684,11 +684,17 @@ if(DOXYGEN_FOUND AND NPYGL_HAS_PYGMENTS)
         WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
         COMMENT "Generating ${pygments_stylesheet}"
     )
+    # rules to run pyginject on Markdown sources
+    npygl_pygmentize(
+        TARGET npyglue_pyginject
+        OUTPUTS_LIST pyginject_outputs
+        SOURCES doc/npyglue-sil.md
+    )
     # TODO: rewrite README.rst as Markdown for use with Doxygen
     # add Doxygen target with presets
     npygl_doxygen_add_docs(
         ${PROJECT_NAME}_doc
-        SOURCES ${NPYGL_INCLUDE_DIR} doc/npyglue-sil.md
+        SOURCES ${NPYGL_INCLUDE_DIR} ${pyginject_outputs}
         COMMENT "Generating ${PROJECT_NAME} HTML documentation"
         VERBOSE
         # Doxygen configuration
@@ -697,8 +703,9 @@ if(DOXYGEN_FOUND AND NPYGL_HAS_PYGMENTS)
         # Doxygen layout file used to customize HTML page layout
         LAYOUT_FILE doc/layout.xml
     )
-    # Doxygen target depends on Pygments stylesheet generation
-    add_dependencies(${PROJECT_NAME}_doc npyglue_pygstylegen)
+    # Doxygen target depends on Pygments stylesheet generation + pyginject
+    # processing of any listed Markdown files
+    add_dependencies(${PROJECT_NAME}_doc npyglue_pygstylegen npyglue_pyginject)
 else()
     message(STATUS "Skipping ${PROJECT_NAME} documentation generation")
 endif()

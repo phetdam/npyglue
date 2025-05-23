@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.15)
+cmake_minimum_required(VERSION 3.20)
 
 ##
 # npygl_doxygen_add_docs.cmake
@@ -107,4 +107,90 @@ function(npygl_doxygen_add_docs target)
     endif()
     # add Doxygen target
     doxygen_add_docs(${target} ${DOXYGEN_SOURCES} COMMENT ${DOXYGEN_COMMENT})
+endfunction()
+
+
+##
+# Run pyginject on the specified Markdown files for Pygments code highlighting.
+#
+# Doxygen will not provide its default syntax highlighting for Markdown code
+# blocks for languages that it does not understand, so we use the pyginject.py
+# Python script to replace Markdown triple-backtick code blocks that are
+# surrounded with the following tags with Pygments formatted HTML. E.g.
+#
+# <!-- pygmentize: on -->
+#
+# ... code blocks ...
+#
+# <!-- pygmentize: off -->
+#
+# Each Markdown input file input.md will be converted to input-pygmentized.md
+# that contains the formatted HTML (if any) and the resulting file names are
+# saved in a list variable for easy integration with npygl_doxygen_add_docs.
+#
+# Arguments:
+#
+#   TARGET target               Name of top-level target driving execution
+#   OUTPUTS_LIST out_list       List of the generated file names
+#   SOURCES input...            List of Markdown input files to process
+#
+function(npygl_pygmentize)
+    cmake_parse_arguments(ARG "" "TARGET;OUTPUTS_LIST" "SOURCES" ${ARGN})
+    # must be nonempty
+    if(NOT ARG_TARGET)
+        message(FATAL_ERROR "TARGET is required")
+    endif()
+    if(NOT ARG_OUTPUTS_LIST)
+        message(FATAL_ERROR "OUTPUTS_LIST is required")
+    endif()
+    if(NOT ARG_SOURCES)
+        message(FATAL_ERROR "SOURCES requires at least one input file")
+    endif()
+    # .md extension is required
+    foreach(_source ${ARG_SOURCES})
+        string(LENGTH "${_source}" name_len)
+        # name must be at least 4 characters (.md is 3 characters)
+        if(name_len LESS 4)
+            message(STATUS "SOURCES input ${_source} file name is invalid")
+        endif()
+        # substring to get the .md extension
+        math(EXPR ext_index "${name_len} - 3")
+        string(SUBSTRING "${_source}" ${ext_index} -1 _source_ext)
+        # if not Markdown, error
+        if(NOT _source_ext STREQUAL ".md")
+            message(FATAL_ERROR "SOURCES input ${_source} is not a Markdown file")
+        endif()
+    endforeach()
+    # top-level custom target + output list
+    add_custom_target(
+        ${ARG_TARGET}
+        COMMENT "Running pyginject on Markdown files"
+    )
+    set(${ARG_OUTPUTS_LIST} "")
+    # add custom command targets for each file
+    foreach(_source ${ARG_SOURCES})
+        # create valid target name by replacing special chars with _ + prefix
+        string(REPLACE "/" "_" _source_target "${_source}")
+        string(REPLACE "\\" "_" _source_target "${_source_target}")
+        string(REPLACE "\." "_" _source_target "${_source_target}")
+        string(REPLACE "-" "_" _source_target "${_source_target}")
+        string(PREPEND _source_target "npyglue_")
+        # create output name from source (need absolute path for BYPRODUCTS)
+        string(REGEX REPLACE "\.md$" "-pygmentized\.md" _output "${_source}")
+        cmake_path(ABSOLUTE_PATH _output OUTPUT_VARIABLE _output_path )
+        # add target for the file
+        add_custom_target(
+            ${_source_target}
+            COMMAND python
+                    tools/pyginject.py -i ${_source} -o ${_output} -w doxygen
+            BYPRODUCTS ${_output_path}
+            WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
+            COMMENT "Generating ${_output}"
+        )
+        # hang dependency on main target + update output list
+        add_dependencies(${ARG_TARGET} ${_source_target})
+        list(APPEND ${ARG_OUTPUTS_LIST} ${_output})
+    endforeach()
+    # propagate output list to parent scope
+    set(${ARG_OUTPUTS_LIST} ${${ARG_OUTPUTS_LIST}} PARENT_SCOPE)
 endfunction()

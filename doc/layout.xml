@@ -13,7 +13,7 @@
     <!-- TODO: maybe set title to "" to use default "Main Page" again -->
     <tab type="mainpage" visible="yes" title="Home"/>
     <!-- custom navigation tabs begin -->
-    <tab type="user" url="@ref doc/npyglue-sil.md" title="SWIG Library" />
+    <tab type="user" url="@ref doc/npyglue-sil-pygmentized.md" title="SWIG Library" />
     <!-- custom navigation tabs end -->
     <tab type="pages" visible="yes" title="" intro=""/>
     <tab type="topics" visible="yes" title="" intro=""/>
