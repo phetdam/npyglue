@@ -2003,7 +2003,7 @@ struct py_converter<bool, void> {
     if (!PyBool_Check(obj)) {
       PyErr_SetString(
         PyExc_TypeError,
-        fixed_string{NPYGL_PRETTY_FUNCTION_NAME, "Expected bool object"}
+        fixed_string{NPYGL_PRETTY_FUNCTION_NAME, ": expected bool object"}
       );
       return false;
     }
