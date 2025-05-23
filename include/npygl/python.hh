@@ -28,6 +28,7 @@
 
 #include "npygl/common.h"
 #include "npygl/features.h"
+#include "npygl/string.hh"
 #include "npygl/warnings.h"
 
 namespace npygl {
@@ -554,11 +555,13 @@ public:
     // check if capsule and if following the protocol (matches name). we also
     // set a Python exception so an invalid view corresponds to a Python error
     if (!PyCapsule_IsValid(obj, cc_capsule_name)) {
-      // note: could throw an exception in very rare conditions
-      std::stringstream ss;
-      ss << NPYGL_PRETTY_FUNCTION_NAME <<
-        ": attempted to create a capsule view from an incompatible object";
-      PyErr_SetString(PyExc_TypeError, ss.str().c_str());
+      PyErr_SetString(
+        PyExc_TypeError,
+        fixed_string{
+          NPYGL_PRETTY_FUNCTION_NAME,
+          ": attempted to create a capsule view from an incompatible object"
+        }
+      );
       return;
     }
     // capsule is valid, so populate
@@ -1016,10 +1019,10 @@ NPYGL_MSVC_WARNING_POP()
     // placement buffer
     auto buf = std::malloc(sizeof(T));
     if (!buf) {
-      // note: could throw an exception in very rare conditions
-      std::stringstream ss;
-      ss << NPYGL_PRETTY_FUNCTION_NAME << ": cannot allocate buffer";
-      PyErr_SetString(PyExc_RuntimeError, ss.str().c_str());
+      PyErr_SetString(
+        PyExc_RuntimeError,
+        fixed_string{NPYGL_PRETTY_FUNCTION_NAME, ": cannot allocate buffer"}
+      );
       return {};
     }
     // place object via copy/move into buffer + create capsule
@@ -1998,7 +2001,10 @@ struct py_converter<bool, void> {
   {
     // if not bool, error
     if (!PyBool_Check(obj)) {
-      PyErr_SetString(PyExc_TypeError, "Expected bool object");
+      PyErr_SetString(
+        PyExc_TypeError,
+        fixed_string{NPYGL_PRETTY_FUNCTION_NAME, "Expected bool object"}
+      );
       return false;
     }
     // otherwise, check if True
