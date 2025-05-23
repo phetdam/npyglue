@@ -671,7 +671,19 @@ else()
 endif()
 
 # add Doxygen documentation target
-if(DOXYGEN_FOUND)
+if(DOXYGEN_FOUND AND NPYGL_HAS_PYGMENTS)
+    # Pygments stylesheet for selected code block highlighting
+    set(pygments_stylesheet doc/pygments-style.css)
+    # target for generating the Pygments CSS stylesheet. we don't use
+    # add_custom_command because if someone updates their Pygments version and
+    # then rebuilds, the CSS stylesheet won't be regenerated
+    add_custom_target(
+        npygl_pygstylegen
+        COMMAND python tools/pygstylegen.py -o ${pygments_stylesheet}
+        BYPRODUCTS ${CMAKE_CURRENT_SOURCE_DIR}/${pygments_stylesheet}
+        WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+        COMMENT "Generating ${pygments_stylesheet}"
+    )
     # TODO: rewrite README.rst as Markdown for use with Doxygen
     # add Doxygen target with presets
     npygl_doxygen_add_docs(
@@ -680,11 +692,13 @@ if(DOXYGEN_FOUND)
         COMMENT "Generating ${PROJECT_NAME} HTML documentation"
         VERBOSE
         # Doxygen configuration
-        HTML_EXTRA_STYLESHEET doc/npyglue.css
+        HTML_EXTRA_STYLESHEET doc/npyglue.css ${pygments_stylesheet}
         PREDEFINED __cplusplus
         # Doxygen layout file used to customize HTML page layout
         LAYOUT_FILE doc/layout.xml
     )
+    # Doxygen target depends on Pygments stylesheet generation
+    add_dependencies(${PROJECT_NAME}_doc npygl_pygstylegen)
 else()
     message(STATUS "Skipping ${PROJECT_NAME} documentation generation")
 endif()
