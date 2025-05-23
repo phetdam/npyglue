@@ -38,7 +38,7 @@ namespace npygl {
 ///////////////////////////////////////////////////////////////////////////////
 
 /**
- * Create a Python hex version number from the given components.
+ * Create a full Python hex version number from the given components.
  *
  * @param major Python major version, e.g. the 3 in 3.4.1a2
  * @param minor Python minor version, e.g. the 4 in 3.4.1a2
@@ -47,7 +47,7 @@ namespace npygl {
  *  expands to `0xF`. This is the a in 3.4.1a2. Can be `0xB`, `0xC`, `0xF`.
  * @param serial Python release serial, e.g. the 2 in 3.4.1a2
  */
-#define NPYGL_PY_VERSION_EX(major, minor, micro, level, serial) \
+#define NPYGL_PY_VERSION_HEX_FULL(major, minor, micro, level, serial) \
   (((major) << 24) | ((minor) << 16) | ((micro) << 8) | (level << 4) | (serial))
 
 /**
@@ -59,8 +59,8 @@ namespace npygl {
  * @param minor Python minor version, e.g. the 4 in 3.4.1
  * @param micro Python micro version, e.g. the 1 in 3.4.1
  */
-#define NPYGL_PY_VERSION(major, minor, micro) \
-  NPYGL_PY_VERSION_EX(major, minor, micro, PY_RELEASE_LEVEL_FINAL, 0)
+#define NPYGL_PY_VERSION_HEX(major, minor, micro) \
+  NPYGL_PY_VERSION_HEX_FULL(major, minor, micro, PY_RELEASE_LEVEL_FINAL, 0)
 
 ///////////////////////////////////////////////////////////////////////////////
 // Python argument parsing                                                   //
@@ -1507,16 +1507,16 @@ inline auto py_call(PyObject* callable, PyObject* args) noexcept
 inline auto py_call(PyObject* callable) noexcept
 {
   return py_object{
-#if PY_VERSION_HEX >= NPYGL_PY_VERSION(3, 9, 0)
+#if PY_VERSION_HEX >= NPYGL_PY_VERSION_HEX(3, 9, 0)
     PyObject_CallNoArgs(callable)
 #else
     PyObject_CallObject(callable, nullptr);
-#endif  // !PY_VERSION_HEX < NPYGL_PY_VERSION(3, 9, 0)
+#endif  // !PY_VERSION_HEX < NPYGL_PY_VERSION_HEX(3, 9, 0)
   };
 }
 
 // TODO: use Py_BuildValue("(O)", arg) with PyObject_CallObject for < 3.9.0
-#if PY_VERSION_HEX >= NPYGL_PY_VERSION(3, 9, 0)
+#if PY_VERSION_HEX >= NPYGL_PY_VERSION_HEX(3, 9, 0)
 /**
  * Call the Python object with only a single argument.
  *
@@ -1529,7 +1529,7 @@ inline auto py_call_one(PyObject* callable, PyObject* arg) noexcept
 {
   return py_object{PyObject_CallOneArg(callable, arg)};
 }
-#endif  // PY_VERSION_HEX < NPYGL_PY_VERSION(3, 9, 0)
+#endif  // PY_VERSION_HEX < NPYGL_PY_VERSION_HEX(3, 9, 0)
 
 ///////////////////////////////////////////////////////////////////////////////
 // Python Unicode object helpers                                             //
@@ -2008,11 +2008,11 @@ struct py_converter<bool, void> {
       return false;
     }
     // otherwise, check if True
-#if PY_VERSION_HEX >= NPYGL_PY_VERSION(3, 10, 0)
+#if PY_VERSION_HEX >= NPYGL_PY_VERSION_HEX(3, 10, 0)
     return !!Py_IsTrue(obj);
 #else
     return obj == Py_True;
-#endif  // PY_VERSION_HEX < NPYGL_PY_VERSION(3, 10, 0)
+#endif  // PY_VERSION_HEX < NPYGL_PY_VERSION_HEX(3, 10, 0)
   }
 };
 
