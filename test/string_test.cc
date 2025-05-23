@@ -280,8 +280,7 @@ auto report_failed(
   const std::tuple<constexpr_fixed_string_test<Ops, N1s, N2s>...>& tests)
 {
   static_assert(sizeof...(Is) == sizeof...(Ops));
-  std::size_t n_failed = ([&tests] { return !std::get<Is>(tests)(); }() + ...);
-  return n_failed;
+  return ([&tests]() -> std::size_t { return !std::get<Is>(tests)(); }() + ...);
 }
 
 /**
