@@ -678,7 +678,7 @@ if(DOXYGEN_FOUND AND NPYGL_HAS_PYGMENTS)
     # add_custom_command because if someone updates their Pygments version and
     # then rebuilds, the CSS stylesheet won't be regenerated
     add_custom_target(
-        npygl_pygstylegen
+        npyglue_pygstylegen
         COMMAND python tools/pygstylegen.py -o ${pygments_stylesheet}
         BYPRODUCTS ${CMAKE_CURRENT_SOURCE_DIR}/${pygments_stylesheet}
         WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
@@ -698,7 +698,7 @@ if(DOXYGEN_FOUND AND NPYGL_HAS_PYGMENTS)
         LAYOUT_FILE doc/layout.xml
     )
     # Doxygen target depends on Pygments stylesheet generation
-    add_dependencies(${PROJECT_NAME}_doc npygl_pygstylegen)
+    add_dependencies(${PROJECT_NAME}_doc npyglue_pygstylegen)
 else()
     message(STATUS "Skipping ${PROJECT_NAME} documentation generation")
 endif()
