@@ -285,8 +285,9 @@ swig_add_library(
     OUTFILE_DIR ${CMAKE_CURRENT_BINARY_DIR}
     SOURCES xmath_random.i
 )
-# ensure SWIG picks up npyglue .i include path
-npygl_swig_include(xmath_random TARGETS npyglue::SIL xmath::xmath)
+# ensure SWIG picks up npyglue .i include path + link against xmath
+npygl_swig_include(xmath_random TARGETS npyglue::SIL)
+target_link_libraries(xmath_random PRIVATE xmath::xmath)
 ```
 
 <!-- pygmentize: off -->
