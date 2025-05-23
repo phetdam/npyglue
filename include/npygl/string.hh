@@ -137,6 +137,51 @@ private:
 template <std::size_t... Ns>
 fixed_string(const char (&...strs)[Ns]) -> fixed_string<((Ns - 1) + ...)>;
 
+/**
+ * Compare two `fixed_string<N>` for equality.
+ *
+ * @note This can be implemented with a `strcmp`-like binary function template.
+ *
+ * @tparam N1 First length
+ * @tparam N2 Second length
+ *
+ * @param s1 First fixed string
+ * @param s2 Second fixed string
+ */
+template <std::size_t N1, std::size_t N2>
+constexpr bool
+operator==(const fixed_string<N1>& s1, const fixed_string<N2>& s2) noexcept
+{
+  // if sizes differ, short-circuit
+  if constexpr (N1 != N2)
+    return false;
+  // otherwise check
+  else {
+    for (decltype(N1) i = 0u; i < N1; i++)
+      if (s1[i] != s2[i])
+        return false;
+    return true;
+  }
+}
+
+/**
+ * Compare two `fixed_string<N>` for inequality.
+ *
+ * @note This can be implemented with a `strcmp`-like binary function template.
+ *
+ * @tparam N1 First length
+ * @tparam N2 Second length
+ *
+ * @param s1 First fixed string
+ * @param s2 Second fixed string
+ */
+template <std::size_t N1, std::size_t N2>
+constexpr bool
+operator!=(const fixed_string<N1>& s1, const fixed_string<N2>& s2) noexcept
+{
+  return !(s1 == s2);
+}
+
 }  // namespace npygl
 
 #endif  // NPYGL_STRING_HH_
