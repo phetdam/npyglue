@@ -13,3 +13,6 @@
 **/__pycache__
 # ignore CTest testing directory
 /Testing
+# ignore generated Pygments CSS + pygmentized Markdown files
+/doc/pygments-style.css
+/doc/*-pygmentized.md
