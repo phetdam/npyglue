@@ -160,18 +160,33 @@ def main(args: Optional[Iterable[str]] = None) -> int:
     # parse arguments
     argn = parse_args(args=args)
 
+    # stdin wrapper for with statement to prevent if rom being closed
+    class Stdin:
+        def __enter__(self):
+            return sys.stdin
+
+        def __exit__(self, exc_type, exc_value, traceback):
+            pass
+
+    # stdout wrapper for with statement to prevent it from being closed
+    class Stdout:
+        def __enter__(self):
+            return sys.stdout
+
+        def __exit__(self, exc_type, exc_value, traceback):
+            pass
+
     # set input + output files
     # note: in 3.10 we can use parentheses to group the statements. to support
-    # < 3.10 we use lambdas to shoften the conditional open()
+    # < 3.10 we use lambdas to shorten the conditional open()
     def get_input():
-        return open(argn.input_file) if argn.input_file else sys.stdin
+        return open(argn.input_file) if argn.input_file else Stdin()
 
     def get_output():
-        return open(argn.output_file, "w") if argn.output_file else sys.stdout
+        return open(argn.output_file, "w") if argn.output_file else Stdout()
 
     # HTML wrapping type
     html_wrap = HtmlWrapping(argn.wrap_html)
-
     # open files
     with get_input() as fin, get_output() as fout:
         # whether or not to pygmentize the next fenced code block seen
