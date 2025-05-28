@@ -402,6 +402,27 @@ using type_traits_test_driver = traits_checker_driver<
       std::pair<int, std::false_type>,
       const std::byte
     >
+  >,
+  // is_type_tuple
+  traits_checker<
+    is_type_tuple,
+    std::tuple<
+      std::pair<int, std::false_type>,
+      type_tuple<int, char, bool>,
+      type_tuple<void**, std::pair<double, int>, std::tuple<int, char, char*>>,
+      std::pair<double, std::false_type>,
+      std::pair<type_tuple<int, int>, std::true_type>,
+      type_tuple<>
+    >
+  >,
+  // type_tuple_size
+  traits_checker<
+    type_tuple_size,
+    std::tuple<
+      std::pair<type_tuple<int, char>, traits_value_is_equal<unsigned, 2>>,
+      std::pair<type_tuple<int, char**, int>, traits_value_is_equal<unsigned, 3>>,
+      std::pair<type_tuple<void*, void, void*>, traits_value_is_greater<unsigned, 2>>
+    >
   >
 >;
 
