@@ -20,6 +20,14 @@
 #include "npygl/termcolor.hh"
 #include "npygl/type_traits.hh"
 
+// TODO:
+//
+// replace use of std::pair and std::tuple with type_tuple (probably want some
+// pair-like version of type_tuple too). this allows us to test with incomplete
+// types without the constraint of not being able to instantiate std::tuple
+// when one of the types is incomplete (storage size is not known)
+//
+
 namespace npygl {
 namespace testing {
 
