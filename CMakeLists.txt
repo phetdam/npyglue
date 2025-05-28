@@ -693,7 +693,7 @@ if(DOXYGEN_FOUND AND NPYGL_HAS_PYGMENTS)
     # TODO: rewrite README.rst as Markdown for use with Doxygen
     # add Doxygen target with presets
     npygl_doxygen_add_docs(
-        ${PROJECT_NAME}_doc
+        ${PROJECT_NAME}_docs
         SOURCES ${NPYGL_INCLUDE_DIR} ${pyginject_outputs}
         COMMENT "Generating ${PROJECT_NAME} HTML documentation"
         VERBOSE
@@ -705,7 +705,7 @@ if(DOXYGEN_FOUND AND NPYGL_HAS_PYGMENTS)
     )
     # Doxygen target depends on Pygments stylesheet generation + pyginject
     # processing of any listed Markdown files
-    add_dependencies(${PROJECT_NAME}_doc npyglue_pygstylegen npyglue_pyginject)
+    add_dependencies(${PROJECT_NAME}_docs npyglue_pygstylegen npyglue_pyginject)
 else()
     message(STATUS "Skipping ${PROJECT_NAME} documentation generation")
 endif()
