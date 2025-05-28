@@ -14,8 +14,6 @@
 #include "npygl/string.hh"
 #include "npygl/termcolor.hh"
 
-// TODO: add fixed_string tests
-
 namespace {
 
 /**
