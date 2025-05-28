@@ -168,7 +168,25 @@ class constexpr_fixed_string_test {
     static constexpr auto str = "!=";
   };
 
-  // TODO: add more specializations as necessary
+  template <typename T>
+  struct op_traits<std::less<T>> {
+    static constexpr auto str = "<";
+  };
+
+  template <typename T>
+  struct op_traits<std::greater<T>> {
+    static constexpr auto str = ">";
+  };
+
+  template <typename T>
+  struct op_traits<std::less_equal<T>> {
+    static constexpr auto str = "<=";
+  };
+
+  template <typename T>
+  struct op_traits<std::greater_equal<T>> {
+    static constexpr auto str = ">=";
+  };
 
 public:
   /**
@@ -304,7 +322,11 @@ constexpr auto fixed_string_tests = std::make_tuple(
   make_test(std::equal_to<>{}, "abc", "abc"),
   make_test(std::equal_to<>{}, "abc", npygl::fixed_string{"a", "b", "c"}),
   make_test(std::not_equal_to<>{}, "abc", "def"),
-  make_test(std::equal_to<>{}, "hello", npygl::fixed_string{"he", "l", "lo"})
+  make_test(std::equal_to<>{}, "hello", npygl::fixed_string{"he", "l", "lo"}),
+  make_test(std::less{}, "ABC", "abc"),
+  make_test(std::less_equal{}, "abc", npygl::fixed_string{"ab", "c"}),
+  make_test(std::greater{}, npygl::fixed_string{"a", "b", "c"}, "ABC"),
+  make_test(std::greater_equal{}, npygl::fixed_string{"D", "e", "f"}, "DEf")
 );
 
 }  // namespace
