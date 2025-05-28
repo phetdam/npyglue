@@ -98,7 +98,7 @@ public:
   }
 
   /**
-   * Implicit convert to a const reference to a character array.
+   * Implicitly convert to a const reference to a character array.
    *
    * This can be further implicitly converted to `const char*`.
    */
@@ -140,8 +140,6 @@ fixed_string(const char (&...strs)[Ns]) -> fixed_string<((Ns - 1) + ...)>;
 /**
  * Compare two `fixed_string<N>` for equality.
  *
- * @note This can be implemented with a `strcmp`-like binary function template.
- *
  * @tparam N1 First length
  * @tparam N2 Second length
  *
@@ -149,8 +147,8 @@ fixed_string(const char (&...strs)[Ns]) -> fixed_string<((Ns - 1) + ...)>;
  * @param s2 Second fixed string
  */
 template <std::size_t N1, std::size_t N2>
-constexpr bool
-operator==(const fixed_string<N1>& s1, const fixed_string<N2>& s2) noexcept
+constexpr
+bool operator==(const fixed_string<N1>& s1, const fixed_string<N2>& s2) noexcept
 {
   // if sizes differ, short-circuit
   if constexpr (N1 != N2)
@@ -167,7 +165,21 @@ operator==(const fixed_string<N1>& s1, const fixed_string<N2>& s2) noexcept
 /**
  * Compare two `fixed_string<N>` for inequality.
  *
- * @note This can be implemented with a `strcmp`-like binary function template.
+ * @tparam N1 First length
+ * @tparam N2 Second length
+ *
+ * @param s1 First fixed string
+ * @param s2 Second fixed string
+ */
+template <std::size_t N1, std::size_t N2>
+constexpr
+bool operator!=(const fixed_string<N1>& s1, const fixed_string<N2>& s2) noexcept
+{
+  return !(s1 == s2);
+}
+
+/**
+ * Check if one `fixed_string<N>` is ordered before the other.
  *
  * @tparam N1 First length
  * @tparam N2 Second length
@@ -176,10 +188,68 @@ operator==(const fixed_string<N1>& s1, const fixed_string<N2>& s2) noexcept
  * @param s2 Second fixed string
  */
 template <std::size_t N1, std::size_t N2>
-constexpr bool
-operator!=(const fixed_string<N1>& s1, const fixed_string<N2>& s2) noexcept
+constexpr
+bool operator<(const fixed_string<N1>& s1, const fixed_string<N2>& s2) noexcept
 {
-  return !(s1 == s2);
+  constexpr auto len = (N1 < N2) ? N1 : N2;
+  // compare shared length
+  for (decltype(N1) i = 0u; i < len; i++)
+    if (s1[i] < s2[i])
+      return true;
+  return false;
+}
+
+/**
+ * Check if one `fixed_string<N>` is ordered after the other.
+ *
+ * @tparam N1 First length
+ * @tparam N2 Second length
+ *
+ * @param s1 First fixed string
+ * @param s2 Second fixed string
+ */
+template <std::size_t N1, std::size_t N2>
+constexpr
+bool operator>(const fixed_string<N1>& s1, const fixed_string<N2>& s2) noexcept
+{
+  constexpr auto len = (N1 < N2) ? N1 : N2;
+  // compare shared length
+  for (decltype(N1) i = 0u; i < len; i++)
+    if (s1[i] > s2[i])
+      return true;
+  return false;
+}
+
+/**
+ * Check if one `fixed_string<N>` is ordered before or is equal to the other.
+ *
+ * @tparam N1 First length
+ * @tparam N2 Second length
+ *
+ * @param s1 First fixed string
+ * @param s2 Second fixed string
+ */
+template <std::size_t N1, std::size_t N2>
+constexpr
+bool operator<=(const fixed_string<N1>& s1, const fixed_string<N2>& s2) noexcept
+{
+  return (s1 == s2) || (s1 < s2);
+}
+
+/**
+ * Check if one `fixed_string<N>` is ordered after or is equal to the other.
+ *
+ * @tparam N1 First length
+ * @tparam N2 Second length
+ *
+ * @param s1 First fixed string
+ * @param s2 Second fixed string
+ */
+template <std::size_t N1, std::size_t N2>
+constexpr
+bool operator>=(const fixed_string<N1>& s1, const fixed_string<N2>& s2) noexcept
+{
+  return (s1 == s2) || (s1 > s2);
 }
 
 }  // namespace npygl
