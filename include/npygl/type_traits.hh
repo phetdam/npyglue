@@ -653,6 +653,128 @@ struct is_accessible_as<
 template <typename U, typename T>
 constexpr bool is_accessible_as_v = is_accessible_as<U, T>::value;
 
+/**
+ * Wrap a pack of types into a single type.
+ *
+ * This is useful in template metaprogramming to consolidate a pack of types
+ * and perform some introspection of their properties while avoiding the
+ * pitfalls of using `std::tuple<Ts...>` with incomplete types.
+ *
+ * @tparam Ts types
+ */
+template <typename... Ts>
+struct type_tuple {};
+
+/**
+ * Traits type to determine if a type is a `type_tuple<Ts...>` specialization.
+ *
+ * @tparam T type
+ */
+template <typename T>
+struct is_type_tuple : std::false_type {};
+
+/**
+ * True specialization for a `type_tuple<Ts...>`.
+ *
+ * @tparam Ts types
+ */
+template <typename... Ts>
+struct is_type_tuple<type_tuple<Ts...>> : std::true_type {};
+
+/**
+ * Indicate that a type is a `type_tuple<Ts...>` specialization.
+ *
+ * @tparam T type
+ */
+template <typename T>
+constexpr bool is_type_tuple_v = is_type_tuple<T>::value;
+
+/**
+ * Traits type to get the number of types in a `type_tuple<Ts...>`.
+ *
+ * @tparam T type
+ */
+template <typename T>
+struct type_tuple_size {};
+
+/**
+ * Partial specialization for the `type_tuple<Ts...>`.
+ *
+ * @tparam Ts types
+ */
+template <typename... Ts>
+struct type_tuple_size<type_tuple<Ts...>> {
+  static constexpr auto value = sizeof...(Ts);
+};
+
+/**
+ * Get the number of types in a `type_tuple<Ts...>`.
+ *
+ * If `T` is not a `type_tuple<Ts...>` substitution failure occurs.
+ *
+ * @tparam T type
+ */
+template <typename T>
+constexpr auto type_tuple_size_v = type_tuple_size<T>::value;
+
+/**
+ * Traits type to get the `I`th type in a `type_tuple<Ts...>`.
+ *
+ * @tparam I Type index
+ * @tparam T `type_tuple<Ts...>`
+ */
+template <std::size_t I, typename T>
+struct type_tuple_element {};
+
+namespace detail {
+
+/**
+ * Traits to provide the `I`th type in the type pack.
+ *
+ * If `I` is `sizeof...(Ts)` or larger substitution failure occurs.
+ *
+ * @tparam I Type index
+ * @tparam T First type
+ * @tparam Ts Other types
+ */
+template <std::size_t I, typename T, typename... Ts>
+struct type_tuple_element : type_tuple_element<I - 1u, Ts...> {};
+
+/**
+ * Partial specialization for when the first type is requested.
+ *
+ * @tparam T First type
+ * @tparam Ts Other types
+ */
+template <typename T, typename... Ts>
+struct type_tuple_element<0u, T, Ts...> {
+  using type = T;
+};
+
+}  // namespace detail
+
+/**
+ * Partial specialzation to get the `I`th type of a `type_tuple<Ts...>`.
+ *
+ * @tparam I Type index
+ * @tparam Ts types
+ */
+template <std::size_t I, typename... Ts>
+struct type_tuple_element<I, type_tuple<Ts...>>
+  : detail::type_tuple_element<I, Ts...> {};
+
+/**
+ * Get the `I`th type in a `type_tuple<Ts...>`.
+ *
+ * If `T` is not a `type_tuple<Ts...>` or the `Ts...` type pack is empty
+ * substitution failure will occur.
+ *
+ * @tparam I Type index < `sizeof...(Ts)`
+ * @tparam T `type_tuple<Ts...>`
+ */
+template <std::size_t I, typename T>
+using type_tuple_element_t = typename type_tuple_element<I, T>::type;
+
 }  // namespace npygl
 
 #endif  // NPYGL_TYPE_TRAITS_HH_
