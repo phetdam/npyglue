@@ -302,6 +302,12 @@ add_executable(type_traits_test type_traits_test.cc)
 target_link_libraries(type_traits_test PRIVATE npyglue)
 add_test(NAME type_traits_test COMMAND type_traits_test)
 
+# traits_checker_filter_test: traits_checker test filtering experiments
+add_executable(traits_checker_filter_test traits_checker_filter_test.cc)
+target_link_libraries(traits_checker_filter_test PRIVATE npyglue)
+# TODO: add tests matching each test case available
+add_test(NAME traits_checker_filter_test COMMAND traits_checker_filter_test)
+
 # ostream_test: C++ ostream extensions test
 add_executable(ostream_test ostream_test.cc)
 target_link_libraries(ostream_test PRIVATE npyglue)
