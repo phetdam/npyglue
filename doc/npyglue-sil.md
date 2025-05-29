@@ -112,14 +112,14 @@ using optional_seed_type = std::optional<std::uint_fast32_t>;
 template <typename T, typename = std_float_t<T>>
 auto normal(std::size_t n, optional_seed_type seed = {})
 {
-    // PRNG generator
-    std::mt19937 rng{seed.value_or(std::random_device{}())};
-    // construct distribution and fill vector
-    std::normal_distribution dist;
-    std::vector<T> values(n);
-    for (decltype(n) i = 0; i < n; i++)
-        values[i] = dist(rng);
-    return values;
+  // PRNG generator
+  std::mt19937 rng{seed.value_or(std::random_device{}())};
+  // construct distribution and fill vector
+  std::normal_distribution dist;
+  std::vector<T> values(n);
+  for (decltype(n) i = 0; i < n; i++)
+    values[i] = dist(rng);
+  return values;
 }
 
 }  // namespace xmath
