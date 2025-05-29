@@ -322,5 +322,5 @@ int main(int argc, char** argv)
   // note: no-op on POSIX systems and unnecessary in Windows Terminal
   npygl::vts_stdout_context ctx;
   // run with command-line options
-  return driver(argc, argv);
+  return driver(argc, argv) ? EXIT_SUCCESS : EXIT_FAILURE;
 }
