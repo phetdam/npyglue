@@ -16,8 +16,9 @@
 #include <type_traits>
 #include <typeinfo>
 
-#include "npygl/termcolor.hh"
+#include "npygl/ctti.hh"
 #include "npygl/demangle.hh"
+#include "npygl/termcolor.hh"
 #include "npygl/testing/traits_checker.hh"
 #include "npygl/testing/type_traits_test_driver.hh"
 #include "npygl/type_traits.hh"
@@ -26,9 +27,11 @@ namespace {
 
 // base test driver type. this will be subclassed to implement the experimental
 // selective test filtering/execution features
-// TODO: use type_traits_test_driver later for soak testing
-// constexpr npygl::testing::type_traits_test_driver driver;
-using driver_type = npygl::testing::traits_checker_driver<
+// note: using type_traits_test_driver later for soak testing
+using driver_type = npygl::testing::type_traits_test_driver;
+// less involved traits_checker_driver specialization for testing
+#if 0
+npygl::testing::traits_checker_driver<
   npygl::testing::traits_checker<
     npygl::has_static_size,
     std::tuple<
@@ -45,6 +48,7 @@ using driver_type = npygl::testing::traits_checker_driver<
     >
   >
 >;
+#endif  // 0
 
 /**
  * Concrete test driver derived type for experimenting with test filtering.
@@ -114,6 +118,7 @@ struct traits_checker_runtime_mapper<
   {
     test_mapping map;
     // note: duplicate input types (which really should not occur) ignored
+    // TODO: consider omitting skipped tests. these can still be selected/run
     (
       [&map]
       {
@@ -195,6 +200,7 @@ struct traits_checker_driver_runtime_mapper<
  *
  * @param print_usage Print the driver help
  * @param list_tests List all the test cases to be run
+ * @param test_name Test name to run
  * @param test_pattern Test pattern to evaluate (run in alphabetical order)
  * @param print_driver_type Print the `traits_checker_driver<Ts...>` type
  */
@@ -202,6 +208,7 @@ struct traits_checker_options {
   // TODO: use action enum instead of so many boolean flags
   bool print_usage = false;
   bool list_tests = false;
+  std::string test_name;
   std::string test_pattern;
   bool print_driver_type = false;
 };
@@ -227,11 +234,22 @@ bool parse_args(traits_checker_options& opts, int argc, char** argv)
     // -l, --list-tests
     else if (arg == "-l" || arg == "--list-tests")
       opts.list_tests = true;
-    // -t, --test-pattern
-    else if (arg == "-t" || arg == "--test-pattern") {
+    // -t, --test-name
+    else if (arg == "-t" || arg == "--test-name") {
       // no argument
       if (++i == argc) {
-        std::cerr << "Error: No argument provided for -t, --test-pattern" <<
+        std::cerr << "Error: No argument provided for -t, --test-name" <<
+          std::endl;
+        return false;
+      }
+      // use test name
+      opts.test_name = argv[i];
+    }
+    // -T, --test-pattern
+    else if (arg == "-T" || arg == "--test-pattern") {
+      // no argument
+      if (++i == argc) {
+        std::cerr << "Error: No argument provided for -T, --test-pattern" <<
           std::endl;
         return false;
       }
@@ -249,9 +267,15 @@ bool parse_args(traits_checker_options& opts, int argc, char** argv)
     }
   }
   // flags are nutually exclusive
-  if (opts.list_tests + opts.print_driver_type + !opts.test_pattern.empty() > 1) {
+  // TODO: enable listing test names based on test pattern
+  if (
+    opts.list_tests +
+    opts.print_driver_type +
+    !opts.test_name.empty() +
+    !opts.test_pattern.empty() > 1
+  ) {
     std::cerr << "Error: Only one of  -l, --list-tests, --print-driver-type, "
-      " -t, --test-pattern may be specified" << std::endl;
+      "-t, --test-name, -T, --test-pattern may be specified" << std::endl;
     return false;
   }
   // done
@@ -270,8 +294,10 @@ filter_test_driver::operator()(int argc, char** argv) const
   // TODO: stub for now
   if (opts.print_usage) {
     std::cout <<
-      "Usage: <progname> [-h] [-l | -t TEST_PATTERN | --print-driver-type]" <<
-      std::endl;
+      "Usage: <progname> [-h] [-l |\n"
+      "                        -t TEST_NAME |\n"
+      "                        -T TEST_PATTERN |\n"
+      "                        --print-driver-type]" << std::endl;
     return true;
   }
   // test mapper type alias
@@ -287,10 +313,23 @@ filter_test_driver::operator()(int argc, char** argv) const
     return true;
   }
   // print driver type
-  // TODO: use type_name<T>() instead? abi::__cxa_demangle fails on long types
+  // note: using type_name<T>() since abi::__cxa_demangle fails on long types
   if (opts.print_driver_type) {
-    std::cout << npygl::type_name(typeid(driver_type)) << std::endl;
+    std::cout << npygl::type_name<driver_type>() << std::endl;
     return true;
+  }
+  // run test name
+  if (opts.test_name.size()) {
+    // attempt to locate test
+    auto test_map = test_mapper();
+    // not found
+    if (test_map.find(opts.test_name) == test_map.end()) {
+      std::cerr << "Error: No test with name \"" << opts.test_name <<
+        "\" found" << std::endl;
+      return false;
+    }
+    // otherwise, run single test
+    return !test_map[opts.test_name]();
   }
   // run test patterns
   if (opts.test_pattern.size()) {
@@ -301,6 +340,7 @@ filter_test_driver::operator()(int argc, char** argv) const
     for (const auto& [name, test] : test_mapper())
       if (std::regex_search(name, pattern))
         tests.push_back(test);
+    // TODO: should we error if nothing is matched?
     // execute selected tests
     auto n_failed = 0u;
     for (const auto& test : tests)
