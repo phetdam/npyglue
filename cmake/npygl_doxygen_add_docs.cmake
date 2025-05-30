@@ -41,6 +41,7 @@ endfunction()
 #   STRIP_FROM_INC_PATH     default: ${NPYGL_INCLUDE_DIR}
 #   PREDEFINED
 #   LAYOUT_FILE
+#   USE_MDFILE_AS_MAINPAGE
 #
 # Arguments:
 #   target                      Name for the Doxygen documentation target
@@ -63,6 +64,7 @@ function(npygl_doxygen_add_docs target)
         PROJECT_NUMBER
         HTML_DYNAMIC_SECTIONS
         LAYOUT_FILE
+        USE_MDFILE_AS_MAINPAGE
         # non-Doxygen options
         COMMENT
     )
@@ -108,7 +110,6 @@ function(npygl_doxygen_add_docs target)
     # add Doxygen target
     doxygen_add_docs(${target} ${DOXYGEN_SOURCES} COMMENT ${DOXYGEN_COMMENT})
 endfunction()
-
 
 ##
 # Run pyginject on the specified Markdown files for Pygments code highlighting.
@@ -177,7 +178,7 @@ function(npygl_pygmentize)
         string(PREPEND _source_target "npyglue_")
         # create output name from source (need absolute path for BYPRODUCTS)
         string(REGEX REPLACE "\.md$" "-pygmentized\.md" _output "${_source}")
-        cmake_path(ABSOLUTE_PATH _output OUTPUT_VARIABLE _output_path )
+        cmake_path(ABSOLUTE_PATH _output OUTPUT_VARIABLE _output_path)
         # add target for the file
         add_custom_target(
             ${_source_target}
