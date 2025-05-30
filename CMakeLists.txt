@@ -699,7 +699,9 @@ if(DOXYGEN_FOUND AND NPYGL_HAS_PYGMENTS)
         VERBOSE
         # Doxygen configuration
         HTML_EXTRA_STYLESHEET doc/npyglue.css ${pygments_stylesheet}
-        PREDEFINED __cplusplus
+        # TODO: consider CMake function to convert CMAKE_CXX_STANDARD value
+        # into the corresponding __cplusplus value
+        PREDEFINED __cplusplus=201703L NPYGL_CPLUSPLUS=201703L
         # Doxygen layout file used to customize HTML page layout
         LAYOUT_FILE doc/layout.xml
     )
