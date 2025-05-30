@@ -28,6 +28,7 @@ namespace {
 // base test driver type. this will be subclassed to implement the experimental
 // selective test filtering/execution features
 // note: using type_traits_test_driver later for soak testing
+// FIXME: somehow one test is not listed from type_traits_test_driver
 using driver_type = npygl::testing::type_traits_test_driver;
 // less involved traits_checker_driver specialization for testing
 #if 0
@@ -274,8 +275,11 @@ bool parse_args(traits_checker_options& opts, int argc, char** argv)
     !opts.test_name.empty() +
     !opts.test_pattern.empty() > 1
   ) {
-    std::cerr << "Error: Only one of  -l, --list-tests, --print-driver-type, "
-      "-t, --test-name, -T, --test-pattern may be specified" << std::endl;
+    std::cerr << "Error: Only one of the following may be specified:\n"
+      "  -l, --list-tests\n"
+      "  -t, --test-name\n"
+      "  -T, --test-pattern\n"
+      "      --print-driver-type" << std::endl;
     return false;
   }
   // done
