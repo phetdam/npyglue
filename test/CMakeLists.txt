@@ -307,6 +307,58 @@ add_executable(traits_checker_filter_test traits_checker_filter_test.cc)
 target_link_libraries(traits_checker_filter_test PRIVATE npyglue)
 # TODO: add tests matching each test case available
 add_test(NAME traits_checker_filter_test COMMAND traits_checker_filter_test)
+# tests for -h, --help
+add_test(
+    NAME traits_checker_filter_test_h
+    COMMAND traits_checker_filter_test -h
+)
+add_test(
+    NAME traits_checker_filter_test_help
+    COMMAND traits_checker_filter_test --help
+)
+set_tests_properties(
+    traits_checker_filter_test_h
+    traits_checker_filter_test_help PROPERTIES
+    PASS_REGULAR_EXPRESSION "Usage: \\<progname\\> \\[-h\\]"
+)
+# tests for -v, --version
+add_test(
+    NAME traits_checker_filter_test_v
+    COMMAND traits_checker_filter_test -v
+)
+add_test(
+    NAME traits_checker_filter_test_version
+    COMMAND traits_checker_filter_test --version
+)
+set_tests_properties(
+    traits_checker_filter_test_v
+    traits_checker_filter_test_version PROPERTIES
+    PASS_REGULAR_EXPRESSION "${NPYGL_VERSION}"
+)
+# tests for -l, --list-tests
+add_test(
+    NAME traits_checker_filter_test_l
+    COMMAND traits_checker_filter_test -l
+)
+add_test(
+    NAME traits_checker_filter_test_list_tests
+    COMMAND traits_checker_filter_test --list-tests
+)
+# note: can't test for -t, --test-name as demangling varies across platforms
+# tests for -T, --test-pattern
+add_test(
+    NAME traits_checker_filter_test_T_static_size
+    COMMAND traits_checker_filter_test -T static_size
+)
+add_test(
+    NAME traits_checker_filter_test_test_pattern_static_size
+    COMMAND traits_checker_filter_test --test-pattern static_size
+)
+# test for --print-driver-type
+add_test(
+    NAME traits_checker_filter_test_print_driver_type
+    COMMAND traits_checker_filter_test --print-driver-type
+)
 
 # ostream_test: C++ ostream extensions test
 add_executable(ostream_test ostream_test.cc)
