@@ -169,6 +169,105 @@ struct traits_checker_case_formatter<std::pair<T, std::bool_constant<B>> > {
  * This class knows at compile-time the number of failed and total tests.
  *
  * @tparam Traits Traits template type with a boolean `value` member
+ * @tparam T Input type
+ */
+template <template <typename> typename Traits, typename T>
+struct traits_checker;
+
+namespace detail {
+
+/**
+ * Traits type to obtain the traits checker case type from the traits checker.
+ *
+ * This deduces the unary `Traits<T>` and input type `T`.
+ *
+ * @tparam T Traits checker type
+ */
+template <typename T>
+struct traits_checker_to_case {};
+
+/**
+ * Partial specialization for a standard `traits_checker<Traits, T>`.
+ *
+ * @tparam Traits Traits template type with a boolean `value` member
+ * @tparam T Input type
+ */
+template <template <typename> typename Traits, typename T>
+struct traits_checker_to_case<traits_checker<Traits, T>> {
+  using type = traits_checker_case_t<Traits, T>;
+};
+
+/**
+ * Get the `traits_checker_case<Traits, T>` from a `traits_checker<Traits, T>`.
+ *
+ * @tparam T `traits_checerk<Traits, T>` specialization
+ */
+template <typename T>
+using traits_checker_to_case_t = typename traits_checker_to_case<T>::type;
+
+/**
+ * Run a `traits_checker<Traits, T>` to check the traits and report results.
+ *
+ * This is used to implement the `operator()` shared amongst the different
+ * `traits_checker<Traits, T>` single-input partial specializations. Each
+ * specialization must implement the following:
+ *
+ * @code{.cc}
+ * // number of tests (always 1)
+ * static constexpr std::size_t n_tests() noexcept;
+ * // number of failed tests, either 0 or 1
+ * static constexpr std::size_t n_failed() noexcept;
+ * // number of skipped tests, either 0 or 1
+ * static constexpr std::size_t n_skipped() noexcept;
+ * @endcode
+ *
+ * The following relationship between the functions must also be true:
+ *
+ * @code{.cc}
+ * n_tests() >= n_failed() + n_skipped()
+ * @endcode
+ *
+ * @tparam T `traits_checker<Traits, T>` specialization
+ *
+ * @param out Stream to write messages to
+ * @return `true` on success, `false` on failure
+ */
+template <typename T>
+bool run(const T*, std::ostream& out = std::cout)
+{
+  // validate implementation
+  static_assert(
+    T::n_tests() == 1u,
+    "traits_checker_base is for single-input traits_checker specializations"
+  );
+  static_assert(
+    T::n_tests() >= T::n_failed() + T::n_skipped(),
+    "expected n_test() >= n_failed() + n_skipped() does not hold"
+  );
+  // determine test status
+  constexpr auto res = []
+  {
+    if constexpr (T::n_failed())
+      return traits_checker_case_status::fail;
+    else if constexpr (T::n_skipped())
+      return traits_checker_case_status::skip;
+    else
+      return traits_checker_case_status::pass;
+  }();
+  // print banner and case
+  out << traits_checker_banner<res>{} << ' ' <<
+    traits_checker_case_formatter<traits_checker_to_case_t<T>>{} << std::endl;
+  return !T::n_failed();
+}
+
+}  // namespace detail
+
+/**
+ * Traits type checker main definition for a single input type.
+ *
+ * This class knows at compile-time the number of failed and total tests.
+ *
+ * @tparam Traits Traits template type with a boolean `value` member
  * @tparam T type
  */
 template <template <typename> typename Traits, typename T>
@@ -221,13 +320,7 @@ struct traits_checker {
    */
   bool operator()(std::ostream& out = std::cout) const
   {
-    // pass/fail result
-    constexpr auto res = static_cast<traits_checker_case_status>(!n_failed());
-    // print banner and case
-    out << traits_checker_banner<res>{} << ' ' <<
-      traits_checker_case_formatter<traits_checker_case_t<Traits, T>>{} <<
-      std::endl;
-    return !n_failed();
+    return detail::run(this, out);
   }
 };
 
@@ -299,21 +392,12 @@ public:
   /**
    * Check the type against the traits and indicate if test succeeded.
    *
-   * @todo Duplicates `operator()` of the `traits_checker<Traits, T>`. We
-   *  should have a common CRTP base for these two specializations.
-   *
    * @param out Stream to write messages to
    * @return `true` on success, `false` on failure
    */
   bool operator()(std::ostream& out = std::cout) const
   {
-    using case_type = traits_checker_case_t<Traits, input_type>;
-    // get pass/fail result
-    constexpr auto res = static_cast<traits_checker_case_status>(!n_failed());
-    // format test case and return
-    out << traits_checker_banner<res>{} << ' ' <<
-      traits_checker_case_formatter<case_type>{} << std::endl;
-    return !n_failed();
+    return detail::run(this, out);
   }
 };
 
@@ -647,13 +731,7 @@ public:
    */
   bool operator()(std::ostream& out = std::cout) const
   {
-    using case_type = traits_checker_case_t<Traits, input_type>;
-    // get pass/fail result
-    constexpr auto res = static_cast<traits_checker_case_status>(!n_failed());
-    // format test case and return
-    out << traits_checker_banner<res>{} << ' ' <<
-      traits_checker_case_formatter<case_type>{} << std::endl;
-    return !n_failed();
+    return detail::run(this, out);
   }
 };
 
@@ -703,6 +781,8 @@ using remove_skipped_t = typename remove_skipped<T>::type;
  * This yields the `T` from a `std::pair<T, std::bool_constant<B>>` or a
  * `std::pair<T, traits_value_comparison<C, V>>` and the correct unwrapped
  * input type from a `skipped<T>` specialization.
+ *
+ * @todo Consider removing this as we do not use it anywhere.
  *
  * @tparam T Input type
  */
@@ -756,13 +836,6 @@ struct traits_checker_input_unwrapper<skipped<T>>
  */
 template <template <typename> typename Traits, typename T>
 struct traits_checker<Traits, skipped<T>> {
-private:
-  // unwrapped traits input type and expected truth value
-  // TODO: unused members so candidates for removal
-  using input_type = typename traits_checker_input_unwrapper<T>::type;
-  static constexpr bool truth = traits_checker_input_unwrapper<T>::truth;
-
-public:
   /**
    * Provides the tuple of failing input cases (empty).
    */
