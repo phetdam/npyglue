@@ -23,6 +23,7 @@
 #include "npygl/termcolor.hh"
 #include "npygl/testing/traits_checker.hh"
 #include "npygl/type_traits.hh"
+#include "npygl/version.h"
 
 namespace {
 
@@ -206,21 +207,34 @@ struct traits_checker_driver_runtime_mapper<
 ////////////////////////////////////////////////////////////////////////////////
 
 /**
+ * Enum indicating the action the `filter_test_driver::operator()` should take.
+ */
+enum class traits_checker_run_action {
+  /** print the driver help */
+  print_usage,
+  /** print version info */
+  print_version,
+  /** list the registered test cases */
+  list_tests,
+  /** run a verbatim single test name */
+  run_test,
+  /** run tests matching the given regex pattern */
+  run_test_pattern,
+  /** run all the tests (default) */
+  run_all_tests,
+  /** print the driver type name (can be very long) */
+  print_driver_type
+};
+
+/**
  * Command-line options accepted by the `traits_checker_driver<Ts...>`.
  *
- * @param print_usage Print the driver help
- * @param list_tests List all the test cases to be run
- * @param test_name Test name to run
- * @param test_pattern Test pattern to evaluate (run in alphabetical order)
- * @param print_driver_type Print the `traits_checker_driver<Ts...>` type
+ * @param action Action to take; runs all tests by default
+ * @param test_pattern Test name or pattern to run depending on the action
  */
 struct traits_checker_options {
-  // TODO: use action enum instead of so many boolean flags
-  bool print_usage = false;
-  bool list_tests = false;
-  std::string test_name;
+  traits_checker_run_action action = traits_checker_run_action::run_all_tests;
   std::string test_pattern;
-  bool print_driver_type = false;
 };
 
 /**
@@ -236,14 +250,17 @@ bool parse_args(traits_checker_options& opts, int argc, char** argv)
   for (int i = 1; i < argc; i++) {
     // use string_view for convenience
     std::string_view arg{argv[i]};
-    // -h, --help. short circuit if printing help
+    // -h, --help. override + short circuit if printing help
     if (arg == "-h" || arg == "--help") {
-      opts.print_usage = true;
+      opts.action = traits_checker_run_action::print_usage;
       return true;
     }
+    // -v, --version
+    else if (arg == "-v" || arg == "--version")
+      opts.action = traits_checker_run_action::print_version;
     // -l, --list-tests
     else if (arg == "-l" || arg == "--list-tests")
-      opts.list_tests = true;
+      opts.action = traits_checker_run_action::list_tests;
     // -t, --test-name
     else if (arg == "-t" || arg == "--test-name") {
       // no argument
@@ -253,7 +270,8 @@ bool parse_args(traits_checker_options& opts, int argc, char** argv)
         return false;
       }
       // use test name
-      opts.test_name = argv[i];
+      opts.action = traits_checker_run_action::run_test;
+      opts.test_pattern = argv[i];
     }
     // -T, --test-pattern
     else if (arg == "-T" || arg == "--test-pattern") {
@@ -264,32 +282,18 @@ bool parse_args(traits_checker_options& opts, int argc, char** argv)
         return false;
       }
       // use test pattern
+      opts.action = traits_checker_run_action::run_test_pattern;
       opts.test_pattern = argv[i];
     }
     // --print-driver-type
     else if (arg == "--print-driver-type")
-      opts.print_driver_type = true;
+      opts.action = traits_checker_run_action::print_driver_type;
     // unknown option
     else {
       std::cerr << "Error: Unknown option \"" << arg <<
         "\". Try -h, --help for usage" << std::endl;
       return false;
     }
-  }
-  // flags are nutually exclusive
-  // TODO: enable listing test names based on test pattern
-  if (
-    opts.list_tests +
-    opts.print_driver_type +
-    !opts.test_name.empty() +
-    !opts.test_pattern.empty() > 1
-  ) {
-    std::cerr << "Error: Only one of the following may be specified:\n"
-      "  -l, --list-tests\n"
-      "  -t, --test-name\n"
-      "  -T, --test-pattern\n"
-      "      --print-driver-type" << std::endl;
-    return false;
   }
   // done
   return true;
@@ -303,66 +307,100 @@ filter_test_driver::operator()(int argc, char** argv) const
   traits_checker_options opts;
   if (!parse_args(opts, argc, argv))
     return false;
-  // print usage
-  // TODO: stub for now
-  if (opts.print_usage) {
-    std::cout <<
-      "Usage: <progname> [-h] [-l |\n"
-      "                        -t TEST_NAME |\n"
-      "                        -T TEST_PATTERN |\n"
-      "                        --print-driver-type]" << std::endl;
-    return true;
-  }
   // test mapper type alias
   // note: cheap to create as it had no data members
   // TODO: allow subclasses of the traits_checker_driver<Ts...>?
   traits_checker_driver_runtime_mapper<driver_type> test_mapper;
-  // list tests
-  if (opts.list_tests) {
-    for (const auto& [name, _] : test_mapper())
-      std::cout << name << '\n';
-    // flush and return
-    std::cout << std::flush;
-    return true;
-  }
-  // print driver type
-  // note: using type_name<T>() since abi::__cxa_demangle fails on long types
-  if (opts.print_driver_type) {
-    std::cout << npygl::type_name<driver_type>() << std::endl;
-    return true;
-  }
-  // run test name
-  if (opts.test_name.size()) {
-    // attempt to locate test
-    auto test_map = test_mapper();
-    // not found
-    if (test_map.find(opts.test_name) == test_map.end()) {
-      std::cerr << "Error: No test with name \"" << opts.test_name <<
-        "\" found" << std::endl;
-      return false;
+  // switch off action
+  // note: all cases are bracketed to code folding in editors
+  switch (opts.action) {
+    // print usage
+    case traits_checker_run_action::print_usage: {
+      // TODO: stub for now
+      std::cout <<
+"Usage: <progname> [-h] [-v |\n"
+"                        -l |\n"
+"                        -t TEST_NAME |\n"
+"                        -T TEST_PATTERN |\n"
+"                        --print-driver-type]\n"
+"\n"
+"Run the type traits checker tests and/or filter by test cases.\n"
+"\n"
+"If multiple options are specified the last option is considered. -h, --help\n"
+"will override all other options presented.\n"
+"\n"
+"Options:\n"
+"  -h, --help             Print this usage\n"
+"  -v, --version          Print npyglue version information\n"
+"  -l, --list-tests       List all traits checker test names\n"
+"\n"
+"  -t TEST_NAME, --test-name TEST_NAME\n"
+"                         Run the specified traits checker test\n"
+"\n"
+"  -T TEST_PATTERN, --test-pattern TEST_PATTERN\n"
+"                         Run all traits checker tests matching the given regex\n"
+"                         pattern. Special characters may need to be escaped.\n"
+"\n"
+"  --print-driver-type    Print the traits_checker_driver<Ts...> demangled type\n"
+"                         Be warned that the type name may be very long.\n";
+      std::cout << std::flush;
+      return true;
     }
-    // otherwise, run single test
-    return test_map[opts.test_name]();
+    // print version info
+    case traits_checker_run_action::print_version: {
+      std::cout << "npyglue traits checker " NPYGL_VERSION <<
+        std::endl;
+      return true;
+    }
+    // list all tests
+    case traits_checker_run_action::list_tests: {
+      // print test names
+      for (const auto& [name, _] : test_mapper())
+        std::cout << name << '\n';
+      // flush and return
+      std::cout << std::flush;
+      return true;
+    }
+    // print driver type
+    // note: using type_name<T>() since abi::__cxa_demangle fails on long types
+    case traits_checker_run_action::print_driver_type: {
+      std::cout << npygl::type_name<driver_type>() << std::endl;
+      return true;
+    }
+    // run single test
+    case traits_checker_run_action::run_test: {
+      // attempt to locate test
+      auto test_map = test_mapper();
+      // not found
+      if (test_map.find(opts.test_pattern) == test_map.end()) {
+        std::cerr << "Error: No test with name " << opts.test_pattern <<
+          " found" << std::endl;
+        return false;
+      }
+      // otherwise, run single test
+      return test_map[opts.test_pattern]();
+    }
+    // run tests matching regex pattern
+    case traits_checker_run_action::run_test_pattern: {
+      // regex pattern for search
+      std::regex pattern{opts.test_pattern};
+      // popluate vector of tests to run
+      std::vector<typename test_mapping::mapped_type> tests;
+      for (const auto& [name, test] : test_mapper())
+        if (std::regex_search(name, pattern))
+          tests.push_back(test);
+      // TODO: should we error if nothing is matched?
+      // execute selected tests
+      auto n_failed = 0u;
+      for (const auto& test : tests)
+        n_failed += !test();
+      // done
+      return !n_failed;
+    }
+    // default (run_all_tests) is to run all the tests
+    default:
+      return operator()();
   }
-  // run test patterns
-  if (opts.test_pattern.size()) {
-    // regex pattern for search
-    std::regex pattern{opts.test_pattern};
-    // popluate vector of tests to run
-    std::vector<typename test_mapping::mapped_type> tests;
-    for (const auto& [name, test] : test_mapper())
-      if (std::regex_search(name, pattern))
-        tests.push_back(test);
-    // TODO: should we error if nothing is matched?
-    // execute selected tests
-    auto n_failed = 0u;
-    for (const auto& test : tests)
-      n_failed += !test();
-    // done
-    return !n_failed;
-  }
-  // no special options so run all test cases
-  return operator()();
 }
 
 // experimenal test driver
