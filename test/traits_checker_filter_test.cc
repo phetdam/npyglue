@@ -15,24 +15,20 @@
 #include <tuple>
 #include <type_traits>
 #include <typeinfo>
+#include <utility>
 
 #include "npygl/ctti.hh"
 #include "npygl/demangle.hh"
 #include "npygl/termcolor.hh"
 #include "npygl/testing/traits_checker.hh"
-#include "npygl/testing/type_traits_test_driver.hh"
 #include "npygl/type_traits.hh"
 
 namespace {
 
 // base test driver type. this will be subclassed to implement the experimental
 // selective test filtering/execution features
-// note: using type_traits_test_driver later for soak testing
-// FIXME: somehow one test is not listed from type_traits_test_driver
-using driver_type = npygl::testing::type_traits_test_driver;
-// less involved traits_checker_driver specialization for testing
-#if 0
-npygl::testing::traits_checker_driver<
+// FIXME: somehow one test is not listed when using type_traits_test_driver
+using driver_type = npygl::testing::traits_checker_driver<
   npygl::testing::traits_checker<
     npygl::has_static_size,
     std::tuple<
@@ -45,11 +41,22 @@ npygl::testing::traits_checker_driver<
       std::pair<std::string, std::false_type>,
       std::pair<std::map<std::string, unsigned>, std::false_type>,
       int[2][3][4],
-      std::pair<double[], std::false_type>
+      std::pair<double[], std::false_type>,
+      npygl::testing::skipped<double>,
+      npygl::testing::skipped<std::pair<void**, std::false_type>>
+    >
+  >,
+  npygl::testing::traits_checker<
+    npygl::is_monomorphic_tuple,
+    std::tuple<
+      std::tuple<int, int, int>,
+      std::pair<std::tuple<double, char>, std::false_type>,
+      std::pair<std::tuple<char*, char*, char*>, std::true_type>,
+      std::pair<std::tuple<void*, char**, double>, std::false_type>,
+      npygl::testing::skipped<std::tuple<int, char, const char*>>
     >
   >
 >;
-#endif  // 0
 
 /**
  * Concrete test driver derived type for experimenting with test filtering.
@@ -96,7 +103,8 @@ using test_mapping = filter_test_driver::runtime_test_map;
  * Creates a runtime test mapping for a `traits_checker<Traits, T>`.
  *
  * This defines a callable that returns the runtime test mapping for the test
- * case(s) that are defined by the `traits_checker<Traits, T>`.
+ * case(s) that are defined by the `traits_checker<Traits, T>`. All tests are
+ * included, even ones that are marked as skipped.
  *
  * @tparam T `traits_checker<Traits, Input>` specialization
  */
@@ -119,13 +127,13 @@ struct traits_checker_runtime_mapper<
   {
     test_mapping map;
     // note: duplicate input types (which really should not occur) ignored
-    // TODO: consider omitting skipped tests. these can still be selected/run
     (
       [&map]
       {
         using namespace npygl::testing;
-        // actual traits_type, compare_or_truth_type test case type pair
-        using test_case = traits_checker_case_t<Traits, Ts>;
+        // actual traits_type, compare_or_truth_type test case type pair. if Ts
+        // is a skipped<T>, we need to unwrap to get the T before formatting
+        using test_case = traits_checker_case_t<Traits, remove_skipped_t<Ts>>;
         // get test case name using formatter
         auto name = []
         {
