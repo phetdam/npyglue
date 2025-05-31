@@ -345,6 +345,20 @@ add_test(
     COMMAND traits_checker_filter_test --list-tests
 )
 # note: can't test for -t, --test-name as demangling varies across platforms
+# except for testing the error behavior as shown below
+add_test(
+    NAME traits_checker_filter_test_t_unknown
+    COMMAND traits_checker_filter_test -t unknown
+)
+add_test(
+    NAME traits_checker_filter_test_test_name_unknown
+    COMMAND traits_checker_filter_test --test-name unknown
+)
+set_tests_properties(
+    traits_checker_filter_test_t_unknown
+    traits_checker_filter_test_test_name_unknown PROPERTIES
+    PASS_REGULAR_EXPRESSION "Error: No test with name"
+)
 # tests for -T, --test-pattern
 add_test(
     NAME traits_checker_filter_test_T_static_size
