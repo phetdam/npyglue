@@ -1115,6 +1115,12 @@ bool print_summary(std::ostream& out = std::cout)
 /**
  * Main traits checker test driver.
  *
+ * @note
+ *
+ * It is unclear why the `traits_checker_driver<traits_checker<Traits, T>>`
+ * exists as this driver can be implemented by using the members of the
+ * `traits_checker<Traits, T>` specializations directly.
+ *
  * @tparam Ts... `traits_checker` specializations
  */
 template <typename... Ts>
