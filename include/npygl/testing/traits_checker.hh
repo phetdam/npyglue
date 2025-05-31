@@ -666,11 +666,43 @@ template <typename T>
 struct skipped { using type = T; };
 
 /**
+ * Traits type to get the `T` from a `skipped<T>`.
+ *
+ * The base template simply provides the incoming type verbatim.
+ *
+ * @tparam T type
+ */
+template <typename T>
+struct remove_skipped {
+  using type = T;
+};
+
+/**
+ * Partial specialization for a `skipped<T>`.
+ *
+ * @tparam T type
+ */
+template <typename T>
+struct remove_skipped<skipped<T>> {
+  using type = T;
+};
+
+/**
+ * Type alias for the `T` in a `skipped<T>`.
+ *
+ * If not a `skipped<T>` the type is provided verbatim.
+ *
+ * @tparam T type
+ */
+template <typename T>
+using remove_skipped_t = typename remove_skipped<T>::type;
+
+/**
  * Traits class to unwrap an input type.
  *
  * This yields the `T` from a `std::pair<T, std::bool_constant<B>>` or a
  * `std::pair<T, traits_value_comparison<C, V>>` and the correct unwrapped
- * inputy type from a `skipped<T>` specialization.
+ * input type from a `skipped<T>` specialization.
  *
  * @tparam T Input type
  */
@@ -726,6 +758,7 @@ template <template <typename> typename Traits, typename T>
 struct traits_checker<Traits, skipped<T>> {
 private:
   // unwrapped traits input type and expected truth value
+  // TODO: unused members so candidates for removal
   using input_type = typename traits_checker_input_unwrapper<T>::type;
   static constexpr bool truth = traits_checker_input_unwrapper<T>::truth;
 
