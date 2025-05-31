@@ -8,6 +8,7 @@
 #include <cstdlib>
 #include <functional>
 #include <iostream>
+#include <map>
 #include <regex>
 #include <sstream>
 #include <string>
@@ -341,7 +342,7 @@ filter_test_driver::operator()(int argc, char** argv) const
       return false;
     }
     // otherwise, run single test
-    return !test_map[opts.test_name]();
+    return test_map[opts.test_name]();
   }
   // run test patterns
   if (opts.test_pattern.size()) {
