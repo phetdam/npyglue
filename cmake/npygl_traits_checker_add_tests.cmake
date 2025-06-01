@@ -57,6 +57,10 @@ function(npygl_traits_checker_add_tests_impl)
 "    \"${NPYGL_TC_TARGET_NAME} -t ${_test}\"\n"
 "    \"${NPYGL_TC_DRIVER_PATH}\" -t \"${_test}\"\n"
 ")\n"
+"set_tests_properties(\n"
+"    \"${NPYGL_TC_TARGET_NAME} -t ${_test}\" PROPERTIES\n"
+"    SKIP_REGULAR_EXPRESSION \"SKIP\"\n"
+")\n"
         )
     endforeach()
     # write to script
@@ -72,13 +76,13 @@ endfunction()
 # then also generate a master CMake script to be included by CTest.
 #
 # The master script will be included by CTest via use of TEST_INCLUDE_FILES and
-# uses CTEST_CONFIGURATION_TYPE as necessary for multi-config generators.
+# uses CTEST_CONFIGURATION_TYPE as necessary for multi-config generators. Any
+# tests that report "SKIP" as their status are marked as skipped.
 #
-# FIXME:
+# Note:
 #
-# Skipped test cases are still registered. Need some way to distinguish if a
-# test case is being skipped because we cannot use set_tests_properties in a
-# CTest script. Using add_test is already somewhat undocumented.
+# This set_tests_properties usage relies on undocumented behavior. Using
+# add_test from a CMake script is already somewhat undocumented.
 #
 # Arguments:
 #   target      npyglue traits checker driver target
