@@ -98,7 +98,7 @@ function(npygl_traits_checker_add_tests target)
                 -DNPYGL_TC_DRIVER_PATH=$<TARGET_FILE:${target}>
                 -DNPYGL_TC_IMPL_SCRIPT=${_script_prefix}-$<IF:${NPYGL_MULTI_CONFIG_GENERATOR},$<CONFIG>,impl>.cmake
                 -P ${PROJECT_SOURCE_DIR}/cmake/npygl_traits_checker_add_tests.cmake
-        COMMENT "Discovering ${target} traits checker tests"
+        COMMENT "Discovering ${target} tests"
         VERBATIM
     )
     # generate CMake script for this target. for multi-config generators, we
