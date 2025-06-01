@@ -200,7 +200,7 @@ struct traits_checker_to_case<traits_checker<Traits, T>> {
 /**
  * Get the `traits_checker_case<Traits, T>` from a `traits_checker<Traits, T>`.
  *
- * @tparam T `traits_checerk<Traits, T>` specialization
+ * @tparam T `traits_checker<Traits, T>` specialization
  */
 template <typename T>
 using traits_checker_to_case_t = typename traits_checker_to_case<T>::type;
@@ -638,6 +638,13 @@ struct traits_checker_case_formatter<
   void operator()(std::ostream& out = std::cout) const
   {
     using comp_formatter = traits_comparator_formatter<C>;
+    // TODO:
+    //
+    // if we use T, the actual input type, then we don't have an extra
+    // invoke_result_or_value<...> around the traits type. however, if we have
+    // an invocable traits (currently, this should not be true), then we need
+    // to use std::is_invocable_v<T> to change "::value" to "()" instead
+    //
     // if standard comparator, we can print a nicer format
     if constexpr (comp_formatter::standard) {
       out << npygl::type_name(typeid(invoke_type)) << "::value " <<
