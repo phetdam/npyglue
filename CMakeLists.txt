@@ -22,6 +22,7 @@ include(npygl_get_build_info)
 include(npygl_llvm_library_target)
 include(npygl_swig_include)
 include(npygl_target_helpers)
+include(npygl_traits_checker_add_tests)
 
 # options
 option(NPYGL_BUILD_TESTS "Build ${PROJECT_NAME} tests" ON)

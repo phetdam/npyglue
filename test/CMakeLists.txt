@@ -305,72 +305,71 @@ add_test(NAME type_traits_test COMMAND type_traits_test)
 # traits_checker_filter_test: traits_checker test filtering experiments
 add_executable(traits_checker_filter_test traits_checker_filter_test.cc)
 target_link_libraries(traits_checker_filter_test PRIVATE npyglue)
-# TODO: add tests matching each test case available
-add_test(NAME traits_checker_filter_test COMMAND traits_checker_filter_test)
+npygl_traits_checker_add_tests(traits_checker_filter_test)
 # tests for -h, --help
 add_test(
-    NAME traits_checker_filter_test_h
+    NAME "traits_checker_filter_test -h"
     COMMAND traits_checker_filter_test -h
 )
 add_test(
-    NAME traits_checker_filter_test_help
+    NAME "traits_checker_filter_test --help"
     COMMAND traits_checker_filter_test --help
 )
 set_tests_properties(
-    traits_checker_filter_test_h
-    traits_checker_filter_test_help PROPERTIES
+    "traits_checker_filter_test -h"
+    "traits_checker_filter_test --help" PROPERTIES
     PASS_REGULAR_EXPRESSION "Usage: \\<progname\\> \\[-h\\]"
 )
 # tests for -v, --version
 add_test(
-    NAME traits_checker_filter_test_v
+    NAME "traits_checker_filter_test -v"
     COMMAND traits_checker_filter_test -v
 )
 add_test(
-    NAME traits_checker_filter_test_version
+    NAME "traits_checker_filter_test --version"
     COMMAND traits_checker_filter_test --version
 )
 set_tests_properties(
-    traits_checker_filter_test_v
-    traits_checker_filter_test_version PROPERTIES
+    "traits_checker_filter_test -v"
+    "traits_checker_filter_test --version" PROPERTIES
     PASS_REGULAR_EXPRESSION "${NPYGL_VERSION}"
 )
 # tests for -l, --list-tests
 add_test(
-    NAME traits_checker_filter_test_l
+    NAME "traits_checker_filter_test -l"
     COMMAND traits_checker_filter_test -l
 )
 add_test(
-    NAME traits_checker_filter_test_list_tests
+    NAME "traits_checker_filter_test --list-tests"
     COMMAND traits_checker_filter_test --list-tests
 )
 # note: can't test for -t, --test-name as demangling varies across platforms
 # except for testing the error behavior as shown below
 add_test(
-    NAME traits_checker_filter_test_t_unknown
+    NAME "traits_checker_filter_test -t unknown"
     COMMAND traits_checker_filter_test -t unknown
 )
 add_test(
-    NAME traits_checker_filter_test_test_name_unknown
+    NAME "traits_checker_filter_test --test-name unknown"
     COMMAND traits_checker_filter_test --test-name unknown
 )
 set_tests_properties(
-    traits_checker_filter_test_t_unknown
-    traits_checker_filter_test_test_name_unknown PROPERTIES
+    "traits_checker_filter_test -t unknown"
+    "traits_checker_filter_test --test-name unknown" PROPERTIES
     PASS_REGULAR_EXPRESSION "Error: No test with name"
 )
 # tests for -T, --test-pattern
 add_test(
-    NAME traits_checker_filter_test_T_static_size
+    NAME "traits_checker_filter_test -T static_size"
     COMMAND traits_checker_filter_test -T static_size
 )
 add_test(
-    NAME traits_checker_filter_test_test_pattern_static_size
+    NAME "traits_checker_filter_test --test-pattern static_size"
     COMMAND traits_checker_filter_test --test-pattern static_size
 )
 # test for --print-driver-type
 add_test(
-    NAME traits_checker_filter_test_print_driver_type
+    NAME "traits_checker_filter_test --print-driver-type"
     COMMAND traits_checker_filter_test --print-driver-type
 )
 
