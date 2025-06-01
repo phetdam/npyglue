@@ -342,6 +342,7 @@ def main(args: Optional[Iterable[str]] = None) -> int:
     # run tests. trick unittest.main into thinking there are no CLI args
     print(f"Running {mod_name} tests")
     res = unittest.main(
+        defaultTest=argn.tests,
         argv=(sys.argv[0],),
         exit=False,
         verbosity=1 + argn.verbose
