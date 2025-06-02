@@ -47,13 +47,13 @@ class ndarray_flat_view;
  * @param type C/C++ view class element type
  */
 %define NPYGL_FLAT_VIEW_IN_TYPEMAP(type)
-%typemap(in) npygl::ndarray_flat_view<type> AR_IN (npygl::py_object in) {
+%typemap(in) npygl::ndarray_flat_view<const type> AR_IN (npygl::py_object in) {
   // attempt to create new input array (C order, avoid copy if possible)
   in = npygl::make_ndarray<type>($input, NPY_ARRAY_IN_ARRAY);
   if (!in)
     SWIG_fail;
   // create view
-  $1 = npygl::ndarray_flat_view<type>{in.as<PyArrayObject>()};
+  $1 = npygl::ndarray_flat_view<const type>{in.as<PyArrayObject>()};
 }
 %enddef  // NPYGL_FLAT_VIEW_IN_TYPEMAP(type)
 
@@ -66,8 +66,8 @@ class ndarray_flat_view;
  * @param name Parameter name to apply typemap to
  */
 %define NPYGL_APPLY_FLAT_VIEW_IN_TYPEMAP(type, name)
-%apply npygl::ndarray_flat_view<type> AR_IN {
-  npygl::ndarray_flat_view<type> name
+%apply npygl::ndarray_flat_view<const type> AR_IN {
+  npygl::ndarray_flat_view<const type> name
 };
 %enddef  // NPYGL_APPLY_FLAT_VIEW_IN_TYPEMAP(type, name)
 
@@ -79,7 +79,9 @@ class ndarray_flat_view;
  * @param type C/C++ view class element type
  */
 %define NPYGL_APPLY_FLAT_VIEW_IN_TYPEMAPS(type)
-%apply npygl::ndarray_flat_view<type> AR_IN { npygl::ndarray_flat_view<type> };
+%apply npygl::ndarray_flat_view<const type> AR_IN {
+  npygl::ndarray_flat_view<const type>
+};
 %enddef  // NPYGL_APPLY_FLAT_VIEW_IN_TYPEMAPS(type)
 
 /**
@@ -103,16 +105,6 @@ class ndarray_flat_view;
     SWIG_fail;
   // create view
   $1 = npygl::ndarray_flat_view<type>{res.as<PyArrayObject>()};
-}
-
-/**
- * Typemap releasing modified NumPy array back to Python.
- */
-%typemap(argout) npygl::ndarray_flat_view<type> AR_INOUT {
-  // release value back to Python
-  // TODO: consider removing as semantics are strange, especially if there are
-  // multiple in/out ndarray_flat_view<T> arguments provided
-  $result = res$argnum.release();
 }
 %enddef  // NPYGL_FLAT_VIEW_INOUT_TYPEMAP(type)
 
@@ -138,7 +130,9 @@ class ndarray_flat_view;
  * @param type C/C++ view class element type
  */
 %define NPYGL_APPLY_FLAT_VIEW_INOUT_TYPEMAPS(type)
-%apply npygl::ndarray_flat_view<type> AR_INOUT { npygl::ndarray_flat_view<type> };
+%apply npygl::ndarray_flat_view<type> AR_INOUT {
+  npygl::ndarray_flat_view<type>
+};
 %enddef  // NPYGL_APPLY_FLAT_VIEW_INOUT_TYPEMAPS(type)
 
 /**
@@ -196,13 +190,13 @@ class ndarray_flat_view;
  * @param type C/C++ view class element type
  */
 %define NPYGL_STD_SPAN_IN_TYPEMAP(type)
-%typemap(in) std::span<type> AR_IN (npygl::py_object in) {
+%typemap(in) std::span<const type> AR_IN (npygl::py_object in) {
   // attempt to create new input array (C order, avoid copy if possible)
   in = npygl::make_ndarray<type>($input, NPY_ARRAY_IN_ARRAY);
   if (!in)
     SWIG_fail;
   // create STL span
-  $1 = npygl::make_span<type>(in.as<PyArrayObject>());
+  $1 = npygl::make_span<const type>(in.as<PyArrayObject>());
 }
 %enddef  // NPYGL_STD_SPAN_IN_TYPEMAP(type)
 
@@ -215,7 +209,7 @@ class ndarray_flat_view;
  * @param name Parameter name to apply typemap to
  */
 %define NPYGL_APPLY_STD_SPAN_IN_TYPEMAP(type, name)
-%apply std::span<type> AR_IN { std::span<type> name };
+%apply std::span<const type> AR_IN { std::span<const type> name };
 %enddef  // NPYGL_APPLY_STD_SPAN_IN_TYPEMAP(type, name)
 
 /**
@@ -226,7 +220,7 @@ class ndarray_flat_view;
  * @param type C/C++ view class element type
  */
 %define NPYGL_APPLY_STD_SPAN_IN_TYPEMAPS(type)
-%apply std::span<type> AR_IN { std::span<type> };
+%apply std::span<const type> AR_IN { std::span<const type> };
 %enddef  // NPYGL_APPLY_STD_SPAN_IN_TYPEMAPS(type)
 
 /**
@@ -251,16 +245,6 @@ class ndarray_flat_view;
     SWIG_fail;
   // create STL span
   $1 = npygl::make_span<type>(res.as<PyArrayObject>());
-}
-
-/**
- * Typemap releasing modified NumPy array back to Python.
- */
-%typemap(argout) std::span<type> AR_INOUT {
-  // release value back to Python
-  // TODO: consider removing as semantics are strange, especially if there are
-  // multiple in/out ndarray_flat_view<T> arguments provided
-  $result = res$argnum.release();
 }
 %enddef  // NPYGL_STD_SPAN_INOUT_TYPEMAP(type)
 

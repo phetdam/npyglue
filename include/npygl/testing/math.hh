@@ -11,6 +11,7 @@
 #include <algorithm>
 #include <cassert>
 #include <cmath>
+#include <cstddef>
 #include <cstdint>
 #include <functional>
 #include <memory>
@@ -30,8 +31,128 @@
 #include <span>
 #endif  // NPYGL_HAS_CC_20
 
+// note: SWIG doesn't under auto as a placeholder type, e.g. without a trailing
+// return type. therefore any wrapped functions need a "real" return type
+
+// TODO: once we develop the apply<Range>(R1&&, R2&&, UnaryFunc) template, we
+// can replace a lot of the repeated looping with the new template
+
+// TODO: need better range traits support
+
 namespace npygl {
 namespace testing {
+
+// implementation details SWIG should not process
+#ifndef SWIG
+namespace detail {
+
+/**
+ * Traits to get the value type of a range's iterator.
+ *
+ * @tparam R Range-like type
+ */
+template <typename R, typename = void>
+struct range_value {};
+
+/**
+ * True specialization for range-like types.
+ *
+ * @tparam R Range-like type
+ */
+template <typename R>
+struct range_value<R, iterable_range_t<R>> {
+  using type = std::decay_t<decltype(*std::begin(std::declval<R>()))>;
+};
+
+/**
+ * SFINAE-capable type alias for the value type of the range-like type.
+ *
+ * @tparam R Range-like type
+ */
+template <typename R>
+using range_value_t = typename range_value<R>::type;
+
+/**
+ * Traits type for `make_vector(R&&, F&&)` constaints.
+ *
+ * @tparam R Range-like type
+ * @tparam F Unary callable taking and return `range_value_t<R>`
+ */
+template <typename R, typename F, typename = void>
+struct make_vector_constraints {};
+
+/**
+ * True specialization that provides a `void` type member.
+ *
+ * @tparam R Range-like type
+ * @tparam F Unary callable taking and return `range_value_t<R>`
+ */
+template <typename R, typename F>
+struct make_vector_constraints<
+  R,
+  F,
+  std::enable_if_t<
+    is_iterable_v<R> &&
+    std::is_invocable_r_v<range_value_t<R>, F, range_value_t<R>>> > {
+  using type = void;
+};
+
+/**
+ * SFINAE helper for `make_vector_constraints<R, F>`.
+ *
+ * @tparam R Range-like type
+ * @tparam F Unary callable taking and return `range_value_t<R>`
+ */
+template <typename R, typename F>
+using make_vector_constraints_t = typename make_vector_constraints<R, F>::type;
+
+/**
+ * Return a new vector obtained from applying a unary callable to a range.
+ *
+ * @note Definitely can be better constrained.
+ *
+ * @tparam R Range-like type
+ * @tparam F Unary callable
+ *
+ * @param range Input range
+ * @param func Unary callable
+ */
+template <typename R, typename F, typename = make_vector_constraints_t<R, F>>
+auto make_vector(R&& range, F&& func)
+{
+  // begin and end iterators
+  auto begin = std::begin(range);
+  auto end = std::end(range);
+  // result vector + index
+  std::vector<detail::range_value_t<R>> res(std::distance(begin, end));
+  std::size_t i = 0u;
+  // populate + return
+  for (auto it = begin; it != end; it++)
+    res[i++] = func(*it);
+  return res;
+}
+
+}  // namespace detail
+
+/**
+ * Return a new vector of the input range's elements multiplied by 2.
+ *
+ * @note
+ *
+ * We can definitely constrain the input more as the iterator must be a forward
+ * iterator that yields arithmetic types but that is for later.
+ *
+ * @tparam R Range-like type
+ *
+ * @param range Input range
+ */
+template <typename R, typename = iterable_range_t<R>>
+auto range_double(R&& range)
+{
+  using detail::make_vector;
+  return make_vector(std::forward<R>(range), [](auto v) { return 2 * v; });
+}
+#endif  // SWIG
 
 // SWIG doesn't allow defining macros to values so we allow this block to be
 // enabled via compile-time -DNPYGL_SWIG_CC_20 flag
@@ -41,13 +162,12 @@ namespace testing {
  *
  * @tparam T type
  *
- * @param view Span to operate on
+ * @param view Input span
  */
 template <typename T>
-void array_double(std::span<T> view) noexcept
+std::vector<T> array_double(std::span<const T> view)
 {
-  for (auto& v : view)
-    v = 2 * v;
+  return range_double(view);
 }
 #endif  // !defined(NPYGL_SWIG_CC_20) && !NPYGL_HAS_CC_20
 
@@ -61,17 +181,69 @@ void array_double(std::span<T> view) noexcept
  * @param view NumPy array view
  */
 template <typename T>
-void array_double(ndarray_flat_view<T> view) noexcept
+std::vector<T> array_double(ndarray_flat_view<const T> view)
 {
-#if NPYGL_HAS_CC_20
-  // explicitly mention std::span in case flat_view gets similar ctor
-  array_double(std::span{view.begin(), view.end()});
-#else
-  for (auto& v : view)
-    v = 2 * v;
-#endif  // !NPYGL_HAS_CC_20
+  return range_double(view);
 }
 #endif  // NPYGL_SWIG_CC_20
+
+// implementation details SWIG should not process
+#ifndef SWIG
+// to simplify C++17/C++20 conditional compilation of the SWIG module we lock
+// these up in a separate namespace for now. eventually remove from detail::
+namespace detail {
+
+/**
+ * Return a new vector of the sine of the input range's elements.
+ *
+ * @tparam R Range-like type
+ *
+ * @param range Input range
+ */
+template <typename R>
+auto sine(R&& range)
+{
+  // sine functor since std::sin is overloaded (won't properly deduce)
+  auto sine = [](auto v) { return std::sin(v); };
+  return make_vector(std::forward<R>(range), sine);
+}
+
+/**
+ * Return a new vector of the inverse sine of the input range's elements.
+ *
+ * @tparam R Range-like type
+ *
+ * @param range Input range
+ */
+template <typename R>
+auto asine(R&& range)
+{
+  // asine functor since std::asin is overloaded (won't properly deduce)
+  auto asine = [](auto v) { return std::asin(v); };
+  return make_vector(std::forward<R>(range), asine);
+}
+
+/**
+ * Function that compresses the values of the argument to the unit circle.
+ *
+ * In other words, all the values will fall in `[-1, 1]`.
+ *
+ * @note We should constrain this to floating-point types.
+ *
+ * @tparam R Range-like type
+ *
+ * @param range Input range
+ */
+template <typename R>
+auto unit_compress(R&& range)
+{
+  auto radius = *std::max_element(std::begin(range), std::end(range));
+  auto func = [radius](auto v) { return v / radius; };
+  return make_vector(std::forward<R>(range), std::move(func));
+}
+
+}  // namespace detail
+#endif  // SWIG
 
 #if defined(NPYGL_SWIG_CC_20) || NPYGL_HAS_CC_20
 /**
@@ -79,13 +251,12 @@ void array_double(ndarray_flat_view<T> view) noexcept
  *
  * @tparam T type
  *
- * @param view Span to operate on
+ * @param view Input span
  */
 template <typename T>
-void sine(std::span<T> view) noexcept
+std::vector<T> sine(std::span<const T> view)
 {
-  for (auto& v : view)
-    v = std::sin(v);
+  return detail::sine(view);
 }
 #endif  // !defined(NPYGL_SWIG_CC_20) && !NPYGL_HAS_CC_20
 
@@ -98,14 +269,9 @@ void sine(std::span<T> view) noexcept
  * @param view NumPy array view
  */
 template <typename T>
-void sine(ndarray_flat_view<T> view) noexcept
+std::vector<T> sine(ndarray_flat_view<const T> view)
 {
-#if NPYGL_HAS_CC_20
-  sine(std::span{view.begin(), view.end()});
-#else
-  for (auto& v : view)
-    v = std::sin(v);
-#endif  // !NPYGL_HAS_CC_20
+  return detail::sine(view);
 }
 #endif  // NPYGL_SWIG_CC_20
 
@@ -118,10 +284,9 @@ void sine(ndarray_flat_view<T> view) noexcept
  * @param view Span to operate on
  */
 template <typename T>
-void asine(std::span<T> view) noexcept
+std::vector<T> asine(std::span<const T> view)
 {
-  for (auto& v : view)
-    v = std::asin(v);
+  return detail::asine(view);
 }
 #endif  // !defined(NPYGL_SWIG_CC_20) && !NPYGL_HAS_CC_20
 
@@ -134,14 +299,9 @@ void asine(std::span<T> view) noexcept
  * @param view NumPy array view
  */
 template <typename T>
-void asine(ndarray_flat_view<T> view) noexcept
+std::vector<T> asine(ndarray_flat_view<const T> view)
 {
-#if NPYGL_HAS_CC_20
-  asine(std::span{view.begin(), view.end()});
-#else
-  for (auto& v : view)
-    v = std::asin(v);
-#endif  // !NPYGL_HAS_CC_20
+  return detail::asine(view);
 }
 #endif  // NPYGL_SWIG_CC_20
 
@@ -156,10 +316,9 @@ void asine(ndarray_flat_view<T> view) noexcept
  * @param view Span to operate on
  */
 template <typename T>
-inline void unit_compress(std::span<T> view) noexcept
+std::vector<T> unit_compress(std::span<const T> view)
 {
-  auto radius = *std::ranges::max_element(view);
-  std::ranges::for_each(view, [&radius](auto& x) { x /= radius; });
+  return detail::unit_compress(view);
 }
 #endif  // !defined(NPYGL_SWIG_CC_20) && !NPYGL_HAS_CC_20
 
@@ -174,14 +333,9 @@ inline void unit_compress(std::span<T> view) noexcept
  * @param view NumPy array view
  */
 template <typename T>
-inline void unit_compress(ndarray_flat_view<T> view) noexcept
+std::vector<T> unit_compress(ndarray_flat_view<const T> view)
 {
-#if NPYGL_HAS_CC_20
-  unit_compress(std::span{view.begin(), view.end()});
-#else
-  auto radius = *std::max_element(view.begin(), view.end());
-  std::for_each(view.begin(), view.end(), [&radius](auto& x) { x /= radius; });
-#endif  // !NPYGL_HAS_CC_20
+  return detail::unit_compress(view);
 }
 #endif  // NPYGL_SWIG_CC_20
 
@@ -194,7 +348,7 @@ inline void unit_compress(ndarray_flat_view<T> view) noexcept
  * @param view Input span
  */
 template <typename T>
-inline T norm1(std::span<T> view) noexcept
+T norm1(std::span<const T> view) noexcept
 {
   return std::accumulate(
     view.begin(),
@@ -214,7 +368,7 @@ inline T norm1(std::span<T> view) noexcept
  * @param view NumPy array view
  */
 template <typename T>
-inline T norm1(ndarray_flat_view<T> view) noexcept
+T norm1(ndarray_flat_view<const T> view) noexcept
 {
 #if NPYGL_HAS_CC_20
   return norm1(std::span{view.begin(), view.end()});
@@ -238,7 +392,7 @@ inline T norm1(ndarray_flat_view<T> view) noexcept
  * @param view Input span
  */
 template <typename T>
-inline T norm2(std::span<T> view) noexcept
+T norm2(std::span<const T> view) noexcept
 {
   // sum of squared values
   auto total = std::accumulate(
@@ -260,7 +414,7 @@ inline T norm2(std::span<T> view) noexcept
  * @param view NumPy array view
  */
 template <typename T>
-inline T norm2(ndarray_flat_view<T> view) noexcept
+T norm2(ndarray_flat_view<const T> view) noexcept
 {
 #if NPYGL_HAS_CC_20
   return norm2(std::span{view.begin(), view.end()});
@@ -294,7 +448,7 @@ inline T norm2(ndarray_flat_view<T> view) noexcept
  * @param in2 Second input span
  */
 template <typename T, typename U, typename V = std::common_type_t<T, U>>
-inline V inner(std::span<T> in1, std::span<U> in2) noexcept
+V inner(std::span<const T> in1, std::span<const U> in2) noexcept
 {
   assert(in1.size() == in2.size());
   return std::inner_product(in1.begin(), in1.end(), in2.begin(), V{});
@@ -318,7 +472,7 @@ inline V inner(std::span<T> in1, std::span<U> in2) noexcept
  * @param in2 Second NumPy array view
  */
 template <typename T, typename U, typename V = std::common_type_t<T, U>>
-inline V inner(ndarray_flat_view<T> in1, ndarray_flat_view<U> in2) noexcept
+V inner(ndarray_flat_view<const T> in1, ndarray_flat_view<const U> in2) noexcept
 {
 #if NPYGL_HAS_CC_20
   using std::span;
@@ -625,7 +779,7 @@ auto uniform(std::size_t n, rngs type, optional_seed_type seed = {})
  * @param seed Seed value to use
  */
 template <typename T>
-inline auto uniform(std::size_t n, optional_seed_type seed = {})
+auto uniform(std::size_t n, optional_seed_type seed = {})
 {
   return uniform<T>(n, rngs::mersenne, seed);
 }

@@ -8,6 +8,8 @@
 #define PY_SSIZE_T_CLEAN
 #include <Python.h>
 
+#include <algorithm>
+#include <cmath>
 #include <cstdlib>
 #include <ios>
 #include <iostream>
@@ -16,7 +18,6 @@
 #include "npygl/ndarray.hh"
 #include "npygl/python.hh"
 #include "npygl/range_views.hh"
-#include "npygl/testing/math.hh"
 
 namespace {
 
@@ -41,8 +42,6 @@ npygl::py_object npy_random() noexcept
  */
 bool test_flat_views(PyObject* np_random)
 {
-  using npygl::testing::sine;
-  using npygl::testing::asine;
   // create a random 3x4x2 tensor
   npygl::py_object shape{Py_BuildValue("(iii)", 3, 4, 2)};
   if (!shape)
@@ -50,19 +49,23 @@ bool test_flat_views(PyObject* np_random)
   auto obj = npygl::py_call_one(np_random, shape);
   if (!obj)
     return false;
-  // apply sine + inverse sine functions to NumPy array via view and print
+  // sine + inverse sine functors
+  auto sine = [](auto& v) { v = std::sin(v); };
+  auto asine = [](auto& v) { v = std::asin(v); };
+  // apply sine + inverse sine functors to NumPy array via view and print
   auto ar = obj.as<PyArrayObject>();
   npygl::ndarray_flat_view<double> view{ar};
-  sine(view);
+  std::for_each(view.begin(), view.end(), sine);
   std::cout << "sine transform:\n" << ar << std::endl;
-  asine(view);
+  std::for_each(view.begin(), view.end(), asine);
   std::cout << "inverse sine transform:\n" << ar << std::endl;
+// TODO: since we aren't using testing/math.hh functions should just remove
 #if NPYGL_HAS_CC_20
-  // apply sine + inverse function to NumPy array via span and print
+  // apply sine + inverse functors to NumPy array via span and print
   auto stl_view = npygl::make_span<double>(ar);
-  sine(stl_view);
+  std::ranges::for_each(stl_view, sine);
   std::cout << "span sine transform:\n" << ar << std::endl;
-  asine(stl_view);
+  std::ranges::for_each(stl_view, asine);
   std::cout << "span inverse sine transform:\n" << ar << std::endl;
 #endif  // NPYGL_HAS_CC_20
   return true;

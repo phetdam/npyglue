@@ -25,6 +25,13 @@ from npygl_utils import HelpFormatter, list_unittest_tests
 # module handle. this is set by main() after looking at CLI options
 pm = None
 
+# TODO: tests failing until we change the tests to have the expected value be
+# flattened via ravel(). this is due to a change in the C++ implementations. we
+# also need to determine whether or not it makes sense for std::span to be a
+# way to indicate at compile-time that we want a 1D flat range. in this case,
+# ndarray_flat_view will still indicate a flat view of any NumPy array, but be
+# the only type that is available to do so
+
 
 class TestArrayDouble(unittest.TestCase):
     """Test suite for array_double tests."""

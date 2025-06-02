@@ -48,14 +48,14 @@ namespace {
  *
  * @param args Python arguments
  */
-template <typename T, bool C = true>
+template <typename T, bool C = false>
 npygl::py_object parse_ndarray(PyObject* args) noexcept
 {
   // parse Python arguments as objects
   PyObject* objs[1];
   if (!npygl::parse_args(args, objs))
     return {};
-  // create output array (empty on error)
+  // create new NPY_ARRAY_DEFAULT array (empty on error)
   if constexpr (C)
     return npygl::make_ndarray<T>(*objs);
   // create new array only if necessary; increments refcount if already array
@@ -71,7 +71,7 @@ npygl::py_object parse_ndarray(PyObject* args) noexcept
  * @param args Python argument tuple
  */
 template <typename T>
-PyObject* array_double(PyObject* args) noexcept
+PyObject* array_double(PyObject* args)
 {
   using npygl::testing::array_double;
   // create output array
@@ -81,11 +81,13 @@ PyObject* array_double(PyObject* args) noexcept
   // double the values + release value back to Python
   // note: template keyword required to tell compiler as() is a member template
 #if NPYGL_HAS_CC_20
-  array_double(npygl::make_span<T>(ar.template as<PyArrayObject>()));
+  auto view = npygl::make_span<const T>(ar.template as<PyArrayObject>());
+  auto res = array_double(view);
 #else
-  array_double<T>(ar.template as<PyArrayObject>());
+  auto res = array_double<T>(ar.template as<PyArrayObject>());
 #endif  // !NPYGL_HAS_CC_20
-  return ar.release();
+  // create NumPy vector and release (nullptr on error)
+  return npygl::make_ndarray(std::move(res)).release();
 }
 
 NPYGL_PY_FUNC_DECLARE(
@@ -130,7 +132,7 @@ NPYGL_PY_FUNC_DECLARE(
  * @param args Python argument tuple
  */
 template <typename T>
-PyObject* unit_compress(PyObject* args) noexcept
+PyObject* unit_compress(PyObject* args)
 {
   using npygl::testing::unit_compress;
   // create output array
@@ -139,11 +141,13 @@ PyObject* unit_compress(PyObject* args) noexcept
     return nullptr;
   // compress + release value back to Python
 #if NPYGL_HAS_CC_20
-  unit_compress(npygl::make_span<T>(ar.template as<PyArrayObject>()));
+  auto view = npygl::make_span<const T>(ar.template as<PyArrayObject>());
+  auto res = unit_compress(view);
 #else
-  unit_compress<T>(ar.template as<PyArrayObject>());
+  auto res = unit_compress<T>(ar.template as<PyArrayObject>());
 #endif  // !NPYGL_HAS_CC_20
-  return ar.release();
+  // create NumPy vector and release (nullptr on error)
+  return npygl::make_ndarray(std::move(res)).release();
 }
 
 NPYGL_PY_FUNC_DECLARE(
@@ -188,7 +192,7 @@ NPYGL_PY_FUNC_DECLARE(
  * @param args Python argument tuple
  */
 template <typename T>
-PyObject* sine(PyObject* args) noexcept
+PyObject* sine(PyObject* args)
 {
   using npygl::testing::sine;
   // create output array
@@ -197,11 +201,12 @@ PyObject* sine(PyObject* args) noexcept
     return nullptr;
   // compute sine
 #if NPYGL_HAS_CC_20
-  sine(npygl::make_span<T>(ar.template as<PyArrayObject>()));
+  auto res = sine(npygl::make_span<const T>(ar.template as<PyArrayObject>()));
 #else
-  sine<T>(ar.template as<PyArrayObject>());
+  auto res = sine<T>(ar.template as<PyArrayObject>());
 #endif  // !NPYGL_HAS_CC_20
-  return ar.release();
+  // create NumPy vector and release (nullptr on error)
+  return npygl::make_ndarray(std::move(res)).release();
 }
 
 NPYGL_PY_FUNC_DECLARE(
@@ -257,7 +262,7 @@ PyObject* norm1(PyObject* arg) noexcept
     return nullptr;
   // compute 1-norm
 #if NPYGL_HAS_CC_20
-  auto res = norm1(npygl::make_span<T>(ar.template as<PyArrayObject>()));
+  auto res = norm1(npygl::make_span<const T>(ar.template as<PyArrayObject>()));
 #else
   auto res = norm1<T>(ar.template as<PyArrayObject>());
 #endif  // !NPYGL_HAS_CC_20
@@ -318,7 +323,7 @@ PyObject* norm2(PyObject* arg) noexcept
     return nullptr;
   // compute 2-norm
 #if NPYGL_HAS_CC_20
-  auto res = norm2(npygl::make_span<T>(ar.template as<PyArrayObject>()));
+  auto res = norm2(npygl::make_span<const T>(ar.template as<PyArrayObject>()));
 #else
   auto res = norm2<T>(ar.template as<PyArrayObject>());
 #endif  // !NPYGL_HAS_CC_20
@@ -390,11 +395,11 @@ PyObject* inner(PyObject* args) noexcept
     return nullptr;
   // get array views + return inner product
 #if NPYGL_HAS_CC_20
-  auto v1 = npygl::make_span<T>(ar1.template as<PyArrayObject>());
-  auto v2 = npygl::make_span<T>(ar2.template as<PyArrayObject>());
+  auto v1 = npygl::make_span<const T>(ar1.template as<PyArrayObject>());
+  auto v2 = npygl::make_span<const T>(ar2.template as<PyArrayObject>());
 #else
-  npygl::ndarray_flat_view<T> v1{ar1.template as<PyArrayObject>()};
-  npygl::ndarray_flat_view<T> v2{ar2.template as<PyArrayObject>()};
+  npygl::ndarray_flat_view<const T> v1{ar1.template as<PyArrayObject>()};
+  npygl::ndarray_flat_view<const T> v2{ar2.template as<PyArrayObject>()};
 #endif  // !NPYGL_HAS_CC_20
   // sanity check for sizes
   if (v1.size() != v2.size()) {

@@ -72,13 +72,22 @@ import_array();
 
 // instantiate different versions of array_double and unit_compress
 // note: SWIG can understand use of namespaces but we are explicit here
+
+// input-only typemaps (test application to a single name)
 #if defined(NPYGL_SWIG_CC_20)
-NPYGL_APPLY_STD_SPAN_INOUT_TYPEMAPS(double)
-NPYGL_APPLY_STD_SPAN_INOUT_TYPEMAPS(float)
+NPYGL_APPLY_STD_SPAN_IN_TYPEMAP(double, view)
+NPYGL_APPLY_STD_SPAN_IN_TYPEMAP(float, view)
 #else
-NPYGL_APPLY_FLAT_VIEW_INOUT_TYPEMAPS(double)
-NPYGL_APPLY_FLAT_VIEW_INOUT_TYPEMAPS(float)
+NPYGL_APPLY_FLAT_VIEW_IN_TYPEMAP(double, view)
+NPYGL_APPLY_FLAT_VIEW_IN_TYPEMAP(float, view)
 #endif  // !defined(NPYGL_SWIG_CC_20)
+
+// note: if we were using std::vector<T, A> as a return type we would have to
+// specify all the template arguments as SWIG doesn't understand defaults.
+// parentheses would also be needed as otherwise something like
+// std::vector<double, std::allocator<double>> is treated as two macro args.
+NPYGL_APPLY_NDARRAY_OUT_TYPEMAP(std::vector<double>);
+NPYGL_APPLY_NDARRAY_OUT_TYPEMAP(std::vector<float>);
 
 // SWIG 4.2 changes the way that Python function annotation works. instead of
 // passing -py3 to enable Python 3 function annotations, we use %feature
@@ -177,23 +186,6 @@ NPYGL_APPLY_FLAT_VIEW_INOUT_TYPEMAPS(float)
 );
 %template(fsine) npygl::testing::sine<float>;
 
-#if defined(NPYGL_SWIG_CC_20)
-NPYGL_CLEAR_STD_SPAN_TYPEMAPS(double)
-NPYGL_CLEAR_STD_SPAN_TYPEMAPS(float)
-#else
-NPYGL_CLEAR_FLAT_VIEW_TYPEMAPS(double)
-NPYGL_CLEAR_FLAT_VIEW_TYPEMAPS(float)
-#endif  // !defined(NPYGL_SWIG_CC_20)
-
-// input-only typemaps (this time, test application to a single name)
-#if defined(NPYGL_SWIG_CC_20)
-NPYGL_APPLY_STD_SPAN_IN_TYPEMAP(double, view)
-NPYGL_APPLY_STD_SPAN_IN_TYPEMAP(float, view)
-#else
-NPYGL_APPLY_FLAT_VIEW_IN_TYPEMAP(double, view)
-NPYGL_APPLY_FLAT_VIEW_IN_TYPEMAP(float, view)
-#endif  // !defined(NPYGL_SWIG_CC_20)
-
 %feature(
   "autodoc",
   "Compute the 1-norm of the flattened input array.\n"
@@ -291,9 +283,9 @@ namespace testing {
  */
 template <typename T>
 #if defined(NPYGL_SWIG_CC_20) || NPYGL_HAS_CC_20
-inline T py_inner(std::span<T> v1, std::span<T> v2)
+inline T py_inner(std::span<const T> v1, std::span<const T> v2)
 #else
-inline T py_inner(ndarray_flat_view<T> v1, ndarray_flat_view<T> v2)
+inline T py_inner(ndarray_flat_view<const T> v1, ndarray_flat_view<const T> v2)
 #endif  // !defined(NPYGL_SWIG_CC_20) && !NPYGL_HAS_CC_20
 {
   if (v1.size() != v2.size())
@@ -399,13 +391,6 @@ inline std::vector<T> py_uniform(std::size_t n, int type = 0, int seed = -1)
 }  // namespace npygl
 %}
 
-// note: if we were using std::vector<T, A> as a return type we would have to
-// specify all the template arguments as SWIG doesn't understand defaults.
-// parentheses would also be needed as otherwise something like
-// std::vector<double, std::allocator<double>> is treated as two macro args.
-NPYGL_APPLY_NDARRAY_OUT_TYPEMAP(std::vector<double>);
-NPYGL_APPLY_NDARRAY_OUT_TYPEMAP(std::vector<float>);
-
 // note: as mentioned previously, SWIG does understand namespaces
 namespace npygl::testing {
 
@@ -455,10 +440,10 @@ namespace npygl::testing {
 
 }  // namespace npygl::testing
 
+NPYGL_DISABLE_EXCEPTION_HANDLER
+
 NPYGL_CLEAR_NDARRAY_OUT_TYPEMAP(std::vector<double>);
 NPYGL_CLEAR_NDARRAY_OUT_TYPEMAP(std::vector<float>);
-
-NPYGL_DISABLE_EXCEPTION_HANDLER
 
 // clear
 #if defined(NPYGL_SWIG_CC_20)
