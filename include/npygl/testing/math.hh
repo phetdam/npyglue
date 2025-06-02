@@ -26,6 +26,7 @@
 #include "npygl/common.h"
 #include "npygl/features.h"
 #include "npygl/ndarray.hh"
+#include "npygl/warnings.h"
 
 #if NPYGL_HAS_CC_20
 #include <span>
@@ -124,7 +125,10 @@ auto make_vector(R&& range, F&& func)
   auto begin = std::begin(range);
   auto end = std::end(range);
   // result vector + index
+NPYGL_MSVC_WARNING_PUSH()
+NPYGL_MSVC_WARNING_DISABLE(4365)
   std::vector<detail::range_value_t<R>> res(std::distance(begin, end));
+NPYGL_MSVC_WARNING_POP()
   std::size_t i = 0u;
   // populate + return
   for (auto it = begin; it != end; it++)
