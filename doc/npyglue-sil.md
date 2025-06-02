@@ -56,14 +56,6 @@ documentation.
 > view of a NumPy array, and is not sufficient for functions that expected a
 > certain NumPy array dimensionality as input. This is a later planned feature.
 
-> **Warning**
->
-> Do *not* use the `ndarray_flat_view<T>` in/out typemaps as their semantics
-> are somewhat confusing. The current semantics were likely from an early stage
-> in the project's development where `make_ndarray(T&&)` function template did
-> not yet exist to allow data buffer ownership to be transferred from C++ to a
-> NumPy array without any data copy.
-
 ## Walkthrough
 
 Let's walk through an example. Suppose we have a C++ function \[template\]
