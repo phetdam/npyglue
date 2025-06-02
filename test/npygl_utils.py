@@ -59,7 +59,7 @@ def list_unittest_tests(modname: str, show_active: bool = False) -> list[str]:
         issubclass(getattr(mod, attr), unittest.TestCase)
     ]
 
-    # helper function to create the class-prefixed test case namem possibly
+    # helper function to create the class-prefixed test case name, possibly
     # with the skip indicator. this tests for the undocumented
     # __unittest_skip__ property if show_active=True
     def _make_name(cls: type, fname: str) -> str:
