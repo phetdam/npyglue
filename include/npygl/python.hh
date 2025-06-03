@@ -1326,7 +1326,7 @@ inline auto py_error(PyObject* exc, std::string_view message) noexcept
  * @tparam Ts... Argument types
  *
  * @param exc Exception type to set
- * @param args... Arguments to format in exception message
+ * @param args Arguments to format in exception message
  * @returns `nullptr` for use in `PyCFunction` return statements
  */
 template <typename... Ts>
@@ -1419,7 +1419,7 @@ inline void py_error_exit(
  *
  * @param expr Expression to set error and exit if `true`
  * @param exc Exception type to set
- * @param args... Arguments to format in exception message
+ * @param args Arguments to format in exception message
  */
 template <typename... Ts>
 inline void py_error_exit(bool expr, PyObject* exc, Ts&&... args)
