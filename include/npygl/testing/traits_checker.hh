@@ -108,6 +108,7 @@ struct traits_checker_banner {
  * @tparam status Pass/fail/skip status
  *
  * @param out Output stream
+ * @param banner Test case status banner to write
  */
 template <traits_checker_case_status status>
 auto& operator<<(std::ostream& out, traits_checker_banner<status> banner)
@@ -131,7 +132,8 @@ struct traits_checker_case_formatter {};
  *
  * @tparam T Traits test case
  *
- * @param formatter Formatter instance
+ * @param out Output stream
+ * @param formatter Formatter instance to invoke
  */
 template <typename T>
 auto& operator<<(std::ostream& out, traits_checker_case_formatter<T> formatter)
