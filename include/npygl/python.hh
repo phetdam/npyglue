@@ -1937,7 +1937,7 @@ auto as(PyObject* obj) noexcept
 }
 
 /**
- * Traits class to deterine if a `PyObject*` can be converted to a target type.
+ * Traits class to check if a `PyObject*` can be converted to a target type.
  *
  * @tparam T Target type
  */
