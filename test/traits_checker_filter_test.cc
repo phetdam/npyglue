@@ -324,10 +324,11 @@ filter_test_driver::operator()(int argc, char** argv) const
 "                        -T TEST_PATTERN |\n"
 "                        --print-driver-type]\n"
 "\n"
-"Run the type traits checker tests and/or filter by test cases.\n"
+"Run the tests registered with the type traits checker driver.\n"
 "\n"
 "If multiple options are specified the last option is considered. -h, --help\n"
-"will override all other options presented.\n"
+"will override all other options presented. If no options are provided, then\n"
+"all the type traits tests will be run as usual.\n"
 "\n"
 "Options:\n"
 "  -h, --help             Print this usage\n"
@@ -348,8 +349,7 @@ filter_test_driver::operator()(int argc, char** argv) const
     }
     // print version info
     case traits_checker_run_action::print_version: {
-      std::cout << "npyglue traits checker " NPYGL_VERSION <<
-        std::endl;
+      std::cout << "npyglue " NPYGL_VERSION << std::endl;
       return true;
     }
     // list all tests
