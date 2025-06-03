@@ -5,15 +5,7 @@
  * @copyright MIT License
  */
 
-// ensure SWIG is running in C++ mode
-#ifndef __cplusplus
-#error "ndarray.i: SWIG C++ processing must be enabled with -c++"
-#endif  // __cplusplus
-
-// ensure SWIG is running to generate Python wrappers
-#ifndef SWIGPYTHON
-#error "ndarray.i: can only be used with Python as target language"
-#endif  // SWIGPYTHON
+%include "npygl/common.i"
 
 %{
 #include <npygl/ndarray.hh>  // includes <numpy/ndarrayobject.h>
