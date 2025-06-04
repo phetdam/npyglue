@@ -206,18 +206,17 @@ namespace detail {
  * @note This function is intended for use with `METH_VARARGS` functions only.
  *
  * @tparam Ts... types
- * @tparam Is... Index values from 0 through sizeof...(Ts) - 1
+ * @tparam Is... Indices 0 through sizeof...(Ts) - 1 for each type `Ts`
  *
  * @param args Python arguments
  * @param vars Variable references to parse arguments into
- * @param var_is Unused index sequence to deduce indices
  * @returns `true` on success, `false` on error
  */
 template <typename... Ts, std::size_t... Is>
 bool parse_args(
   PyObject* args,
   const std::tuple<Ts&...>& vars,
-  std::index_sequence<Is...> /*var_is*/) noexcept
+  std::index_sequence<Is...>) noexcept
 {
   static_assert(sizeof...(Ts) == sizeof...(Is));
   return !!PyArg_ParseTuple(args, py_format<Ts...>, &std::get<Is>(vars)...);
@@ -250,24 +249,22 @@ namespace detail {
  * @note This function is intended for use with `METH_VARARGS` functions only.
  *
  * @tparam RTs... Required types
- * @tparam RIs... Index values from 0 through sizeof...(RTs) - 1
+ * @tparam RIs... Indices 0 through sizeof...(RTs) - 1 for each type `RTs`
  * @tparam OTs... Optional types
- * @tparam OIs... Index values from 0 through sizeof...(OTs) - 1
+ * @tparam OIs... Indices 0 through sizeof...(OTs) - 1 for each type `OTs`
  *
  * @param args Python arguments
  * @param reqs Variable references to parse required arguments into
- * @param req_is Unused index sequence to deduce indices
  * @param opts Varuable references to parse optional arguments into
- * @param opt_is Unused index sequence to deduce indices
  * @returns `true` on success, `false` on error
  */
 template <typename... RTs, std::size_t... RIs, typename... OTs, std::size_t... OIs>
 bool parse_args(
   PyObject* args,
   const std::tuple<RTs&...>& reqs,
-  std::index_sequence<RIs...> /*req_is*/,
+  std::index_sequence<RIs...>,
   const std::tuple<OTs&...>& opts,
-  std::index_sequence<OIs...> /*opt_is*/) noexcept
+  std::index_sequence<OIs...>) noexcept
 {
   static_assert(sizeof...(RTs) == sizeof...(RIs));
   static_assert(sizeof...(OTs) == sizeof...(OIs));
@@ -291,7 +288,7 @@ bool parse_args(
  *
  * @param args Python arguments
  * @param reqs Variable references to parse required arguments into
- * @param opts Varuable references to parse optional arguments into
+ * @param opts Variable references to parse optional arguments into
  * @returns `true` on success, `false` on error
  */
 template <typename... RTs, typename... OTs>
@@ -325,18 +322,16 @@ inline constexpr const char* empty_string = "";
  * @note This function is only for `METH_VARARGS | METH_KEYWORDS` functions.
  *
  * @tparam RTs... Required types
- * @tparam RIs... Index values from 0 through sizeof...(RTs) - 1
+ * @tparam RIs... Indices 0 through sizeof...(RTs) - 1 for each type `RTs`
  * @tparam N Number of keyword arguments
  * @tparam OTs... Optional types
- * @tparam OIs... Index values from 0 through sizeof...(OTs) - 1
+ * @tparam OIs... Indices 0 through sizeof...(OTs) - 1 for each type `OTs`
  *
  * @param args Python required arguments
  * @param reqs Variable references to parse required arguments into
- * @param req_is Unused index sequence to deduce indices
- * @param kws Optional keywords argument names
+ * @param kws Optional keyword argument names
  * @param kwargs Python keyword optional arguments
  * @param opts Variable references to parse optional keywords arguments into
- * @param req_is Unused index sequence to deduce indices
  * @returns `true` on success, `false` on error
  */
 template <
@@ -348,11 +343,11 @@ template <
 bool parse_args(
   PyObject* args,
   const std::tuple<RTs&...>& reqs,
-  std::index_sequence<RIs...> /*req_is*/,
+  std::index_sequence<RIs...>,
   const char* (&kws)[N],
   PyObject* kwargs,
   const std::tuple<OTs&...>& opts,
-  std::index_sequence<OIs...> /*opt_is*/) noexcept
+  std::index_sequence<OIs...>) noexcept
 {
   // counts of required and optional types
   constexpr auto n_req = sizeof...(RTs);
@@ -468,6 +463,10 @@ inline constexpr const char* py_object_format = py_object_format_type<N>::value;
  *
  * This uses the generic `"O"` conversion specifier with `PyArg_ParseTuple`.
  *
+ * The non-type template parameter pack `Is...`, where `sizeof...(Is)` <= `N`,
+ * the number of elements in the `PyObject*` array, specifies which elements in
+ * the `PyObject*` array `objs` will be used with `PyArg_ParseTuple`.
+ *
  * @note This function is intended for use with `METH_VARARGS` functions only.
  *
  * @tparam N Number of expected Python arguments
@@ -475,14 +474,13 @@ inline constexpr const char* py_object_format = py_object_format_type<N>::value;
  *
  * @param args Python arguments
  * @param objs Array of `PyObject*` to convert to
- * @param seq Index sequence indicating which elements of `objs` are populated
  * @returns `true` on success, `false` on error
  */
 template <std::size_t N, std::size_t... Is>
 bool parse_args(
   PyObject* args,
   PyObject* (&objs)[N],
-  std::index_sequence<Is...> NPYGL_UNUSED(seq)) noexcept
+  std::index_sequence<Is...>) noexcept
 {
   // number of indices must be less than or equal to array size
   static_assert(sizeof...(Is), "at least one index must be provided");
@@ -873,18 +871,15 @@ public:
    * On error, the created object is empty and a Python exception is set.
    *
    * @note May want to allow some kind of run-time toggle to enforce whether or
-   *  or not a tuple should always be created (even if array is size 1).
+   *  not a tuple should always be created.
    *
    * @tparam N Number of objects
    * @tparam Is... Sequence of array indices within 0 to N - 1 inclusive
    *
    * @param objs Array of Python objects
-   * @param seq Index sequence indicating which array objects are used
    */
   template <std::size_t N, std::size_t... Is>
-  static auto create(
-    PyObject* (&objs)[N],
-    std::index_sequence<Is...> NPYGL_UNUSED(seq)) noexcept
+  static auto create(PyObject* (&objs)[N], std::index_sequence<Is...>) noexcept
   {
     // number of indices must be nonzero
     static_assert(sizeof...(Is), "at least one index must be provided");
@@ -913,8 +908,7 @@ public:
    * @param seq Index sequence indicating which array objects are used
    */
   template <std::size_t N, std::size_t... Is>
-  static auto create(
-    py_object (&objs)[N], std::index_sequence<Is...> seq) noexcept
+  static auto create(py_object (&objs)[N], std::index_sequence<Is...> seq) noexcept
   {
     PyObject* refs[] = {objs[Is].ref()...};
     return create(refs, seq);
@@ -1002,8 +996,8 @@ NPYGL_MSVC_WARNING_POP()
    *
    * @note The use of `std::enable_if_t` here restricts overload selection to
    *  rvalues only. Without it, at least with GCC, template deduction results
-   *  in a reference type and attempting to decay results in template recusion
-   *  that easily exceeds the default recursion depth.
+   *  in a reference type and attempting to decay results in template recrusion
+   *  that easily exceeds the compiler's default recursion depth.
    *
    * @todo May want to refine `noexcept` specification to depend on T ctors.
    *
