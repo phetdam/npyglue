@@ -141,10 +141,8 @@ NPYGL_MSVC_WARNING_POP()
 /**
  * Return a new vector of the input range's elements multiplied by 2.
  *
- * @note
- *
- * We can definitely constrain the input more as the iterator must be a forward
- * iterator that yields arithmetic types but that is for later.
+ * @note We can definitely constrain the input more as the iterator must be a
+ *  forward iterator that yields arithmetic types but that is for later.
  *
  * @tparam R Range-like type
  *
