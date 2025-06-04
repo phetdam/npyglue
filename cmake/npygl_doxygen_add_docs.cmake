@@ -32,6 +32,7 @@ endfunction()
 #
 #   QUIET                   default: YES
 #   WARN_IF_UNDOCUMENTED    default: NO
+#   WARN_IF_INCOMPLETE_DOC  default: NO
 #   JAVADOC_AUTOBRIEF       default: YES
 #   DISABLE_INDEX           default: NO
 #   GENERATE_TREEVIEW       default: NO
@@ -58,6 +59,7 @@ function(npygl_doxygen_add_docs target)
         # Doxygen options
         QUIET
         WARN_IF_UNDOCUMENTED
+        WARN_IF_INCOMPLETE_DOC
         JAVADOC_AUTOBRIEF
         DISABLE_INDEX
         GENERATE_TREEVIEW
@@ -90,6 +92,7 @@ function(npygl_doxygen_add_docs target)
     # register Doxygen defaults (sets variables if not defined)
     npygl_doxygen_default(QUIET YES)
     npygl_doxygen_default(WARN_IF_UNDOCUMENTED NO)
+    npygl_doxygen_default(WARN_IF_INCOMPLETE_DOC NO)
     npygl_doxygen_default(JAVADOC_AUTOBRIEF YES)
     # for Doxygen >= 1.13.0 compatibility since defaults were changed to YES
     npygl_doxygen_default(DISABLE_INDEX NO)
