@@ -44,6 +44,11 @@
 
 /**
  * Macro indicating an unused argument.
+ *
+ * @note Doxygen does not correctly process this macro which causes instances
+ *  of `NPYGL_UNUSED(arg)` to show up in documentation as `NPYGL_UNUSEDarg`.
+ *  Doxygen will also erroneously report that `NPYGL_UNUSED` is an undocumented
+ *  parameter and that `arg` is not found in the function's argument list.
  */
 #define NPYGL_UNUSED(x)
 
