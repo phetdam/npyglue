@@ -231,12 +231,14 @@ concept npy_type = has_npy_type_traits_v<T>;
 /**
  * Import the NumPy C API and make it available for use.
  *
- * @todo Consider adding a default `py_instance` imported by default.
+ * A `py_instance` is a required parameter to force usage only after one has
+ * been created, e.g. with `py_init()` or via its constructor.
  *
- * @param python Python instance to ensure calling when Python is initialized
+ * @todo Consider allowing `py_init()` to be the argument default.
+ *
  * @returns `true` on success, `false` on error with Python exception set
  */
-inline bool npy_api_import(const py_instance& /*python*/) noexcept
+inline bool npy_api_import(const py_instance&) noexcept
 {
   return !PyArray_ImportNumPyAPI();
 }
