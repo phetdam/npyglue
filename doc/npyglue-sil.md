@@ -158,15 +158,13 @@ NPYGL_APPLY_NDARRAY_OUT_TYPEMAP(std::vector<long double>);
 namespace xmath {
 
 // wrapper for normal for Python
-// note: when we have std::optional<T> typemaps working this is unnecessary
+// note: even with std::optional<T> typemaps SWIG doesn't know how to translate
+// the default initializer in C++ into Python's None for a kwarg default
 // note: SWIG doesn't understand auto so we need to write out the return type
 template <typename T>
 std::vector<T> normal(std::size_t n, int seed = -1)
 {
-  return normal(
-    n,
-    (seed < 0) ? optional_seed_type{} : optional_seed_type{seed}
-  );
+  return normal(n, (seed < 0) ? optional_seed_type{} : optional_seed_type{seed});
 }
 
 }  // namespace xmath
