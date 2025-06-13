@@ -299,4 +299,28 @@ or the other appropriate
 [``find_package``](https://cmake.org/cmake/help/latest/command/find_package.html)
 hint variables, e.g. ``npyglue_ROOT``, may need to be set.
 
-TBD
+Now, consider the following simple Python script we can use to test our code:
+
+<!-- pygmentize: on -->
+
+```python3
+# xmath_random_test.py
+
+import xmath_random as xmr
+
+
+if __name__ == "__main__":
+    print(xmr.normal(64, seed=8))
+```
+
+Once the build is complete, on a Unix-like system we can run the script as
+follows:
+
+```shell
+PYTHONPATH=build python xmath_random_test.py
+```
+
+<!-- pygmentize: off -->
+
+This should print the contents of a NumPy `float64` array of standard normal
+deviates shape `(64,)`.
