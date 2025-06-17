@@ -13,6 +13,21 @@
 #include <type_traits>
 #include <utility>
 
+// TODO:
+//
+// enhance the begin/end checking. either of following should be allowed:
+//
+//  - std::begin() and std::end()
+//  - contains begin() and end() member functions (need not be const)
+//
+// the same should be done with size() as well:
+//
+//  - std::size()
+//  - contains size() member function (need not be const)
+//
+// this provides more flexibility for user-defined range types without
+// requiring adding std:: overloads or using std:: as done before C++20
+
 namespace npygl {
 
 /**
@@ -112,6 +127,39 @@ constexpr bool is_floating_point_range_v = is_floating_point_range<T>::value;
  */
 template <typename T>
 using floating_point_range_t = std::enable_if_t<is_floating_point_range_v<T>>;
+
+/**
+ * Traits type for a sized range.
+ *
+ * A sized range is one where `std::size` can be applied to get the number of
+ * hops between the begin and end iterators. User-defined overloads need not
+ * return an unsigned type but are of course encouraged to.
+ *
+ * @todo Support checking for a `size()` member function as well.
+ *
+ * @tparam T type
+ */
+template <typename T, typename = void, typename = void>
+struct is_sized_range : std::false_type {};
+
+/**
+ * True specialization for a range-like type supporting `std::size`.
+ *
+ * @tparam T type
+ */
+template <typename T>
+struct is_sized_range<
+  T,
+  std::enable_if_t<is_range_v<T>>,
+  std::void_t<decltype(size(std::declval<T>()))> > : std::true_type {};
+
+/**
+ * Helper to indicate if a type is a sized range.
+ *
+ * @tparam T type
+ */
+template <typename T>
+constexpr bool is_sized_range_v = is_sized_range<T>::value;
 
 }  // namespace npygl
 
