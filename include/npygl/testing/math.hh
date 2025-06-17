@@ -192,8 +192,12 @@ std::vector<T> array_double(ndarray_flat_view<const T> view)
 
 // implementation details SWIG should not process
 #ifndef SWIG
+// TODO:
+//
 // to simplify C++17/C++20 conditional compilation of the SWIG module we lock
-// these up in a separate namespace for now. eventually remove from detail::
+// range-based implementation templates up in a separate namespace for now.
+// eventually we want to remove these from detail::
+//
 namespace detail {
 
 /**
@@ -209,40 +213,6 @@ auto sine(R&& range)
   // sine functor since std::sin is overloaded (won't properly deduce)
   auto sine = [](auto v) { return std::sin(v); };
   return make_vector(std::forward<R>(range), sine);
-}
-
-/**
- * Return a new vector of the inverse sine of the input range's elements.
- *
- * @tparam R Range-like type
- *
- * @param range Input range
- */
-template <typename R>
-auto asine(R&& range)
-{
-  // asine functor since std::asin is overloaded (won't properly deduce)
-  auto asine = [](auto v) { return std::asin(v); };
-  return make_vector(std::forward<R>(range), asine);
-}
-
-/**
- * Function that compresses the values of the argument to the unit circle.
- *
- * In other words, all the values will fall in `[-1, 1]`.
- *
- * @note We should constrain this to floating-point types.
- *
- * @tparam R Range-like type
- *
- * @param range Input range
- */
-template <typename R>
-auto unit_compress(R&& range)
-{
-  auto radius = *std::max_element(std::begin(range), std::end(range));
-  auto func = [radius](auto v) { return v / radius; };
-  return make_vector(std::forward<R>(range), std::move(func));
 }
 
 }  // namespace detail
@@ -278,6 +248,28 @@ std::vector<T> sine(ndarray_flat_view<const T> view)
 }
 #endif  // NPYGL_SWIG_CC_20
 
+// implementation details SWIG should not process
+#ifndef SWIG
+namespace detail {
+
+/**
+ * Return a new vector of the inverse sine of the input range's elements.
+ *
+ * @tparam R Range-like type
+ *
+ * @param range Input range
+ */
+template <typename R>
+auto asine(R&& range)
+{
+  // asine functor since std::asin is overloaded (won't properly deduce)
+  auto asine = [](auto v) { return std::asin(v); };
+  return make_vector(std::forward<R>(range), asine);
+}
+
+}  // namespace detail
+#endif  // SWIG
+
 #if defined(NPYGL_SWIG_CC_20) || NPYGL_HAS_CC_20
 /**
  * Compute the inverse sine of the view elements.
@@ -307,6 +299,32 @@ std::vector<T> asine(ndarray_flat_view<const T> view)
   return detail::asine(view);
 }
 #endif  // NPYGL_SWIG_CC_20
+
+// implementation details SWIG should not process
+#ifndef SWIG
+namespace detail {
+
+/**
+ * Function that compresses the values of the argument to the unit circle.
+ *
+ * In other words, all the values will fall in `[-1, 1]`.
+ *
+ * @note We should constrain this to floating-point types.
+ *
+ * @tparam R Range-like type
+ *
+ * @param range Input range
+ */
+template <typename R>
+auto unit_compress(R&& range)
+{
+  auto radius = *std::max_element(std::begin(range), std::end(range));
+  auto func = [radius](auto v) { return v / radius; };
+  return make_vector(std::forward<R>(range), std::move(func));
+}
+
+}  // namespace detail
+#endif  // SWIG
 
 #if defined(NPYGL_SWIG_CC_20) || NPYGL_HAS_CC_20
 /**
@@ -342,6 +360,31 @@ std::vector<T> unit_compress(ndarray_flat_view<const T> view)
 }
 #endif  // NPYGL_SWIG_CC_20
 
+// implementation details SWIG should not process
+#ifndef SWIG
+namespace detail {
+
+/**
+ * Return the 1-norm of the given range.
+ *
+ * @tparam R Range-like type
+ *
+ * @param range Input range
+ */
+template <typename R>
+auto norm1(R&& range) noexcept
+{
+  return std::accumulate(
+    std::begin(range),
+    std::end(range),
+    range_value_t<R>{},
+    [](const auto& sum, const auto& a) { return sum + std::abs(a); }
+  );
+}
+
+}  // namespace detail
+#endif  // SWIG
+
 #if defined(NPYGL_SWIG_CC_20) || NPYGL_HAS_CC_20
 /**
  * Return the 1-norm of the given view.
@@ -353,12 +396,7 @@ std::vector<T> unit_compress(ndarray_flat_view<const T> view)
 template <typename T>
 T norm1(std::span<const T> view) noexcept
 {
-  return std::accumulate(
-    view.begin(),
-    view.end(),
-    T{},
-    [](const T& sum, const T& a) { return sum + std::abs(a); }
-  );
+  return detail::norm1(view);
 }
 #endif  // !defined(NPYGL_SWIG_CC_20) && !NPYGL_HAS_CC_20
 
@@ -373,16 +411,7 @@ T norm1(std::span<const T> view) noexcept
 template <typename T>
 T norm1(ndarray_flat_view<const T> view) noexcept
 {
-#if NPYGL_HAS_CC_20
-  return norm1(std::span{view.begin(), view.end()});
-#else
-  return std::accumulate(
-    view.begin(),
-    view.end(),
-    T{},
-    [](const T& sum, const T& a) { return sum + std::abs(a); }
-  );
-#endif  // !NPYGL_HAS_CC_20
+  return detail::norm1(view);
 }
 #endif  // NPYGL_SWIG_CC_20
 
@@ -498,7 +527,6 @@ enum class rngs {
 
 // implementation details SWIG should not process
 #ifndef SWIG
-
 /**
  * Traits type to map a `rngs` value to a PRNG type.
  *
