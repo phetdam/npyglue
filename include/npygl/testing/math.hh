@@ -444,6 +444,57 @@ T norm2(ndarray_flat_view<const T> view) noexcept
 }
 #endif  // NPYGL_SWIG_CC_20
 
+// implementation details SWIG should not process
+#ifndef SWIG
+namespace detail {
+
+/**
+ * Constraints for `inner` that requires both ranges have compatible types.
+ *
+ * Both ranges must have floating point value types that share commonality.
+ * The provided type will be the common floating type amongst the ranges.
+ *
+ * @tparam T1 Range-like type
+ * @tparam T2 Range-like type
+ */
+template <typename T1, typename T2>
+using inner_constraints_t = std::enable_if_t<
+  // common value type needs to be floating
+  std::is_floating_point_v<
+    std::common_type_t<range_value_t<T1>, range_value_t<T2>>
+  >,
+  // if instantiable, provide the common value type as a convenience
+  std::common_type_t<range_value_t<T1>, range_value_t<T2>>
+>;
+
+/**
+ * Compute the vector inner product of the two ranges.
+ *
+ * The return type is the common type amongst the two inputs' element types. If
+ * there is no common type then there will be a template substitution failure.
+ *
+ * @note We use an `assert()` instead of throwing an exception to keep the
+ *  function `noexcept` and to show how to work around this using `%inline`.
+ *
+ * @tparam R1 Range-like type
+ * @tparam R2 Range-like type
+ *
+ * @param r1 First input range
+ * @param r2 Second input range
+ */
+template <typename R1, typename R2, typename = inner_constraints_t<R1, R2>>
+auto inner(R1&& r1, R2&& r2) noexcept
+{
+  // also the common value type
+  using value_type = inner_constraints_t<R1, R2>;
+  // TODO: need to allow sized range here + maybe not rely on assert()
+  assert(r1.size() == r2.size());
+  return std::inner_product(r1.begin(), r2.begin(), r2.end(), value_type{});
+}
+
+}  // namespace detail
+#endif  // SWIG
+
 #if defined(NPYGL_SWIG_CC_20) || NPYGL_HAS_CC_20
 /**
  * Compute the vector inner product.
@@ -463,8 +514,7 @@ T norm2(ndarray_flat_view<const T> view) noexcept
 template <typename T, typename U, typename V = std::common_type_t<T, U>>
 V inner(std::span<const T> in1, std::span<const U> in2) noexcept
 {
-  assert(in1.size() == in2.size());
-  return std::inner_product(in1.begin(), in1.end(), in2.begin(), V{});
+  return detail::inner(in1, in2);
 }
 #endif  // !defined(NPYGL_SWIG_CC_20) && !NPYGL_HAS_CC_20
 
@@ -487,13 +537,7 @@ V inner(std::span<const T> in1, std::span<const U> in2) noexcept
 template <typename T, typename U, typename V = std::common_type_t<T, U>>
 V inner(ndarray_flat_view<const T> in1, ndarray_flat_view<const U> in2) noexcept
 {
-#if NPYGL_HAS_CC_20
-  using std::span;
-  return inner(span{in1.begin(), in2.end()}, span{in2.begin(), in2.end()});
-#else
-  assert(in1.size() == in2.size());
-  return std::inner_product(in1.begin(), in1.end(), in2.begin(), V{});
-#endif  // !NPYGL_HAS_CC_20
+  return detail::inner(in1, in2);
 }
 #endif  // NPYGL_SWIG_CC_20
 
