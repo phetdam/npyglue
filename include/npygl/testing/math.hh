@@ -26,7 +26,7 @@
 #include "npygl/common.h"
 #include "npygl/features.h"
 #include "npygl/ndarray.hh"
-#include "npygl/type_traits.hh"
+#include "npygl/range_traits.hh"
 #include "npygl/warnings.h"
 
 #if NPYGL_HAS_CC_20
@@ -47,32 +47,6 @@ namespace testing {
 // implementation details SWIG should not process
 #ifndef SWIG
 namespace detail {
-
-/**
- * Traits to get the value type of a range's iterator.
- *
- * @tparam R Range-like type
- */
-template <typename R, typename = void>
-struct range_value {};
-
-/**
- * True specialization for range-like types.
- *
- * @tparam R Range-like type
- */
-template <typename R>
-struct range_value<R, iterable_range_t<R>> {
-  using type = std::decay_t<decltype(*std::begin(std::declval<R>()))>;
-};
-
-/**
- * SFINAE-capable type alias for the value type of the range-like type.
- *
- * @tparam R Range-like type
- */
-template <typename R>
-using range_value_t = typename range_value<R>::type;
 
 /**
  * Traits type for `make_vector(R&&, F&&)` constaints.
@@ -128,7 +102,7 @@ auto make_vector(R&& range, F&& func)
   // result vector + index
 NPYGL_MSVC_WARNING_PUSH()
 NPYGL_MSVC_WARNING_DISABLE(4365)
-  std::vector<detail::range_value_t<R>> res(std::distance(begin, end));
+  std::vector<range_value_t<R>> res(std::distance(begin, end));
 NPYGL_MSVC_WARNING_POP()
   std::size_t i = 0u;
   // populate + return
@@ -196,35 +170,6 @@ std::vector<T> array_double(ndarray_flat_view<const T> view)
 // lock range-based implementation templates up in a separate namespace for
 // now. eventually we want to remove these from detail::
 namespace detail {
-
-/**
- * Traits type for an iterable range with a floating point value type.
- *
- * @tparam T type
- */
-template <typename T, typename = void>
-struct is_floating_point_range : std::false_type {};
-
-/**
- * True specialization for a range with a floating point value type.
- *
- * @tparam T type
- */
-template <typename T>
-struct is_floating_point_range<
-  T,
-  std::enable_if_t<
-    is_iterable_v<T> &&
-    std::is_floating_point_v<range_value_t<T>>
-  > > : std::true_type {};
-
-/**
- * SFINAE helper for a range with an arithmetic value type.
- *
- * @tparam T type
- */
-template <typename T>
-using floating_point_range_t = std::enable_if_t<is_floating_point_range<T>::value>;
 
 /**
  * Return a new vector of the sine of the input range's elements.
