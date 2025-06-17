@@ -26,6 +26,7 @@
 #include "npygl/common.h"
 #include "npygl/features.h"
 #include "npygl/ndarray.hh"
+#include "npygl/type_traits.hh"
 #include "npygl/warnings.h"
 
 #if NPYGL_HAS_CC_20
