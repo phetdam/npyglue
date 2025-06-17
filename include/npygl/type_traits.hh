@@ -516,6 +516,8 @@ constexpr bool is_ostreamable_v = is_ostreamable<T>::value;
 /**
  * Traits type for a range that can yield begin and end iterators.
  *
+ * @deprecated Prefer using `is_range<T>` instead.
+ *
  * @tparam T type
  */
 template <typename T, typename = void, typename = void>
@@ -523,6 +525,8 @@ struct is_iterable : std::false_type {};
 
 /**
  * True specialization for a range that can yield begin and end iterators.
+ *
+ * @deprecated Prefer using `is_range<T>` instead.
  *
  * @tparam T type
  */
@@ -534,6 +538,8 @@ struct is_iterable<
 
 /**
  * Helper to indicate if a type can yield begin and end iterators.
+ *
+ * @deprecated Prefer using `is_range_v<T>` instead.
  *
  * @tparam T type
  */
