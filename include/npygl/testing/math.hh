@@ -441,6 +441,34 @@ T norm1(ndarray_flat_view<const T> view) noexcept
 }
 #endif  // NPYGL_SWIG_CC_20
 
+// implementation details SWIG should not process
+#ifndef SWIG
+namespace detail {
+
+/**
+ * Return the 2-norm of the given range.
+ *
+ * @tparam R Range-like type
+ *
+ * @param range Input range
+ */
+template <typename R, typename = floating_point_range_t<R>>
+auto norm2(R&& range) noexcept
+{
+  // sum of squared values
+  auto total = std::accumulate(
+    std::begin(range),
+    std::end(range),
+    range_value_t<R>{},
+    [](const auto& sum, const auto& a) { return sum + a * a; }
+  );
+  // square root for norm
+  return std::sqrt(total);
+}
+
+}  // namespace detail
+#endif  // SWIG
+
 #if defined(NPYGL_SWIG_CC_20) || NPYGL_HAS_CC_20
 /**
  * Return the 2-norm of the given view.
@@ -452,14 +480,7 @@ T norm1(ndarray_flat_view<const T> view) noexcept
 template <typename T>
 T norm2(std::span<const T> view) noexcept
 {
-  // sum of squared values
-  auto total = std::accumulate(
-    view.begin(),
-    view.end(),
-    T{},
-    [](const T& sum, const T& a) { return sum + a * a; }
-  );
-  return std::sqrt(total);
+  return detail::norm2(view);
 }
 #endif  // !defined(NPYGL_SWIG_CC_20) && !NPYGL_HAS_CC_20
 
@@ -474,18 +495,7 @@ T norm2(std::span<const T> view) noexcept
 template <typename T>
 T norm2(ndarray_flat_view<const T> view) noexcept
 {
-#if NPYGL_HAS_CC_20
-  return norm2(std::span{view.begin(), view.end()});
-#else
-  return std::sqrt(
-    std::accumulate(
-      view.begin(),
-      view.end(),
-      T{},
-      [](const T& sum, const T& a) { return sum + a * a; }
-    )
-  );
-#endif  // !NPYGL_HAS_CC_20
+  return detail::norm2(view);
 }
 #endif  // NPYGL_SWIG_CC_20
 
