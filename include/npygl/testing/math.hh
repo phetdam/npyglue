@@ -192,13 +192,39 @@ std::vector<T> array_double(ndarray_flat_view<const T> view)
 
 // implementation details SWIG should not process
 #ifndef SWIG
-// TODO:
-//
-// to simplify C++17/C++20 conditional compilation of the SWIG module we lock
-// range-based implementation templates up in a separate namespace for now.
-// eventually we want to remove these from detail::
-//
+// TODO: to simplify C++17/C++20 conditional compilation of the SWIG module we
+// lock range-based implementation templates up in a separate namespace for
+// now. eventually we want to remove these from detail::
 namespace detail {
+
+/**
+ * Traits type for an iterable range with a floating point value type.
+ *
+ * @tparam T type
+ */
+template <typename T, typename = void>
+struct is_floating_point_range : std::false_type {};
+
+/**
+ * True specialization for a range with a floating point value type.
+ *
+ * @tparam T type
+ */
+template <typename T>
+struct is_floating_point_range<
+  T,
+  std::enable_if_t<
+    is_iterable_v<T> &&
+    std::is_floating_point_v<range_value_t<T>>
+  > > : std::true_type {};
+
+/**
+ * SFINAE helper for a range with an arithmetic value type.
+ *
+ * @tparam T type
+ */
+template <typename T>
+using floating_point_range_t = std::enable_if_t<is_floating_point_range<T>::value>;
 
 /**
  * Return a new vector of the sine of the input range's elements.
@@ -207,7 +233,7 @@ namespace detail {
  *
  * @param range Input range
  */
-template <typename R>
+template <typename R, typename = floating_point_range_t<R>>
 auto sine(R&& range)
 {
   // sine functor since std::sin is overloaded (won't properly deduce)
@@ -259,7 +285,7 @@ namespace detail {
  *
  * @param range Input range
  */
-template <typename R>
+template <typename R, typename = floating_point_range_t<R>>
 auto asine(R&& range)
 {
   // asine functor since std::asin is overloaded (won't properly deduce)
@@ -315,7 +341,7 @@ namespace detail {
  *
  * @param range Input range
  */
-template <typename R>
+template <typename R, typename = floating_point_range_t<R>>
 auto unit_compress(R&& range)
 {
   auto radius = *std::max_element(std::begin(range), std::end(range));
@@ -371,7 +397,7 @@ namespace detail {
  *
  * @param range Input range
  */
-template <typename R>
+template <typename R, typename = floating_point_range_t<R>>
 auto norm1(R&& range) noexcept
 {
   return std::accumulate(
