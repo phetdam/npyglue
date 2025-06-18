@@ -21,6 +21,8 @@
 
 namespace {
 
+// TOOD: add user-defined types for traits checking
+
 // test driver type
 using driver_type = npygl::testing::traits_checker_driver<
   // is_range
