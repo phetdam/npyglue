@@ -10,28 +10,64 @@
 #ifndef NPYGL_RANGE_TRAITS_HH_
 #define NPYGL_RANGE_TRAITS_HH_
 
+#include <iterator>     // for std::size definition
 #include <type_traits>
 #include <utility>
-
-// TODO:
-//
-// enhance the begin/end checking. either of following should be allowed:
-//
-//  - std::begin() and std::end()
-//  - contains begin() and end() member functions (need not be const)
-//
-// the same should be done with size() as well:
-//
-//  - std::size()
-//  - contains size() member function (need not be const)
-//
-// this provides more flexibility for user-defined range types without
-// requiring adding std:: overloads or using std:: as done before C++20
 
 namespace npygl {
 
 /**
- * Traits to indicate if a type is a range-like type.
+ * Traits to check that a type is compatible with `std::begin`.
+ *
+ * @tparam T type
+ */
+template <typename T, typename = void>
+struct is_begin_compatible : std::false_type {};
+
+/**
+ * True specialization for types compatible with `std::begin`.
+ */
+template <typename T>
+struct is_begin_compatible<
+  T,
+  std::void_t<decltype(std::begin(std::declval<T>()))> > : std::true_type {};
+
+/**
+ * Helper to indicate if a type is compatible with `std::begin`.
+ *
+ * @tparam T type
+ */
+template <typename T>
+constexpr bool is_begin_compatible_v = is_begin_compatible<T>::value;
+
+/**
+ * Traits to check that a type is compatible with `std::end`.
+ *
+ * @tparam T type
+ */
+template <typename T, typename = void>
+struct is_end_compatible : std::false_type {};
+
+/**
+ * True specialization for types compatible with `std::end`.
+ *
+ * @tparam T type
+ */
+template <typename T>
+struct is_end_compatible<
+  T,
+  std::void_t<decltype(std::end(std::declval<T>()))> > : std::true_type {};
+
+/**
+ * Helper to indicate if a type is compatible with `std::end`.
+ *
+ * @tparam T type
+ */
+template <typename T>
+constexpr bool is_end_compatible_v = is_end_compatible<T>::value;
+
+/**
+ * Traits to check if a type is a range-like type.
  *
  * Such a type works with `std::begin` and `std::end`.
  *
@@ -39,7 +75,7 @@ namespace npygl {
  *
  * @tparam T type
  */
-template <typename T, typename = void, typename = void>
+template <typename T, typename = void>
 struct is_range : std::false_type {};
 
 /**
@@ -53,8 +89,8 @@ struct is_range : std::false_type {};
 template <typename T>
 struct is_range<
   T,
-  std::void_t<decltype(std::begin(std::declval<T>()))>,
-  std::void_t<decltype(std::end(std::declval<T>()))> > : std::true_type {};
+  std::enable_if_t<is_begin_compatible_v<T> && is_end_compatible_v<T>> >
+  : std::true_type {};
 
 /**
  * Helper to indicate if a type is range-like.
@@ -151,7 +187,7 @@ template <typename T>
 struct is_sized_range<
   T,
   std::enable_if_t<is_range_v<T>>,
-  std::void_t<decltype(size(std::declval<T>()))> > : std::true_type {};
+  std::void_t<decltype(std::size(std::declval<T>()))> > : std::true_type {};
 
 /**
  * Helper to indicate if a type is a sized range.
