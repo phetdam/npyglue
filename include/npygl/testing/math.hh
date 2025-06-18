@@ -486,10 +486,10 @@ template <typename R1, typename R2, typename = inner_constraints_t<R1, R2>>
 auto inner(R1&& r1, R2&& r2) noexcept
 {
   // also the common value type
-  using value_type = inner_constraints_t<R1, R2>;
+  using T = inner_constraints_t<R1, R2>;
   // TODO: need to allow sized range here + maybe not rely on assert()
-  assert(r1.size() == r2.size());
-  return std::inner_product(r1.begin(), r2.begin(), r2.end(), value_type{});
+  assert(std::size(r1) == std::size(r2));
+  return std::inner_product(std::begin(r1), std::end(r1), std::begin(r2), T{});
 }
 
 }  // namespace detail
