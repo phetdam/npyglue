@@ -491,6 +491,11 @@ set_tests_properties(
     SKIP_REGULAR_EXPRESSION "SKIPPED"
 )
 
+# range_traits_test: C++ range traits tests
+add_executable(range_traits_test range_traits_test.cc)
+target_link_libraries(range_traits_test PRIVATE npyglue)
+add_test(NAME range_traits_test COMMAND range_traits_test)
+
 # npy_intp_alias_test: test when npy_intp can alias different types
 if(Python3_NumPy_FOUND AND TORCH_FOUND)
     npygl_add_py3_executable(
