@@ -430,6 +430,20 @@ endif()
 # find Doxygen
 find_package(Doxygen 1.10)
 if(DOXYGEN_FOUND)
+    # warn about Doxygen 1.11.0 regression that broke reference resolution for
+    # pages generated from Markdown files. see the GitHub issue for details:
+    # https://github.com/doxygen/doxygen/issues/10906
+    if(DOXYGEN_VERSION VERSION_EQUAL 1.11.0)
+        message(
+            WARNING
+            "Doxygen 1.11.0 has a regression that causes references to "
+"Markdown files with @ref to not be properly resolved. See details at "
+"https://github.com/doxygen/doxygen/issues/10906."
+"\n"
+"If you do not downgrade/upgrade your Doxygen version the npyglue HTML docs "
+"will contain broken page links. Ignore this warning at your own risk."
+        )
+    endif()
     message(STATUS "Doxygen version: ${DOXYGEN_VERSION}")
 else()
     message(STATUS "Doxygen version: None")
