@@ -310,7 +310,8 @@ import xmath_random as xmr
 
 
 if __name__ == "__main__":
-    print(xmr.normal(64, seed=8))
+    for f in (xmr.normal, xmr.fnormal, xmr.ldnormal)
+        print(f(32, seed=8))
 ```
 
 Once the build is complete, on a Unix-like system we can run the script as
@@ -322,5 +323,6 @@ PYTHONPATH=build python xmath_random_test.py
 
 <!-- pygmentize: off -->
 
-This should print the contents of a NumPy `float64` array of standard normal
-deviates shape `(64,)`.
+This should print the contents of three NumPy arrays of standard normal
+deviates shape `(32,)` with identical values but with differing data types
+`numpy.float64`, `numpy.float32`, and `numpy.longdouble` respectively.
