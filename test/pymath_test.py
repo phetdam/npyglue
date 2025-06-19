@@ -25,12 +25,11 @@ from npygl_utils import HelpFormatter, list_unittest_tests
 # module handle. this is set by main() after looking at CLI options
 pm = None
 
-# TODO: tests failing until we change the tests to have the expected value be
-# flattened via ravel(). this is due to a change in the C++ implementations. we
-# also need to determine whether or not it makes sense for std::span to be a
-# way to indicate at compile-time that we want a 1D flat range. in this case,
-# ndarray_flat_view will still indicate a flat view of any NumPy array, but be
-# the only type that is available to do so
+# TODO: affected tests have their expected outputs constructed from raveled
+# inputs as the C++ implementations have changed to return single vectors. we
+# still need to determine if it makes sense for std::span to indicate at
+# compile-time that a function requires a flat 1D range. regardless, the
+# ndarray_flat_view will still indicate a flat view of any NumPy array
 
 
 class TestArrayDouble(unittest.TestCase):
@@ -39,12 +38,14 @@ class TestArrayDouble(unittest.TestCase):
     def test_double_list(self):
         """Test array_double on a nested list."""
         in_list = [[[3, 4], [2, 4]], [[1, 3], [5, 2]]]
-        assert_allclose(pm.array_double(in_list), 2 * np.array(in_list))
+        # note: expected output is flattened
+        assert_allclose(pm.array_double(in_list), 2 * np.ravel(in_list))
 
     def test_fdouble_list(self):
         """Test farray_double on a nested list."""
         in_list = [[[1, 4.4]], [[3.2, 15]], [[4, 2.2222]]]
-        assert_allclose(pm.farray_double(in_list), 2 * np.array(in_list))
+        # note: expected output is flattened
+        assert_allclose(pm.farray_double(in_list), 2 * np.ravel(in_list))
 
     def test_double_array(self):
         """Test array_double on a NumPy array."""
@@ -55,7 +56,8 @@ class TestArrayDouble(unittest.TestCase):
         """Test farray_double on a NumPy array."""
         # cannot safely convert from float64 -> float32 so specify dtype
         in_ar = np.array([[2.3, 1.111], [4.3, 4.111]], dtype=np.float32)
-        assert_allclose(pm.farray_double(in_ar), 2 * in_ar)
+        # note: expected output is flattened
+        assert_allclose(pm.farray_double(in_ar), np.ravel(2 * in_ar))
 
 
 class TestUnitCompress(unittest.TestCase):
@@ -66,7 +68,8 @@ class TestUnitCompress(unittest.TestCase):
         in_list = [[3.4, 1.1111], [4, 3]]
         assert_allclose(
             pm.unit_compress(in_list),
-            np.array(in_list) / np.max(in_list)
+            # note: expected output is flattened
+            np.ravel(np.array(in_list) / np.max(in_list))
         )
 
     def test_fcompress_list(self):
@@ -74,7 +77,8 @@ class TestUnitCompress(unittest.TestCase):
         in_list = [[[2]], [[2.333]], [[1.111]], [[12]]]
         assert_allclose(
             pm.funit_compress(in_list),
-            np.array(in_list) / np.max(in_list)
+            # note: expected output is flattened
+            np.ravel(np.array(in_list) / np.max(in_list))
         )
 
     def test_compress_array(self):
@@ -85,7 +89,8 @@ class TestUnitCompress(unittest.TestCase):
     def test_fcompress_array(self):
         """Test funit_compress on a NumPy array."""
         in_ar = np.array([[[4.33]], [[3.22343]], [[3.11]]], dtype=np.float32)
-        assert_allclose(pm.funit_compress(in_ar), in_ar / np.max(in_ar))
+        # note: expected output is flattened
+        assert_allclose(pm.funit_compress(in_ar), np.ravel(in_ar / np.max(in_ar)))
 
 
 class TestSine(unittest.TestCase):
@@ -94,22 +99,26 @@ class TestSine(unittest.TestCase):
     def test_sine_list(self):
         """Test sine on a nested list."""
         in_list = [[[4.3]], [[1.3343]], [[12]]]
-        assert_allclose(pm.sine(in_list), np.sin(in_list))
+        # note: expected output is flattened
+        assert_allclose(pm.sine(in_list), np.sin(in_list).ravel())
 
     def test_fsine_list(self):
         """Test fsine on a nested list."""
         in_list = [[3.4, 2], [1.22, 4.5], [1.33, 1]]
-        assert_allclose(pm.fsine(in_list), np.sin(in_list, dtype=np.float32))
+        # note: expected output is flattened
+        assert_allclose(pm.fsine(in_list), np.sin(in_list, dtype=np.float32).ravel())
 
     def test_sine_array(self):
         """Test sine on a NumPy array."""
         in_ar = np.array([[[3.444]], [[2.33]], [[1.2121]]])
-        assert_allclose(pm.sine(in_ar), np.sin(in_ar))
+        # note: expected output is flattened
+        assert_allclose(pm.sine(in_ar), np.sin(in_ar).ravel())
 
     def test_fsine_array(self):
         """Test fsine on a NumPy array."""
         in_ar = np.array([[3.4, 2.11, 1.22], [2.323, 1.11, 1.141]], dtype=np.float32)
-        assert_allclose(pm.fsine(in_ar), np.sin(in_ar))
+        # note: expected output is flattened
+        assert_allclose(pm.fsine(in_ar), np.sin(in_ar).ravel())
 
 
 class TestNorm1(unittest.TestCase):
