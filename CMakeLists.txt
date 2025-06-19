@@ -709,7 +709,7 @@ if(DOXYGEN_FOUND AND NPYGL_HAS_PYGMENTS)
     # add Doxygen target with presets
     npygl_doxygen_add_docs(
         ${PROJECT_NAME}_docs
-        SOURCES ${NPYGL_INCLUDE_DIR} ${pyginject_outputs}
+        SOURCES README.md ${NPYGL_INCLUDE_DIR} ${pyginject_outputs}
         COMMENT "Generating ${PROJECT_NAME} HTML documentation"
         VERBOSE
         # Doxygen configuration
@@ -722,6 +722,7 @@ if(DOXYGEN_FOUND AND NPYGL_HAS_PYGMENTS)
         PREDEFINED __cplusplus=201703L NPYGL_CPLUSPLUS=201703L
         # Doxygen layout file used to customize HTML page layout
         LAYOUT_FILE doc/layout.xml
+        USE_MDFILE_AS_MAINPAGE README.md
     )
     # Doxygen target depends on Pygments stylesheet generation + pyginject
     # processing of any listed Markdown files
