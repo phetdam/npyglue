@@ -403,7 +403,7 @@ filter_test_driver::operator()(int argc, char** argv) const
   }
 }
 
-// experimenal test driver
+// experimental test driver
 constexpr filter_test_driver driver;
 
 }  // namespace
