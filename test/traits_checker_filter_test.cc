@@ -342,7 +342,7 @@ filter_test_driver::operator()(int argc, char** argv) const
 "                         Run all traits checker tests matching the given regex\n"
 "                         pattern. Special characters may need to be escaped.\n"
 "\n"
-"  --print-driver-type    Print the traits_checker_driver<Ts...> demangled type\n"
+"  --print-driver-type    Print the traits_checker_driver<Ts...> demangled type.\n"
 "                         Be warned that the type name may be very long.\n";
       std::cout << std::flush;
       return true;
