@@ -395,6 +395,7 @@ add_test(
 # brief tests of the CLI options
 add_test(NAME ostream_test_h COMMAND ostream_test -h)
 add_test(NAME ostream_test_help COMMAND ostream_test --help)
+add_test(NAME ostream_test_l COMMAND ostream_test -l)
 add_test(NAME ostream_test_list_tests COMMAND ostream_test --list-tests)
 add_test(
     NAME ostream_test_list_all_tests
