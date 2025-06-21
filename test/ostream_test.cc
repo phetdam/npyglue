@@ -719,7 +719,7 @@ constexpr input_case_lister<input_types> lister;
 // program name and usage
 const auto program_name = std::filesystem::path{__FILE__}.stem().string();
 const std::string program_usage{
-  "Usage: " + program_name + " [-h] [--with-concurrent] [--list-tests]\n"
+  "Usage: " + program_name + " [-h] [--with-concurrent] [-l]\n"
   "\n"
   "Run tests on the npygl ostream_wrapper universal output stream types.\n"
   "\n"
@@ -729,7 +729,7 @@ const std::string program_usage{
   "  --with-concurrent    Enable running multithreaded tests of the synced\n"
   "                       std::ostream output stream wrappers\n"
   "\n"
-  "  --list-tests         List the test cases that will be run. The listed\n"
+  "  -l, --list-tests     List the test cases that will be run. The listed\n"
   "                       are affected by the presence of --with-concurrent."
 };
 
@@ -764,7 +764,7 @@ bool parse_options(program_options& opts, int argc, char* argv[])
     else if (arg == "--with-concurrent")
       opts.with_concurrent = true;
     // list tests
-    else if (arg == "--list-tests")
+    else if (arg == "-l" || arg == "--list-tests")
       opts.list_tests = true;
     // unknown argument
     else {
