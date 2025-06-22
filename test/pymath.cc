@@ -470,7 +470,7 @@ NPYGL_PY_FUNC_DECLARE(
  * @param v Enum value to cast
  */
 template <typename E, typename = std::enable_if_t<std::is_enum_v<E>>>
-constexpr auto as_underlying(E v)
+constexpr auto as_underlying(E v) noexcept
 {
   return static_cast<std::underlying_type_t<E>>(v);
 }
