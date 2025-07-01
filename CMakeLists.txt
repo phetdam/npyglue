@@ -234,6 +234,9 @@ if(NPYGL_PYTORCH_FOUND)
     # failure, so we first directly invoke FindSYCLToolkit.cmake to set
     # SYCL_FOUND. then, for XPU PyTorch builds, if no SYCL is found, we just
     # skip the Torch find_package call to avoid hitting the FATAL_ERROR.
+    # TODO: maybe just use our own check for icx --version because the Caffe2
+    # FindSYCLToolkit emits too many CMake warnings and will be repeated
+    # anyways in the Torch find_package call
     list(APPEND CMAKE_MODULE_PATH "${NPYGL_PYTORCH_CMAKE_PREFIX_PATH}/Caffe2")
     find_package(SYCLToolkit)
     list(POP_BACK CMAKE_MODULE_PATH)
