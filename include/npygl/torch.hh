@@ -629,7 +629,7 @@ auto make_tensor(T&& obj, const torch::TensorOptions& opts = {})
     // results in strides of {1}, std::array<int64_t, 2> results in strides of
     // {shape[1], 1} (assume row-major), and so on
     info.strides(),
-    // deleter calls ~V() explicitly
+    // deleter calls ~T() explicitly
     [buf_o](void*)
     {
       // buffer is deleted on scope exit
