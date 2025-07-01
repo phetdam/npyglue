@@ -126,6 +126,10 @@ else()
 endif()
 
 # find PyTorch if Python was found
+# tested versions:
+#   2.4.1+cpu       WSL1 Ubuntu 22.04 Linux
+#   2.5.0+cu124     Windows 11 Home
+# TODO: do we want to enforce 2.4.1 as the minimum version?
 if(Python3_FOUND)
     # check if PyTorch is installed
     execute_process(
@@ -270,7 +274,6 @@ if(NPYGL_PYTORCH_FOUND)
 endif()
 if(TORCH_FOUND)
     message(STATUS "PyTorch C++: Yes")
-    message(STATUS "TORCH_CXX_FLAGS ${TORCH_CXX_FLAGS}")
     if(NPYGL_TORCH_PRECOMPILE)
         message(STATUS "PyTorch PCH: Yes")
     else()
