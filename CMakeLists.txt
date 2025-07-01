@@ -128,7 +128,9 @@ endif()
 # find PyTorch if Python was found
 # tested versions:
 #   2.4.1+cpu       WSL1 Ubuntu 22.04 Linux
+#   2.7.1+cpu       WSL1 Ubuntu 22.04 Linux
 #   2.5.0+cu124     Windows 11 Home
+#   2.7.1+xpu       Windows 11 Home
 # TODO: do we want to enforce 2.4.1 as the minimum version?
 if(Python3_FOUND)
     # check if PyTorch is installed
@@ -164,10 +166,11 @@ if(NPYGL_PYTORCH_FOUND)
         REGEX REPLACE "\n" ";"
         NPYGL_TORCH_INFO_OUTPUT ${NPYGL_TORCH_INFO_OUTPUT}
     )
-    # get version, CMake prefix path, if CUDA is available
+    # get version, flavor, CMake modules path, CUDA used to build PyTorch
     list(GET NPYGL_TORCH_INFO_OUTPUT 0 NPYGL_PYTORCH_VERSION)
-    list(GET NPYGL_TORCH_INFO_OUTPUT 1 NPYGL_PYTORCH_CMAKE_PREFIX_PATH)
-    list(GET NPYGL_TORCH_INFO_OUTPUT 2 NPYGL_PYTORCH_CUDA_VERSION)
+    list(GET NPYGL_TORCH_INFO_OUTPUT 1 NPYGL_PYTORCH_FLAVOR)
+    list(GET NPYGL_TORCH_INFO_OUTPUT 2 NPYGL_PYTORCH_CMAKE_PREFIX_PATH)
+    list(GET NPYGL_TORCH_INFO_OUTPUT 3 NPYGL_PYTORCH_CUDA_VERSION)
     # PyTorch does not have CUDA
     if(NPYGL_PYTORCH_CUDA_VERSION STREQUAL "None")
         set(NPYGL_PYTORCH_HAS_CUDA OFF)
@@ -177,7 +180,10 @@ if(NPYGL_PYTORCH_FOUND)
         set(NPYGL_PYTORCH_HAS_CUDA ON)
     endif()
     # update CMake prefix path
-    set(CMAKE_PREFIX_PATH ${NPYGL_PYTORCH_CMAKE_PREFIX_PATH} ${CMAKE_PREFIX_PATH})
+    # note: be careful when using a new Python venv as the Torch CMake config
+    # script will write CMake cache variables. therefore, if you use a new
+    # venv, you need to clear out the relevant CMake cache variables.
+    list(PREPEND CMAKE_PREFIX_PATH ${NPYGL_PYTORCH_CMAKE_PREFIX_PATH})
     # clean up
     unset(NPYGL_TORCH_INFO_RESULT)
     unset(NPYGL_TORCH_INFO_OUTPUT)
@@ -187,7 +193,7 @@ else()
     message(STATUS "PyTorch version: None")
 endif()
 
-# does PyTorch have CUDA?
+# version of CUDA PyTorch was built against
 # note: may not be the same as FindCUDAToolkit value
 if(NPYGL_PYTORCH_HAS_CUDA)
     message(STATUS "PyTorch CUDA version: ${NPYGL_PYTORCH_CUDA_VERSION}")
@@ -219,7 +225,37 @@ if(NPYGL_PYTORCH_FOUND)
     else()
         message(STATUS "PyTorch NVTX headers workaround: No")
     endif()
-    find_package(Torch CONFIG)
+    # if torch/share/cmake/Caffe2/FindSYCLToolkit.cmake cannot find a SYCL
+    # installation for an XPU PyTorch implementation then the Caffe2 config
+    # script will reference a noexistent torch::xpurt target and cause the
+    # build to fail. although PyTorch 2.8+ emits a helpful FATAL_ERROR instead
+    # of the cryptic message about the c10_xpu link interface missing
+    # torch::xpurt, it still causes a hard error. instead, we want a graceful
+    # failure, so we first directly invoke FindSYCLToolkit.cmake to set
+    # SYCL_FOUND. then, for XPU PyTorch builds, if no SYCL is found, we just
+    # skip the Torch find_package call to avoid hitting the FATAL_ERROR.
+    list(APPEND CMAKE_MODULE_PATH "${NPYGL_PYTORCH_CMAKE_PREFIX_PATH}/Caffe2")
+    find_package(SYCLToolkit)
+    list(POP_BACK CMAKE_MODULE_PATH)
+    # print some info for SYCLToolkit
+    if(SYCL_FOUND)
+        message(STATUS "SYCL version: ${SYCL_COMPILER_VERSION}")
+    else()
+        message(STATUS "SYCL version: None")
+    endif()
+    # find Torch C++ distribution. warn if SYCL missing for XPU PyTorch
+    if(NPYGL_PYTORCH_FLAVOR STREQUAL "xpu" AND NOT SYCL_FOUND)
+        message(
+            WARNING
+            "Skipping find_package for XPU Torch because SYCL is not available"
+        )
+    else()
+        find_package(Torch CONFIG)
+    endif()
+endif()
+
+# if Torch C++ found, perform additional configuration actions
+if(TORCH_FOUND)
     # Torch headers cause a lot of warnings to be emitted for MSVC so we define
     # a custom Torch target that disables some of the annoying warnings. in
     # general you might want to leave these on but when they show up for
@@ -271,8 +307,7 @@ if(NPYGL_PYTORCH_FOUND)
         target_precompile_headers(npyglue::Torch INTERFACE <torch/torch.h>)
     endif()
     target_link_libraries(npyglue::Torch INTERFACE ${TORCH_LIBRARIES})
-endif()
-if(TORCH_FOUND)
+    # additional basic info
     message(STATUS "PyTorch C++: Yes")
     if(NPYGL_TORCH_PRECOMPILE)
         message(STATUS "PyTorch PCH: Yes")
