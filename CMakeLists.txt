@@ -254,6 +254,12 @@ if(NPYGL_PYTORCH_FOUND)
         npyglue::Torch
         SYSTEM INTERFACE ${TORCH_INCLUDE_DIRS}
     )
+    # include required Torch C++ flags. for Linux, this is typically just
+    # -D_GLIBCXX_USE_CXX11_ABI=0 since most PyTorch Linux distributions are
+    # implicitly constrained by the manylinux standard to use an older ABI. see
+    # https://gcc.gnu.org/onlinedocs/libstdc++/manual/using_dual_abi.html for
+    # details on the _GLIBCXX_USE_CXX11_ABI macro
+    target_compile_options(npyglue::Torch INTERFACE ${TORCH_CXX_FLAGS})
     # precompile the torch/torch.h header (decrease in incremental build time
     # by nearly half for targets that include torch/torch.h but the initial PCH
     # generation will double this build time just once)
@@ -264,6 +270,7 @@ if(NPYGL_PYTORCH_FOUND)
 endif()
 if(TORCH_FOUND)
     message(STATUS "PyTorch C++: Yes")
+    message(STATUS "TORCH_CXX_FLAGS ${TORCH_CXX_FLAGS}")
     if(NPYGL_TORCH_PRECOMPILE)
         message(STATUS "PyTorch PCH: Yes")
     else()
