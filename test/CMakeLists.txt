@@ -39,7 +39,7 @@ if(Python3_Development_FOUND)
 endif()
 
 # py_capsule_cutorch_test: Python capsule test with CUDA Torch tensors
-if(CUDAToolkit_FOUND AND Python3_Development_FOUND AND TORCH_FOUND)
+if(NPYGL_PYTORCH_HAS_CUDA AND Python3_Development_FOUND AND TORCH_FOUND)
     npygl_add_py3_executable(
         TARGET py_capsule_cutorch_test
         SOURCES py_capsule_cutorch_test.cc
@@ -47,7 +47,10 @@ if(CUDAToolkit_FOUND AND Python3_Development_FOUND AND TORCH_FOUND)
         USE_RELEASE_CRT ${NPYGL_PYTHON_USE_RELEASE_CRT}
     )
     npygl_copy_torch_dlls(py_capsule_cutorch_test)
-    add_test(NAME py_capsule_cutorch_test COMMAND py_capsule_cutorch_test)
+    # only add test if CUDA Toolkit is available
+    if(CUDAToolkit_FOUND)
+        add_test(NAME py_capsule_cutorch_test COMMAND py_capsule_cutorch_test)
+    endif()
 endif()
 
 # py_format_test: Python compile-time format strings test
@@ -520,7 +523,7 @@ if(Python3_NumPy_FOUND AND TORCH_FOUND)
 endif()
 
 # npy_capsule_cutorch_test: NumPy test using Torch GPU tensors to back arrays
-if(CUDAToolkit_FOUND AND Python3_NumPy_FOUND AND TORCH_FOUND)
+if(NPYGL_PYTORCH_HAS_CUDA AND Python3_NumPy_FOUND AND TORCH_FOUND)
     npygl_add_py3_executable(
         TARGET npy_capsule_cutorch_test
         SOURCES npy_capsule_cutorch_test.cc
@@ -528,5 +531,8 @@ if(CUDAToolkit_FOUND AND Python3_NumPy_FOUND AND TORCH_FOUND)
         USE_RELEASE_CRT ON
     )
     npygl_copy_torch_dlls(npy_capsule_cutorch_test)
-    add_test(NAME npy_capsule_cutorch_test COMMAND npy_capsule_cutorch_test)
+    # only add test if CUDA Toolkit is available
+    if(CUDAToolkit_FOUND)
+        add_test(NAME npy_capsule_cutorch_test COMMAND npy_capsule_cutorch_test)
+    endif()
 endif()
