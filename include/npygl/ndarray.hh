@@ -980,6 +980,8 @@ private:
    *  which means that we always needs to make a copy of the tensor strides so
    *  we can scale them by the size of the tensor's element type.
    *
+   * @warning The incoming tensor must still be in scope after function exit.
+   *
    * @param ten Tensor to get dimensions + strides for
    */
   auto retrieve_sizes(const torch::Tensor& ten) const
@@ -995,8 +997,8 @@ private:
       // otherwise we are forced to copy
       else {
         // note: could we do a small vector optimization? for LP64 systems
-        // however this is a discarded code path as sizeof(npy_intp) will be
-        // equal to sizeof(int64_t), the element size of IntArrayRef
+        // however this is a discarded code path as npy_intp and int64_t, the
+        // element type for the IntArrayRef, alias the same signed long type
 NPYGL_MSVC_WARNING_PUSH()
 NPYGL_MSVC_WARNING_DISABLE(4365)  // signed/unsigned mismatch
         std::vector<npy_intp> dims(n_dim);
