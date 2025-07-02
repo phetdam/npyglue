@@ -71,10 +71,8 @@ endif()
 # get regex from first line
 string(
     REGEX REPLACE
-    "Intel.+Compiler[ ]+([0-9.]+).+"
-    "\\1"  # major.minor.patch
-    SYCL_VERSION
-    "${_sycl_version_out}"
+    # we want the major.minor.patch version
+    "Intel.+Compiler[ ]+([0-9.]+).+" "\\1" SYCL_VERSION "${_sycl_version_out}"
 )
 
 # get the SYCL installation root
