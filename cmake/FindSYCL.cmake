@@ -24,7 +24,7 @@ cmake_minimum_required(VERSION 3.20)
 #
 #   SYCL_LIBRARY_DEBUG          SYCL debug import library
 #   SYCL_LIBRARY_DLL            SYCL library DLL
-#   SYCL_LBRARY_DLL_DEBUG       SYCL debug library  DLL
+#   SYCL_LIBRARY_DLL_DEBUG      SYCL debug library DLL
 #
 # For all platforms, the following IMPORTED library target is also defined:
 #
