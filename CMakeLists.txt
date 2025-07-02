@@ -227,6 +227,7 @@ if(NPYGL_PYTORCH_FOUND)
     else()
         message(STATUS "PyTorch NVTX headers workaround: No")
     endif()
+    #
     # if torch/share/cmake/Caffe2/FindSYCLToolkit.cmake cannot find a SYCL
     # installation for an XPU PyTorch implementation then the Caffe2 config
     # script will reference a noexistent torch::xpurt target and cause the
@@ -235,7 +236,15 @@ if(NPYGL_PYTORCH_FOUND)
     # torch::xpurt, it still causes a hard error. instead, we want a graceful
     # failure, so we use our own SYCL find module to set SYCL_FOUND. then, for
     # XPU PyTorch builds, if no SYCL is found, we just skip the Torch
-    # find_package call to avoid hitting the FATAL_ERROR
+    # find_package call to avoid hitting the FATAL_ERROR.
+    #
+    # it is worth noting that PyTorch XPU distributions actually include a lot
+    # of the SYCL development artifacts for runtime support, including headers,
+    # import libraries, and DLLs, but they are missing the DPC++ compiler. this
+    # means that FindSYCLToolkit.cmake will still fail regardless. the upshot
+    # is that using XPU Torch from C++ requires a real SYCL development
+    # installation, including the SYCL compiler, for usage.
+    #
     find_package(SYCL)
     # print OpenCL info. find_package(OpenCL) is called in the SYCL find module
     # and the result will be in lockstep with SYCL_FOUND
