@@ -188,8 +188,10 @@ if(NPYGL_PYTORCH_FOUND)
     unset(NPYGL_TORCH_INFO_RESULT)
     unset(NPYGL_TORCH_INFO_OUTPUT)
     # print version info
+    message(STATUS "PyTorch flavor: ${NPYGL_PYTORCH_FLAVOR}")
     message(STATUS "PyTorch version: ${NPYGL_PYTORCH_VERSION}")
 else()
+    message(STATUS "PyTorch flavor: None")
     message(STATUS "PyTorch version: None")
 endif()
 
@@ -231,18 +233,21 @@ if(NPYGL_PYTORCH_FOUND)
     # build to fail. although PyTorch 2.8+ emits a helpful FATAL_ERROR instead
     # of the cryptic message about the c10_xpu link interface missing
     # torch::xpurt, it still causes a hard error. instead, we want a graceful
-    # failure, so we first directly invoke FindSYCLToolkit.cmake to set
-    # SYCL_FOUND. then, for XPU PyTorch builds, if no SYCL is found, we just
-    # skip the Torch find_package call to avoid hitting the FATAL_ERROR.
-    # TODO: maybe just use our own check for icx --version because the Caffe2
-    # FindSYCLToolkit emits too many CMake warnings and will be repeated
-    # anyways in the Torch find_package call
-    list(APPEND CMAKE_MODULE_PATH "${NPYGL_PYTORCH_CMAKE_PREFIX_PATH}/Caffe2")
-    find_package(SYCLToolkit)
-    list(POP_BACK CMAKE_MODULE_PATH)
-    # print some info for SYCLToolkit
+    # failure, so we use our own SYCL find module to set SYCL_FOUND. then, for
+    # XPU PyTorch builds, if no SYCL is found, we just skip the Torch
+    # find_package call to avoid hitting the FATAL_ERROR
+    find_package(SYCL)
+    # print OpenCL info. find_package(OpenCL) is called in the SYCL find module
+    # and the result will be in lockstep with SYCL_FOUND
+    if(OpenCL_FOUND)
+        message(STATUS "OpenCL version: ${OpenCL_VERSION_STRING}")
+    else()
+        message(STATUS "OpenCL version: None")
+    endif()
+    # print SYCL info
     if(SYCL_FOUND)
-        message(STATUS "SYCL version: ${SYCL_COMPILER_VERSION}")
+        # message(STATUS "SYCL version: ${SYCL_COMPILER_VERSION}")
+        message(STATUS "SYCL version: ${SYCL_VERSION}")
     else()
         message(STATUS "SYCL version: None")
     endif()
@@ -253,7 +258,7 @@ if(NPYGL_PYTORCH_FOUND)
             "Skipping find_package for XPU Torch because SYCL is not available"
         )
     else()
-        find_package(Torch CONFIG)
+        find_package(Torch ${NPYGL_PYTORCH_VERSION} CONFIG)
     endif()
 endif()
 
