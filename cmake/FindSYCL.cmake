@@ -40,7 +40,7 @@ find_program(
     SYCL_COMPILER
     NAMES icx  # dpcpp is another name but we stick with Intel-style name
     # CMPLR_ROOT has highest priority
-    HINTS ENV CMPLR_ROOT
+    HINTS ENV CMPLR_ROOT "${SYCL_ROOT}" ENV SYCL_ROOT
     PATH_SUFFIXES bin
     NO_CACHE
 )
@@ -172,6 +172,6 @@ endif()
 find_package_handle_standard_args(
     SYCL
     REQUIRED_VARS ${_sycl_required_vars}
-    VERSION_VAR
+    VERSION_VAR SYCL_VERSION
     HANDLE_VERSION_RANGE
 )
