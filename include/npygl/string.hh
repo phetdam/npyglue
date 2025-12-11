@@ -39,7 +39,7 @@ constexpr auto strlen(const char* str) noexcept
  * array of fixed size that is the only member of the class. For compatibility
  * with C functions that expect null-terminated strings, the array member
  * includes a null terminator and an implicit conversion to
- * `const char (&)[N + 1]` with decay to `const char*` exists.
+ * `const char (&)[N + 1]` that can further decay to `const char*`.
  *
  * @tparam N String length excluding null terminator
  */
