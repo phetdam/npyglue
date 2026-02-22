@@ -279,10 +279,12 @@ class TestUniform(unittest.TestCase):
 
     def test_funiform_mersenne(self):
         """Test using the Mersenne Twister but with single-precision output."""
+        # note: use set_printoptions() or printoptions() context manager as
+        # above, e.g. with precision=10, for more digits to display
         exp = np.array(
             [
-                0.8734294, 0.011114438, 0.96854067, 0.23943958, 0.86919457,
-                0.37751698, 0.5308557, 0.81646127, 0.23272833, 0.4223508
+                0.87342936, 0.0111144185, 0.9685406, 0.23943955, 0.8691945,
+                0.37751693, 0.53085566, 0.81646127, 0.2327283, 0.42235076
             ],
             dtype=np.float32
         )
