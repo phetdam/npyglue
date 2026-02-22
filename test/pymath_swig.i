@@ -395,7 +395,8 @@ inline std::vector<T> py_uniform(std::size_t n, int type = 0, int seed = -1)
 namespace npygl::testing {
 
 // FIXME: SWIG generates the docstring thrice because it generates three
-// wrapper functions in order to handle the py_uniform default arguments
+// wrapper functions in order to handle the py_uniform default arguments. using
+// python:cdefaultargs feature does not help at all here
 %feature(
   "autodoc",
   "Return a 1D NumPy array of randomly generated values.\n"
@@ -417,7 +418,8 @@ namespace npygl::testing {
 %template(uniform) py_uniform<double>;
 
 // FIXME: SWIG generates the docstring thrice because it generates three
-// wrapper functions in order to handle the py_uniform default arguments
+// wrapper functions in order to handle the py_uniform default arguments. using
+// python:cdefaultargs feature does not help at all here
 %feature(
   "autodoc",
   "Return a 1D NumPy array of randomly generated values.\n"
