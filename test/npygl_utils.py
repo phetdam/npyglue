@@ -5,7 +5,11 @@ This is not intended for installation as a package.
 .. codeauthor:: Derek Huang <djh458@stern.nyu.edu>
 """
 
-from argparse import ArgumentDefaultsHelpFormatter, RawDescriptionHelpFormatter
+from argparse import (
+    ArgumentDefaultsHelpFormatter,
+    ArgumentParser,
+    RawDescriptionHelpFormatter
+)
 import sys
 import unittest
 
@@ -84,3 +88,28 @@ def list_unittest_tests(modname: str, show_active: bool = False) -> list[str]:
         for test_class in test_classes
         for test_name in loader.getTestCaseNames(test_class)
     ]
+
+
+def add_test_filtering_options(ap: ArgumentParser) -> None:
+    """Add the -l, --list-tests and -t, --tests options to an ArgumentParser.
+
+    The -l, --list-tests argument should list the names of each test that can
+    be passed via -t, --tests to the Python [unittest] test script.
+
+    Parameters
+    ----------
+    ap : ArgumentParser
+        Argument parser to add -l and -t options to
+    """
+    ap.add_argument(
+        "-l",
+        "--list-tests",
+        action="store_true",
+        help="List all available test cases"
+    )
+    ap.add_argument(
+        "-t",
+        "--tests",
+        nargs="+",
+        help="Selected test cases to run"
+    )
