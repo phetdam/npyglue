@@ -86,7 +86,7 @@ namespace testing {
  * Now, the story should have ended there. I started working on npyglue less
  * and less, as I had already achieved the project's main goal, which was to
  * create NumPy arrays with essentially zero copying from appropriate C++
- * objects such as `std::Vector<T>`, Eigen matrix types, and LibTorch tensors.
+ * objects such as `std::vector<T>`, Eigen matrix types, and LibTorch tensors.
  * My last commit to this repo was in January 2025, but here I am in March 2025
  * recounting this story because of a recent interest I developed in being able
  * to acquire the demangled string name of a type at *compile-time* instead of
