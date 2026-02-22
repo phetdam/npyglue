@@ -15,7 +15,11 @@ import unittest
 sys.path.insert(0, os.getcwd())
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-from npygl_utils import HelpFormatter
+from npygl_utils import (
+    HelpFormatter,
+    add_test_filtering_options,
+    list_unittest_tests
+)
 
 import pyhelpers as ph  # type: ignore
 
@@ -135,10 +139,21 @@ def main(args: Optional[Iterable[str]] = None) -> int:
         action="store_true",
         help="Run more verbosely"
     )
+    add_test_filtering_options(ap)
     argn = ap.parse_args(args=args)
+    # list test cases if requested
+    if argn.list_tests:
+        for test_name in list_unittest_tests(__name__):
+            print(test_name)
+        return 0
     # run tests. trick unittest.main into thinking there are no CLI args
     print(f"Running pyhelpers tests")
-    res = unittest.main(argv=(sys.argv[0],), exit=False, verbosity=1 + argn.verbose)
+    res = unittest.main(
+        defaultTest=argn.tests,
+        argv=(sys.argv[0],),
+        exit=False,
+        verbosity=1 + argn.verbose
+    )
     return 0 if res.result.wasSuccessful() else 1
 
 

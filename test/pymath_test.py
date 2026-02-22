@@ -20,7 +20,11 @@ from numpy.testing import assert_allclose
 sys.path.insert(0, os.getcwd())
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-from npygl_utils import HelpFormatter, list_unittest_tests
+from npygl_utils import (
+    HelpFormatter,
+    add_test_filtering_options,
+    list_unittest_tests
+)
 
 # module handle. this is set by main() after looking at CLI options
 pm = None
@@ -330,18 +334,7 @@ def main(args: Optional[Iterable[str]] = None) -> int:
         action="store_true",
         help="Run more verbosely"
     )
-    ap.add_argument(
-        "-l",
-        "--list-tests",
-        action="store_true",
-        help="List all available test cases"
-    )
-    ap.add_argument(
-        "-t",
-        "--tests",
-        nargs="+",
-        help="Selected test cases to run"
-    )
+    add_test_filtering_options(ap)
     argn = ap.parse_args(args=args)
     # list test cases if requested
     if argn.list_tests:

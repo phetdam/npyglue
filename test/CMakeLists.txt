@@ -195,10 +195,22 @@ if(Python3_Development_FOUND)
         add_test(
             NAME pyhelpers_npy_test
             COMMAND python ${CMAKE_CURRENT_SOURCE_DIR}/pyhelpers_npy_test.py
-            WORKING_DIRECTORY
-                ${CMAKE_BINARY_DIR}$<${NPYGL_MULTI_CONFIG_GENERATOR}:/$<CONFIG>>
+            WORKING_DIRECTORY ${NPYGL_BINARY_DIR}
         )
     endif()
+    # check that pyhelpers_test accepts -l, --list-tests
+    # TODO: may later remove if we decide to run tests via -t
+    message(STATUS "${NPYGL_BINARY_DIR}")
+    add_test(
+        NAME pyhelpers_test_l
+        COMMAND python ${CMAKE_CURRENT_SOURCE_DIR}/pyhelpers_test.py -l
+        WORKING_DIRECTORY ${NPYGL_BINARY_DIR}
+    )
+    add_test(
+        NAME pyhelpers_test_list_tests
+        COMMAND python ${CMAKE_CURRENT_SOURCE_DIR}/pyhelpers_test.py --list-tests
+        WORKING_DIRECTORY ${NPYGL_BINARY_DIR}
+    )
 endif()
 
 # pymath: Python math functions module
@@ -236,8 +248,7 @@ if(Python3_Development_FOUND AND Python3_NumPy_FOUND)
         add_test(
             NAME pymath_cc20_test
             COMMAND python ${CMAKE_CURRENT_SOURCE_DIR}/pymath_test.py -std cc20
-            WORKING_DIRECTORY
-                ${CMAKE_BINARY_DIR}$<${NPYGL_MULTI_CONFIG_GENERATOR}:/$<CONFIG>>
+            WORKING_DIRECTORY ${NPYGL_BINARY_DIR}
         )
     endif()
     # TODO: may later temporarily disable tests while we determine constraints
@@ -248,6 +259,18 @@ if(Python3_Development_FOUND AND Python3_NumPy_FOUND)
     #     pymath_cc20_test PROPERTIES
     #     SKIP_RETURN_CODE 1
     # )
+    # check that pymath_test accepts -l, --list-tests
+    # TODO: may later remove if we decide to run tests via -t
+    add_test(
+        NAME pymath_test_l
+        COMMAND python ${CMAKE_CURRENT_SOURCE_DIR}/pymath_test.py -l
+        WORKING_DIRECTORY ${NPYGL_BINARY_DIR}
+    )
+    add_test(
+        NAME pymath_test_list_tests
+        COMMAND python ${CMAKE_CURRENT_SOURCE_DIR}/pymath_test.py --list-tests
+        WORKING_DIRECTORY ${NPYGL_BINARY_DIR}
+    )
 endif()
 
 # pymath_swig: SWIG Python math functions module
