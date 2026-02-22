@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION ${CMAKE_MINIMUM_REQUIRED_VERSION})
+cmake_minimum_required(VERSION 3.21)
 
 ##
 # Require that a target is compiled under a particular C++ standard.
@@ -186,11 +186,12 @@ function(npygl_add_swig_py3_module)
     if(HOST_SWIG_INCLUDE_DIRS)
         list(TRANSFORM HOST_SWIG_INCLUDE_DIRS PREPEND -I)
     endif()
-    # intermediate output directory + make if it does not exist
-    set(OUTFILE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/${HOST_TARGET})
-    file(MAKE_DIRECTORY ${OUTFILE_DIR})
+    # intermediate output directory
+    set(OUTFILE_DIR ${CMAKE_CURRENT_BINARY_DIR})
     # dependencies file for the target
-    set(DEPS_FILE ${OUTFILE_DIR}/${HOST_INTERFACE}.d)
+    # note: we use the target name since it's possible to create several
+    # different SWIG modules from the same .i file
+    set(DEPS_FILE ${OUTFILE_DIR}/${HOST_TARGET}.d)
     # C/C++ wrapper output file name + path following swig_add_library format
     # FIXME: we add the SWIG version in case conflicting versions of SWIG are
     # being used. this also serves as a hack to ensure that both WSL Ubuntu and
@@ -209,7 +210,6 @@ function(npygl_add_swig_py3_module)
     # compile for Python 3. from SWIG 4.1 onwards however we need to use
     # %feature("python:annotations", "c") directive instead
     # FIXME: SWIG 4.1+ will not have the C++ type annotations
-    # note: probably don't need it when running deps command either
     if(SWIG_VERSION VERSION_LESS 4.1)
         list(APPEND SWIG_BASE_OPTIONS -py3)
     endif()
@@ -227,47 +227,23 @@ function(npygl_add_swig_py3_module)
         list(APPEND SWIG_BASE_OPTIONS ${HOST_SWIG_INCLUDE_DIRS})
     endif()
     # use target name as module name
-    # note: probably don't need it when running deps command
     if(HOST_USE_TARGET_NAME)
         list(APPEND SWIG_BASE_OPTIONS -module ${HOST_TARGET})
     endif()
-    # generate list of interface dependencies
-    execute_process(
-        COMMAND
-            ${SWIG_EXECUTABLE} ${SWIG_BASE_OPTIONS} -MM -MF ${DEPS_FILE}
-                -o ${OUTFILE_PATH} ${HOST_INTERFACE}
-        WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
-        RESULT_VARIABLE DEPS_RESULT
-    )
-    # fail if error
-    if(DEPS_RESULT)
-        message(FATAL_ERROR "Unable to generate dependencies for ${HOST_TARGET}")
-    endif()
-    # read dependencies file lines as strings
-    file(STRINGS ${DEPS_FILE} DEPS_LIST)
-    # transform the deps list. for Windows, replace all \ with /. need to strip
-    # whitespace a couple times as we remove extra characters
-    list(TRANSFORM DEPS_LIST STRIP)
-    list(TRANSFORM DEPS_LIST REPLACE " \\$" "")
-    list(TRANSFORM DEPS_LIST STRIP)
-    list(TRANSFORM DEPS_LIST REPLACE ":$" "")
-    list(TRANSFORM DEPS_LIST REPLACE "\\\\" "/")
-    # pop first element to remove wrapper output file name itself
-    list(POP_FRONT DEPS_LIST)
-    # remove unneeded dependencies file
-    file(REMOVE ${DEPS_FILE})
     # custom command to build SWIG wrapper files when deps change. the target
     # language files are copied to build directory
     add_custom_command(
         OUTPUT ${OUTFILE_PATH}
-        COMMAND
-            ${SWIG_EXECUTABLE} ${SWIG_BASE_OPTIONS} ${HOST_SWIG_DEFINES}
-                ${HOST_SWIG_OPTIONS} -o ${OUTFILE_PATH} -outdir
+        COMMAND ${SWIG_EXECUTABLE} ${SWIG_BASE_OPTIONS}
+                ${HOST_SWIG_DEFINES} ${HOST_SWIG_OPTIONS}
+                -MMD -MF ${DEPS_FILE}
+                -o ${OUTFILE_PATH} -outdir
                 ${CMAKE_BINARY_DIR}$<${NPYGL_MULTI_CONFIG_GENERATOR}:/$<CONFIG>>
-                ${HOST_INTERFACE}
-        DEPENDS ${DEPS_LIST}
-        WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+                # TODO: consider converting HOST_INTERFACE to absolute path
+                ${CMAKE_CURRENT_SOURCE_DIR}/${HOST_INTERFACE}
+        DEPFILE ${DEPS_FILE}
         COMMENT "Generating SWIG Python wrapper ${OUTFILE_NAME}"
+        VERBATIM
         COMMAND_EXPAND_LISTS
     )
     # create SWIG module
