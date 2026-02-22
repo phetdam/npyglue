@@ -612,6 +612,11 @@ endif()
 
 # project include directory
 set(NPYGL_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/include)
+# project build directory + build directory with per-config subdirectory
+set(
+    NPYGL_BINARY_DIR
+    "${CMAKE_CURRENT_BINARY_DIR}$<${NPYGL_MULTI_CONFIG_GENERATOR}:/$<CONFIG>>"
+)
 
 # set version-related variables
 # note: should use NPYGLUE_ prefix but NPYGL_ has already been established
