@@ -9,6 +9,7 @@ variant is loaded, e.g. hand vs. SWIG wrapped, default C++ vs. C++20 standard.
 from argparse import ArgumentParser
 import importlib
 import os
+import platform
 import sys
 from typing import Iterable, Optional
 import unittest
@@ -285,13 +286,25 @@ class TestUniform(unittest.TestCase):
         """Test using the Mersenne Twister but with single-precision output."""
         # note: use set_printoptions() or printoptions() context manager as
         # above, e.g. with precision=10, for more digits to display
-        exp = np.array(
-            [
-                0.87342936, 0.0111144185, 0.9685406, 0.23943955, 0.8691945,
-                0.37751693, 0.53085566, 0.81646127, 0.2327283, 0.42235076
-            ],
-            dtype=np.float32
-        )
+        # note: since Windows is an LLP64 system instead of LP64 like most
+        # Linux or Linux-like systems are nowadays the numbers differ a bit.
+        # this may be due to how intermediate results are stored
+        if platform.system() == "Windows":
+            exp = np.array(
+                [
+                    0.87342936, 0.0111144185, 0.9685406, 0.23943955, 0.8691945,
+                    0.37751693, 0.53085566, 0.81646127, 0.2327283, 0.42235076
+                ],
+                dtype=np.float32
+            )
+        else:
+            exp = np.array(
+                [
+                    0.8734294, 0.011114438, 0.96854067, 0.23943958, 0.86919457,
+                    0.37751698, 0.5308557, 0.81646127, 0.23272833, 0.4223508
+                ],
+                dtype=np.float32
+            )
         # see above comments
         assert_allclose(
             exp,
