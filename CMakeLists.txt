@@ -94,8 +94,23 @@ else()
     message(STATUS "C++20 support: No")
 endif()
 
-# check if CUDA is available. if so, enable and set standards
-find_package(CUDAToolkit)
+# special handling for MSVC STL and CUDA compiler version mismatches. this
+# strengthening was introduced in VS 17.10, i.e. _MSC_VER 1940 and above, where
+# CUDA 12.4 and above is explicitly required. see STL's answer on the issue on
+# StackOverflow: # https://stackoverflow.com/a/78576792/14227825
+if(MSVC AND MSVC_VERSION GREATER_EQUAL 1940)
+    message(
+        WARNING
+        "MSVC with _MSC_VER ${MSVC_VERSION} >= 1940 requires CUDA Toolkit 12.4 "
+"or newer"
+    )
+    find_package(CUDAToolkit 12.4)
+# for older MSVC, there were some requirements, but we don't use them here
+else()
+    find_package(CUDAToolkit)
+endif()
+
+# if CUDA is available, enable CUDA and set compiler standard
 if(CUDAToolkit_FOUND)
     message(STATUS "CUDA version: ${CUDAToolkit_VERSION}")
     enable_language(CUDA)
@@ -265,6 +280,14 @@ if(NPYGL_PYTORCH_FOUND)
         message(
             WARNING
             "Skipping find_package for XPU Torch because SYCL is not available"
+        )
+    # if CUDA Toolkit not found but PyTorch has CUDA, warn and skip. otherwise,
+    # find_package(Torch CONFIG) will choke if CUDA Toolkit version is not high
+    # enough (mostly an issue for VS 17.10 or higher)
+    elseif(NPYGL_PYTORCH_HAS_CUDA AND NOT CUDAToolkit_FOUND)
+        message(
+            WARNING
+            "Skipping find_package for CUDA Torch due to no CUDA Toolkit"
         )
     else()
         find_package(Torch ${NPYGL_PYTORCH_VERSION} CONFIG)
@@ -555,7 +578,7 @@ if(MSVC)
     add_compile_options(
         # note: nvcc doesn't provide a way to mark include directories as
         # external so we live with a lower warning level to avoid drowning
-        $<$<COMPILE_LANGUAGE:C,CXX>:/Wall>
+        $<$<COMPILE_LANGUAGE:C,CXX>:/W4>
         $<$<COMPILE_LANGUAGE:CUDA>:-Xcompiler=/W4>
         # C4061: enum value not explicitly handled by case label
         $<$<COMPILE_LANGUAGE:CUDA>:-Xcompiler=>/wd4061
