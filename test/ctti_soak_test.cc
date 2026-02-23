@@ -16,7 +16,7 @@
 
 namespace {
 
-// ensure that type_name<T> cam be evaluated at compile-time
+// ensure that type_name<T> can be evaluated at compile-time
 using driver_type = npygl::testing::type_traits_test_driver;
 constexpr auto driver_type_name = npygl::type_name<driver_type>();
 
