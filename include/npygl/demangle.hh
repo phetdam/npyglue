@@ -133,6 +133,8 @@ inline const char* demangle(const char* mangled_name)
 #endif  // !NPYGL_HAS_ITANIUM_ABI
 }
 
+// TODO: move type_name() and type_name_lister<T> to rtti.hh header
+
 /**
  * Return the demangled type name as a null-terminated string.
  *
