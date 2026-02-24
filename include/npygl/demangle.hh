@@ -197,14 +197,6 @@ struct type_name_lister<T, Ts...> {
 };
 
 /**
- * Partial specialization for a tuple of types.
- *
- * @tparam Ts... types
- */
-template <typename... Ts>
-struct type_name_lister<std::tuple<Ts...>> : type_name_lister<Ts...> {};
-
-/**
  * Global functor to provide a comma-separated list of type names.
  *
  * This provides a functional interface to the `type_name_lister<Ts...>`.
