@@ -796,7 +796,6 @@ if(DOXYGEN_FOUND AND NPYGL_HAS_PYGMENTS)
         OUTPUTS_LIST pyginject_outputs
         SOURCES doc/npyglue-sil.md
     )
-    # TODO: rewrite README.rst as Markdown for use with Doxygen
     # add Doxygen target with presets
     npygl_doxygen_add_docs(
         ${PROJECT_NAME}_docs
