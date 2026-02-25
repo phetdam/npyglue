@@ -317,6 +317,7 @@ auto report_failed(
 
 // set up test cases
 constexpr auto fixed_string_tests = std::make_tuple(
+  // basic tests
   make_test(std::equal_to<>{}, "abc", "abc"),
   make_test(std::equal_to<>{}, "abc", npygl::fixed_string{"a", "b", "c"}),
   make_test(std::not_equal_to<>{}, "abc", "def"),
@@ -324,7 +325,26 @@ constexpr auto fixed_string_tests = std::make_tuple(
   make_test(std::less{}, "ABC", "abc"),
   make_test(std::less_equal{}, "abc", npygl::fixed_string{"ab", "c"}),
   make_test(std::greater{}, npygl::fixed_string{"a", "b", "c"}, "ABC"),
-  make_test(std::greater_equal{}, npygl::fixed_string{"D", "e", "f"}, "DEf")
+  make_test(std::greater_equal{}, npygl::fixed_string{"D", "e", "f"}, "DEf"),
+  // concatenation
+  make_test(std::equal_to<>{}, npygl::fixed_string{"a,"} + "bc", "a,bc"),
+  make_test(std::equal_to<>{}, "A," + npygl::fixed_string{"BC"}, "A,BC"),
+  make_test(
+    std::equal_to<>{},
+    npygl::fixed_string{"hello, "} + npygl::fixed_string{"world"},
+    "hello, world"
+  ),
+  make_test(
+    std::equal_to<>{},
+    "the " +
+    npygl::fixed_string{"quick "} +
+    "fox " +
+    "jumped " +
+    npygl::fixed_string{"over "} +
+    "the " +
+    "lazy dog",
+    "the quick fox jumped over the lazy dog"
+  )
 );
 
 }  // namespace
