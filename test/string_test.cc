@@ -277,7 +277,7 @@ constexpr auto make_test(Op&& op, T1&& expected, T2&& actual) noexcept
  * Print the fixed string test results and return the number of failed tests.
  *
  * We have to store the tests in a tuple, not an array, because technically
- * each fixed string test object is of a differen type.
+ * each fixed string test object is of a different type.
  *
  * @tparam Is Indices 0 up to number of tuple elements
  * @tparam Ops Binary operators to compare expected and actual
