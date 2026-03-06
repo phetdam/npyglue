@@ -351,6 +351,109 @@ inline bool is_behaved(PyArrayObject* arr) noexcept
 }
 
 /**
+ * Type representing a view of the NumPy array's dimensions (shape).
+ *
+ * This holds only a pointer to the `PyArray_DIMS()` and the number of
+ * dimensions. It exists mostly as a formatting convenience.
+ */
+class ndarray_dims_view {
+public:
+  /**
+   * Default ctor,
+   *
+   * Create an empty dims that represents a 0-dimensional NumPy array.
+   */
+  ndarray_dims_view() noexcept = default;
+
+  /**
+   * Ctor.
+   *
+   * Create from existing NumPy array dimensions.
+   *
+   * @param dims NumPy array dimensions
+   * @param size Number of array dimensions
+   */
+  ndarray_dims_view(const npy_intp* dims, std::size_t size) noexcept
+    : dims_{dims}, size_{size}
+  {}
+
+  /**
+   * Ctor.
+   *
+   * Create from an existing NumPy array using `PyArray_DIMS()` to get the
+   * dimensions pointer and `PyArray_NDIM()` for the dimension count.
+   *
+   * @param arr NumPy array
+   */
+  ndarray_dims_view(PyArrayObject* arr) noexcept
+    : ndarray_dims_view{
+        PyArray_DIMS(arr),
+        // note: cast to suppress C2397 and -Wnarrowing
+        static_cast<std::size_t>(PyArray_NDIM(arr))
+      }
+  {}
+
+  /**
+   * Return the number of dimensions in the view.
+   */
+  auto size() const noexcept { return size_; }
+
+  /**
+   * Return an iterator to the first dimension.
+   */
+  auto begin() const noexcept { return dims_; }
+
+  /**
+   * Return an iterator to one past the last dimension.
+   */
+  auto end() const noexcept { return dims_ + size_; }
+
+  /**
+   * Return the size of the specified dimension.
+   *
+   * @param i Index to dimension of interest
+   */
+  auto operator[](std::size_t i) const noexcept
+  {
+    return dims_[i];
+  }
+
+  /**
+   * Return the size of the specified dimensions.
+   *
+   * @param i Index to dimension of interest
+   */
+  auto operator()(std::size_t i) const noexcept
+  {
+    return (*this)[i];
+  }
+
+private:
+  const npy_intp* dims_;
+  std::size_t size_;
+};
+
+/**
+ * Stream the shape of the NumPy array to the output stream.
+ *
+ * This produces output that is the same as when one prints the `repr()` of
+ * the `shape` member of a NumPy array in Python.
+ *
+ * @param out Output stream
+ * @param dims NumPy array dimensions view
+ */
+inline auto& operator<<(std::ostream& out, ndarray_dims_view dims)
+{
+  out << "(";
+  for (auto it = dims.begin(); it != dims.end(); it++) {
+    if (it != dims.begin())
+      out << ", ";
+    out << *it;
+  }
+  return out << ")";
+}
+
+/**
  * Create a NumPy array of a specifed type from an existing Python object.
  *
  * On error the `py_object` is empty and a Python exception is set.
@@ -1176,9 +1279,50 @@ public:
   ndarray_flat_view(PyArrayObject* arr) noexcept
     : flat_view<T>{
         static_cast<T*>(PyArray_DATA(arr)),
-        // static_cast avoids C2397 narrowing error with MSVC since uniform
-        // initialization prohibits implicit narrowing conversions
+        // note: static_cast avoids C2397 narrowing error with MSVC since
+        // uniform initialization prohibits implicit narrowing conversions
         static_cast<std::size_t>(PyArray_SIZE(arr))
+      }
+  {}
+};
+
+/**
+ * Lightweight 2D view of a NumPy array.
+ *
+ * Holds only the NumPy array data pointer and the number of rows + columns. It
+ * is assumed that the incoming NumPy array is itself 2D and with the correct
+ * element ordering. Otherwise, behavior is undefined.
+ *
+ * Data buffer must be known to be aligned and writable if need be before use.
+ *
+ * @tparam T Data type
+ * @tparam R Element ordering
+ */
+template <typename T, element_order R = element_order::c>
+class ndarray_2d_view : public matrix_view<T, R> {
+public:
+  using value_type = T;
+
+  /**
+   * Default ctor.
+   *
+   * Constructs a view with no data.
+   */
+  ndarray_2d_view() noexcept = default;
+
+  /**
+   * Ctor.
+   *
+   * @note Array must already be of correct type, storage layout, and shape.
+   *
+   * @param arr NumPy array
+   */
+  ndarray_2d_view(PyArrayObject* arr) noexcept
+    : matrix_view<T, R>{
+        static_cast<T*>(PyArray_DATA(arr)),
+        // note: static_cast avoids C2397 and -Wnarrowing warnings
+        static_cast<std::size_t>(PyArray_DIM(arr, 0)),
+        static_cast<std::size_t>(PyArray_DIM(arr, 1))
       }
   {}
 };
