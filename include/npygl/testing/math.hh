@@ -27,6 +27,7 @@
 #include "npygl/features.h"
 #include "npygl/ndarray.hh"
 #include "npygl/range_traits.hh"
+#include "npygl/range_views.hh"
 #include "npygl/warnings.h"
 
 #if NPYGL_HAS_CC_20
@@ -838,6 +839,51 @@ template <typename T>
 auto uniform(std::size_t n, optional_seed_type seed = {})
 {
   return uniform<T>(n, rngs::mersenne, seed);
+}
+
+/**
+ * Return the diagonal elements of the given 2D view as a vector.
+ *
+ * If `offset` is 0 (the default) the main diagonal is returned. Nonzero values
+ * indicate the offset above or below the main diagonal. For convenience, if
+ * the diagonal offset would index outside the given 2D view, a vector will
+ * still be returned, but it will be empty.
+ *
+ * @tparam T Floating type
+ *
+ * @param mat 2D view
+ * @param offset Diagonal offset from the main diagonal (offset 0)
+ */
+template <typename T, element_order R = element_order::c>
+std::vector<T> diag(matrix_view<T, R> mat, int offset = 0)
+{
+  // if diagonal is out of bounds return empty vector
+  auto abs_offset = static_cast<std::size_t>((std::abs)(offset));
+  // note: check against relevant bound depending on offset direction
+  if (
+    (offset <= 0 && abs_offset >= mat.rows()) ||
+    (offset >= 0 && abs_offset >= mat.cols())
+  )
+    return {};
+  // length of diagonal
+  auto length = [offset, abs_offset, n_rows = mat.rows(), n_cols = mat.cols()]
+  {
+    // above main diagonal
+    if (offset > 0)
+      return (std::min)(n_cols - abs_offset, n_rows);
+    // main diagonal or beneath
+    else
+      return (std::min)(n_rows - abs_offset, n_cols);
+  }();
+  // row and column offsets
+  auto row_offset = (offset < 0) ? abs_offset : 0u;
+  auto col_offset = (offset > 0) ? abs_offset : 0u;
+  // allocate + fill vector
+  std::vector<T> out(length);
+  for (auto i = 0u; i < length; i++)
+    out[i] = mat(row_offset + i, col_offset + i);
+  // done
+  return out;
 }
 #endif  // SWIG
 
