@@ -148,6 +148,8 @@ enum class element_order { c, f };
 /**
  * Lightweight view of a range treated as a matrix.
  *
+ * @todo Consider dropping the use of the `flat_view_interface<T>`.
+ *
  * @tparam T Data type
  * @tparam R Element ordering
  */
@@ -199,6 +201,8 @@ public:
 
   /**
    * Return reference to the `i`th data element without bounds checking.
+   *
+   * @todo May want to use this `operator[]` for row views instead.
    */
   auto& operator[](std::size_t i) const noexcept
   {
