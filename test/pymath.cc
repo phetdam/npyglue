@@ -9,9 +9,9 @@
 #include <Python.h>
 
 #include <climits>
-#include <cmath>
-#include <cstdint>
+#include <cstddef>
 #include <type_traits>
+#include <utility>
 
 #include "npygl/common.h"
 #include "npygl/features.h"
