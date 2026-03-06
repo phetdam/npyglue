@@ -143,7 +143,7 @@ private:
  *
  * `c` is C-style row major order, `f` is Fortran-style column-major order.
  */
-enum class element_order { c, f };
+enum class element_order : int { c, f };
 
 /**
  * Lightweight view of a range treated as a matrix.
