@@ -102,8 +102,10 @@ class ndarray_flat_view;
 // note: declaration of element_order to avoid including range_views.hh. we
 // also don't want to expose the actual definition to SWIG; if we do, then SWIG
 // will wrap it and generate constants in the Python module
-enum class element_order;
+enum class element_order : int;
 
+// TODO: may have to drop use of non-type type parameter since SWIG doesn't
+// seem to cope well with having a scoped enum non-type type parameter
 template <typename T, element_order R>
 class ndarray_2d_view;
 
