@@ -37,6 +37,39 @@ pm = None
 # ndarray_flat_view will still indicate a flat view of any NumPy array
 
 
+def requires(name: str, msg: Optional[str] = None):
+    """Ensure the test is skipped if the pm module is missing an attribute.
+
+    Parameters
+    ----------
+    name : str
+        Name of attribute required in pm module
+    msg : str
+        Additional message to provide to self.skipTest()
+
+    Returns
+    -------
+    function
+    """
+    # build message
+    msg = "" if not msg else f": {msg}"
+
+    # function factory to wrap the test method
+    def inner(test: "function") -> "function":
+
+        # wrapper for the actual unittest test method
+        def test_function(self):
+            # if attribute missing, skip
+            if not hasattr(pm, name):
+                self.skipTest(f"module {pm.__name__} missing {name}{msg}")
+            # otherwise, continue with test
+            test(self)
+
+        return test_function
+
+    return inner
+
+
 class TestArrayDouble(unittest.TestCase):
     """Test suite for array_double tests."""
 
@@ -237,20 +270,6 @@ class TestUniform(unittest.TestCase):
     # fixed seed value shared by all the tests
     seed = 8
 
-    @staticmethod
-    def swig_module(mod: "module") -> bool:  # type: ignore
-        """Indicate via the module's name if it is SWIG-generated.
-
-        Test modules have "_swig" as part of the module name.
-
-        .. note::
-
-           This function can only be called when pm is non-None. This is why
-           we do not use the unittest.skipIf decorators (pm still None).
-        """
-        return "swig" in pm.__name__
-
-
     def test_uniform_mersenne(self):
         """Test using the Mersenne Twister to generate values."""
         # hardcoded expected values because not sure how to get the NumPy
@@ -310,6 +329,56 @@ class TestUniform(unittest.TestCase):
             exp,
             pm.funiform(exp.size, type=pm.PRNG_MERSENNE, seed=self.seed)
         )
+
+
+class TestDiag(unittest.TestCase):
+    """Test suite for diagonal tests."""
+
+    # square matrix shared by tests + expected diagonals
+    sqmat = [[1., 0.9, 0.5], [0.9, 1., 0.4], [0.5, 0.4, 1.]]
+    sqdiag_0 = [1., 1., 1.]
+    sqdiag_b1 = [0.9, 0.4]
+    sqdiag_b2 = [0.5]
+    sqdiag_a3 = []
+    # tall matrix shared by tests
+    tmat = [[1., 2.], [3., 4.], [5., 6.]]
+    # wide matrix shared by tests
+    wmat = [[1., 2., 3., 4.], [5., 6., 7., 8.]]
+
+    @requires("diag")
+    def test_diag_square_main(self):
+        """Test getting the main diagonal of sqmat."""
+        assert_allclose(self.sqdiag_0, pm.diag(self.sqmat))
+
+    @requires("diag")
+    def test_diag_square_b1(self):
+        """Test getting the main - 1 diagonal of sqmat."""
+        assert_allclose(self.sqdiag_b1, pm.diag(self.sqmat, offset=-1))
+
+    @requires("diag")
+    def test_diag_square_b2(self):
+        """Test getting the main - 2 diagonal of sqmat."""
+        assert_allclose(self.sqdiag_b2, pm.diag(self.sqmat, offset=-2))
+
+    @requires("diag")
+    def test_diag_square_a3(self):
+        """Test getting the main + 3 diagonal of sqmat.
+
+        This will be out of bounds and so the array will be empty.
+        """
+        assert_allclose(self.sqdiag_a3, pm.diag(self.sqmat, offset=3))
+
+    @requires("fdiag")
+    def test_fdiag_square_main(self):
+        """Test getting the main diagonal of sqmat."""
+        assert_allclose(self.sqdiag_0, pm.fdiag(self.sqmat))
+
+    @requires("fdiag")
+    def test_fdiag_square_b1(self):
+        """Test getting the main - 1 diagonal of sqmat."""
+        assert_allclose(self.sqdiag_b1, pm.diag(self.sqmat, offset=-1))
+
+    # TODO: add more test cases
 
 
 def main(args: Optional[Iterable[str]] = None) -> int:
