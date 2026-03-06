@@ -9,6 +9,7 @@
 #include <Python.h>
 
 #include <climits>
+#include <cmath>
 #include <cstdint>
 #include <type_traits>
 
@@ -568,6 +569,90 @@ NPYGL_PY_KWFUNC_DECLARE(
   return uniform<float>(args, kwargs);
 }
 
+/**
+ * Python wrapper for `diag` emulating `numpy.diag()`.
+ *
+ * @tparam T Output element type, either `float`, `double`, or `long double`
+ *
+ * @param args Python argument tuple
+ * @param kwargs Python argument dict
+ */
+template <typename T>
+PyObject* diag(PyObject* args, PyObject* kwargs) noexcept
+{
+  // input + named offset
+  PyObject* in;
+  int offset = 0;
+  // parse arguments
+  const char* kws[] = {"offset"};
+  if (!npygl::parse_args(args, std::tie(in), kws, kwargs, std::tie(offset)))
+    return nullptr;
+  // get NumPy array from obj (avoid copy if possible)
+  // FIXME: use NPY_ARRAY_ALIGNED and then determine ordering
+  auto obj = npygl::make_ndarray<T>(in, NPY_ARRAY_IN_ARRAY);
+  if (!obj)
+    return nullptr;
+  // get ndarray pointer itself
+  // note: need template as in is part of a template-dependent expression
+  auto arr = obj.template as<PyArrayObject>();
+  // check dimensions
+  // TODO: need better error message
+  if (PyArray_NDIM(arr) != 2) {
+    PyErr_SetString(PyExc_RuntimeError, "NumPy array is not 2D");
+    return nullptr;
+  }
+  // obtain diagonal vector
+  // note: don't have converting ctor for matrix_view yet so this is slicing
+  npygl::ndarray_2d_view<T> mat{arr};
+  auto out = npygl::testing::diag(mat, offset);
+  // convert into 1D NumPy array
+  return npygl::make_ndarray(std::move(out)).release();
+}
+
+NPYGL_PY_KWFUNC_DECLARE(
+  diag,
+  "(mat, offset=1)",
+  "Return the diagonal of the given 2D NumPy array as a 1D vector.\n"
+  "\n"
+  "The memory backing the returned array is held by a std::vector<double>. If\n"
+  "the diagonal offset is out of matrix bounds an empty vector is returned.\n"
+  "\n"
+  NPYGL_NPYDOC_PARAMETERS
+  "mat : numpy.ndarray\n"
+  "    2D NumPy array or sequence convertible to NumPy array\n"
+  "offset : int, default=0\n"
+  "    Offset from main diagonal, e.g. <0 for below, >0 for above\n"
+  "\n"
+  NPYGL_NPYDOC_RETURNS
+  "numpy.ndarray\n"
+  "    1D array with diagonal values",
+  self, args, kwargs) noexcept
+{
+  return diag<double>(args, kwargs);
+}
+
+NPYGL_PY_KWFUNC_DECLARE(
+  fdiag,
+  "(mat, offset=1)",
+  "Return the diagonal of the given 2D NumPy array as a 1D vector.\n"
+  "\n"
+  "The memory backing the returned array is held by a std::vector<float>. If\n"
+  "the diagonal offset is out of matrix bounds an empty vector is returned.\n"
+  "\n"
+  NPYGL_NPYDOC_PARAMETERS
+  "mat : numpy.ndarray\n"
+  "    2D NumPy array or sequence convertible to NumPy array\n"
+  "offset : int, default=0\n"
+  "    Offset from main diagonal, e.g. <0 for below, >0 for above\n"
+  "\n"
+  NPYGL_NPYDOC_RETURNS
+  "numpy.ndarray\n"
+  "    1D array with diagonal values",
+  self, args, kwargs) noexcept
+{
+  return diag<float>(args, kwargs);
+}
+
 // module method table
 PyMethodDef mod_methods[] = {
   // TODO: consider using METH_O for single-argument array functions
@@ -585,6 +670,8 @@ PyMethodDef mod_methods[] = {
   NPYGL_PY_FUNC_METHOD_DEF(finner, METH_VARARGS),
   NPYGL_PY_FUNC_METHOD_DEF(uniform, METH_VARARGS | METH_KEYWORDS),
   NPYGL_PY_FUNC_METHOD_DEF(funiform, METH_VARARGS | METH_KEYWORDS),
+  NPYGL_PY_FUNC_METHOD_DEF(diag, METH_VARARGS | METH_KEYWORDS),
+  NPYGL_PY_FUNC_METHOD_DEF(fdiag, METH_VARARGS | METH_KEYWORDS),
   {}  // zero-initialized sentinel member
 };
 
