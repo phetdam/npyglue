@@ -25,22 +25,27 @@
 #include <string>
 #include <type_traits>
 
-#include <npygl/demangle.hh>
+#include <npygl/ctti.hh>
+#include <npygl/python.hh>
 
 namespace npygl {
 
 /**
  * Convert a Python object to an optional value.
  *
- * This is conditionally enabled for integral values.
+ * This is conditionally enabled for integral + float values.
  *
  * @todo This can be made more generic as a wrapper around a `T` conversion.
  *
  * @tparam T Integral type
  * @returns `true` on success, `false` on failure with Python exception set
  */
-template <typename T, typename = std::enable_if_t<std::is_integral_v<T>>>
-bool get(std::optional<T>& out, PyObject* in) noexcept
+template <typename T>
+bool get(
+  std::optional<T>& out,
+  PyObject* in,
+  std::enable_if_t<
+    std::is_integral_v<T> || std::is_floating_point_v<T> >* = 0) noexcept
 {
   // NULL or None are both treated as no argument
   if (!in || in == Py_None)
@@ -57,13 +62,16 @@ bool get(std::optional<T>& out, PyObject* in) noexcept
         return PyLong_AsLongLong(in);
     }
     // unsigned types
-    else {
+    else if constexpr (std::is_unsigned_v<T>) {
       // unsigned long or smaller
       if constexpr (sizeof(T) <= sizeof(unsigned long))
         return PyLong_AsUnsignedLong(in);
       else
         return PyLong_AsUnsignedLongLong(in);
     }
+    // floating
+    else
+      return PyFloat_AsDouble(in);
   }();
   // need to explicitly check for error
   if (!PyErr_Occurred())
@@ -75,7 +83,7 @@ bool get(std::optional<T>& out, PyObject* in) noexcept
       // note: not strictly noexcept
       std::stringstream ss;
       ss << "Received value " << v << " is less than " <<
-        npygl::type_name(typeid(T)) << " minimum " << v_min;
+        npygl::type_name<T>() << " minimum " << v_min;
       PyErr_SetString(PyExc_OverflowError, ss.str().c_str());
       return false;
     }
@@ -85,7 +93,7 @@ bool get(std::optional<T>& out, PyObject* in) noexcept
   if (v > v_max) {
     std::stringstream ss;
     ss << "Received value " << v << " exceeds " <<
-      npygl::type_name(typeid(T)) << " maximum " << v_max;
+      npygl::type_name<T>() << " maximum " << v_max;
     PyErr_SetString(PyExc_OverflowError, ss.str().c_str());
     return false;
   }
@@ -123,6 +131,8 @@ NPYGL_OPTIONAL_IN_TYPEMAP(unsigned long)
 NPYGL_OPTIONAL_IN_TYPEMAP(std::uint_fast64_t)
 NPYGL_OPTIONAL_IN_TYPEMAP(long long)
 NPYGL_OPTIONAL_IN_TYPEMAP(unsigned long long)
+NPYGL_OPTIONAL_IN_TYPEMAP(float)
+NPYGL_OPTIONAL_IN_TYPEMAP(double)
 
 /**
  * Macro to enable a general C++ exception handler.
