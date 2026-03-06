@@ -16,8 +16,77 @@
 #endif  // SWIGPYTHON
 
 %{
-#include <npygl/ndarray.hh>  // includes <numpy/ndarrayobject.h>
+#include <cstddef>
+#include <sstream>
+
+#include <npygl/ndarray.hh>      // includes <numpy/ndarrayobject.h>
 #include <npygl/python.hh>
+#include <npygl/range_views.hh>
+#include <npygl/warnings.h>
+
+namespace npygl {
+namespace {
+
+/**
+ * Convert the `element_order` data layout enum to a NumPy data layout flag.
+ *
+ * @todo Consider promoting this to `ndarray.hh` later.
+ *
+ * @param order Element order
+ */
+constexpr auto npy_layout(element_order order) noexcept
+{
+  switch (order) {
+  case element_order::f:
+    return NPY_ARRAY_F_CONTIGUOUS;
+  default:
+    return NPY_ARRAY_C_CONTIGUOUS;
+  }
+}
+
+/**
+ * Return NumPy input array flags given the specified data ordering.
+ *
+ * This function returns either `NPY_ARRAY_IN_ARRAY` or `NPY_ARRAY_IN_FARRAY`.
+ *
+ * @todo Consider promoting this to `ndarray.hh` later.
+ *
+ * @param order Element order
+ */
+constexpr auto npy_in_flags(element_order order) noexcept
+{
+  return npy_layout(order) | NPY_ARRAY_ALIGNED;
+}
+
+// GCC complains about check_dims() not being used
+NPYGL_GNU_WARNING_PUSH()
+NPYGL_GNU_WARNING_DISABLE(unused-function)
+/**
+ * Check NumPy array dimensions and set a Python exception on error.
+ *
+ * This function returns `false` if the NumPy array doesn't have exactly the
+ * number of dimensions specified and will set a Python runtime error.
+ *
+ * @param arr NumPy array
+ * @param ndim Number of required NumPy array dimensions
+ */
+bool check_dims(PyArrayObject* arr, std::size_t ndim)
+{
+  // dimensions match
+  // note: cast to suppress C2397 and -Wnarrowing
+  if (ndim == static_cast<std::size_t>(PyArray_NDIM(arr)))
+    return true;
+  // otherwise set exception
+  std::stringstream ss;
+  ss << "NumPy array shape " << ndarray_dims_view{arr} << " has " <<
+    PyArray_NDIM(arr) << " != required " << ndim << " dimensions";
+  PyErr_SetString(PyExc_RuntimeError, ss.str().c_str());
+  return false;
+}
+NPYGL_GNU_WARNING_POP()
+
+}  // namespace
+}  // namespace npygl
 %}
 
 // forward declaration of the ndarray_flat_view template in the npygl namespace
@@ -30,6 +99,14 @@ namespace npygl {
 template <typename T>
 class ndarray_flat_view;
 
+// note: declaration of element_order to avoid including range_views.hh. we
+// also don't want to expose the actual definition to SWIG; if we do, then SWIG
+// will wrap it and generate constants in the Python module
+enum class element_order;
+
+template <typename T, element_order R>
+class ndarray_2d_view;
+
 }  // namespace npygl
 
 /**
@@ -37,8 +114,6 @@ class ndarray_flat_view;
  *
  * This macro simplifies creation of `npygl::ndarray_flat_view<T>` typemaps
  * for all the types that have `npy_type_traits` specializations.
- *
- * Typically the type is a const-qualified type since the view is read-only.
  *
  * @param type C/C++ view class element type
  */
@@ -49,7 +124,7 @@ class ndarray_flat_view;
   if (!in)
     SWIG_fail;
   // create view
-  $1 = npygl::ndarray_flat_view<const type>{in.as<PyArrayObject>()};
+  $1 = in.as<PyArrayObject>();
 }
 %enddef  // NPYGL_FLAT_VIEW_IN_TYPEMAP(type)
 
@@ -100,7 +175,7 @@ class ndarray_flat_view;
   if (!res)
     SWIG_fail;
   // create view
-  $1 = npygl::ndarray_flat_view<type>{res.as<PyArrayObject>()};
+  $1 = res.as<PyArrayObject>();
 }
 %enddef  // NPYGL_FLAT_VIEW_INOUT_TYPEMAP(type)
 
@@ -286,6 +361,65 @@ class ndarray_flat_view;
 %clear std::span<type>;
 %enddef  // NPYGL_CLEAR_STD_SPAN_TYPEMAPS(type)
 
+/**
+ * Typemap macro for converting Python input into a read-nly 2D NumPy array.
+ *
+ * Unlike the `ndarray_flat_view<T>` typemaps this *requires* that the created
+ * NumPy array has *exactly* 2 dimensions and is of a particular data order.
+ *
+ * This macro simplifies creation of `npygl::ndarray_2d_view<T>` typemaps for
+ * all the types that have `npy_type_traits` specializations.
+ *
+ * Typically the type is a const-qualified type since the view is read-only.
+ *
+ * @param type C/C++ view class element type
+ * @param order Element ordering enum value
+ */
+%define NPYGL_2D_VIEW_IN_TYPEMAP(type, order)
+%typemap(in) npygl::ndarray_2d_view<const type, order> AR_IN
+  (npygl::py_object in) {
+  // attempt to create new input array (avoid copy if possible)
+  in = npygl::make_ndarray<type>($input, npygl::npy_in_flags(order));
+  if (!in)
+    SWIG_fail;
+  // get array pointer + check dimensions
+  auto arr = in.as<PyArrayObject>();
+  if (!npygl::check_dims(arr, 2u))
+    SWIG_fail;
+  // create view
+  $1 = in.as<PyArrayObject>();
+}
+%enddef  // NPYGL_2D_VIEW_IN_TYPEMAP(type)
+
+/**
+ * Typemap application macro for applying a 2D view in typemap.
+ *
+ * This macro is used to apply the typemap to a specific type + name pair.
+ *
+ * @param type C/C++ view class element type
+ * @param order Element ordering enum value
+ * @param name Parameter name to apply typemap to
+ */
+%define NPYGL_APPLY_2D_VIEW_IN_TYPEMAP(type, order, name)
+%apply npygl::ndarray_2d_view<const type, order> AR_IN {
+  npygl::ndarray_2d_view<const type, order> name
+};
+%enddef  // NPYGL_APPLY_2D_VIEW_IN_TYPEMAP(type, name)
+
+/**
+ * Typemap application macro for applying all 2D view in typemaps.
+ *
+ * This macro applies the typemap to every occurrence of the type.
+ *
+ * @param type C/C++ view class element type
+ * @param order Element ordering enum value
+ */
+%define NPYGL_APPLY_2D_VIEW_IN_TYPEMAPS(type, order)
+%apply npygl::ndarray_2d_view<const type, order> AR_IN {
+  npygl::ndarray_2d_view<const type, order>
+};
+%enddef  // NPYGL_APPLY_2D_VIEW_IN_TYPEMAPS(type)
+
 // supported in flat view typemaps
 NPYGL_FLAT_VIEW_IN_TYPEMAP(double)
 NPYGL_FLAT_VIEW_IN_TYPEMAP(float)
@@ -317,6 +451,13 @@ NPYGL_STD_SPAN_INOUT_TYPEMAP(int)
 NPYGL_STD_SPAN_INOUT_TYPEMAP(unsigned int)
 NPYGL_STD_SPAN_INOUT_TYPEMAP(long)
 NPYGL_STD_SPAN_INOUT_TYPEMAP(unsigned long)
+
+// supported in 2D view typemaps
+NPYGL_2D_VIEW_IN_TYPEMAP(double, npygl::element_order::c)
+NPYGL_2D_VIEW_IN_TYPEMAP(double, npygl::element_order::f)
+NPYGL_2D_VIEW_IN_TYPEMAP(float, npygl::element_order::c)
+NPYGL_2D_VIEW_IN_TYPEMAP(float, npygl::element_order::f)
+// TODO: add other NumPy integral types
 
 /**
  * Macro for starting the parameters section of the NumPy docstring.
