@@ -10,8 +10,6 @@
 
 #include <cstdio>
 
-#include "npygl/features.h"
-
 namespace npygl {
 
 /**
