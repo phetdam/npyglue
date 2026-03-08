@@ -558,3 +558,8 @@ if(NPYGL_PYTORCH_HAS_CUDA AND Python3_NumPy_FOUND AND TORCH_FOUND)
         add_test(NAME npy_capsule_cutorch_test COMMAND npy_capsule_cutorch_test)
     endif()
 endif()
+
+# ndspan_test: ndspan test
+add_executable(ndspan_test ndspan_test.cc)
+target_link_libraries(ndspan_test PRIVATE npyglue)
+add_test(NAME ndspan_test COMMAND ndspan_test)
