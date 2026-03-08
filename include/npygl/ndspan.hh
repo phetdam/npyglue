@@ -613,6 +613,30 @@ public:
       };
   }
 
+private:
+  /**
+   * `operator()` constraint on a pack of index values.
+   *
+   * All types must be integral and `sizeof...(Ts)` must equal `N`.
+   *
+   * @tparam Ts Integral types
+   */
+  template <typename... Ts>
+  static constexpr bool index_constraint = (
+    (sizeof...(Ts) == N) &&
+    (std::is_integral_v<Ts> && ...)
+  );
+
+  /**
+   * SFINAE helper for the `operator()` index constraint.
+   *
+   * @tparam Ts Integral types
+   */
+  template <typename... Ts>
+  using index_constraint_t = std::enable_if_t<index_constraint<Ts...>>;
+
+public:
+
   /**
    * Directly reference a specified value.
    *
@@ -620,9 +644,8 @@ public:
    *
    * @param is Index vales
    */
-  template <typename... Ts>
-  std::enable_if_t<sizeof...(Ts) == N && (std::is_integral_v<Ts> && ...), T&>
-  operator()(Ts... is) const noexcept
+  template <typename... Ts, typename = index_constraint_t<Ts...>>
+  constexpr auto& operator()(Ts... is) const noexcept
   {
     return data_[E{}(dims_, {is...})];
   }
