@@ -85,6 +85,12 @@ else()
     message(STATUS "cxxabi.h found: No")
 endif()
 
+# if using MSVC print additional compiler info
+if(MSVC)
+    message(STATUS "MSVC version: ${MSVC_VERSION}")
+    message(STATUS "MSVC toolset: ${MSVC_TOOLSET_VERSION}")
+endif()
+
 # check if we have C++20 available
 if(cxx_std_20 IN_LIST CMAKE_CXX_COMPILE_FEATURES)
     set(NPYGL_HAS_CC_20 ON)
@@ -94,30 +100,82 @@ else()
     message(STATUS "C++20 support: No")
 endif()
 
+# find nvidia-smi to determine driver + required CUDA major version
+find_program(nvidia-smi_EXECUTABLE nvidia-smi)
+# if found, mark as found, and get version info
+if(nvidia-smi_EXECUTABLE)
+    set(nvidia-smi_FOUND TRUE)
+    execute_process(
+        COMMAND "${nvidia-smi_EXECUTABLE}"
+        OUTPUT_VARIABLE nvidia-smi_out
+        OUTPUT_STRIP_TRAILING_WHITESPACE
+        # note: should not fail since we located nvidia-smi
+        COMMAND_ERROR_IS_FATAL ANY
+    )
+    # convert output into string and get 3rd line
+    string(REPLACE "\n" ";" nvidia-smi_out "${nvidia-smi_out}")
+    list(GET nvidia-smi_out 2 nvidia-smi_versions)
+    # get version info from line
+    string(REGEX MATCHALL "[0-9.]+" nvidia-smi_versions "${nvidia-smi_versions}")
+    # get driver + required CUDA major version
+    list(GET nvidia-smi_versions 1 NPYGL_CUDA_DRIVER_VERSION)
+    list(GET nvidia-smi_versions 2 NPYGL_CUDA_REQUIRED_MAJOR)
+    # strip minor version from NPYGL_CUDA_REQUIRED_MAJOR
+    string(
+        REGEX MATCH "[0-9]+"
+        NPYGL_CUDA_REQUIRED_MAJOR "${NPYGL_CUDA_REQUIRED_MAJOR}"
+    )
+    # clean up
+    unset(nvidia-smi_out)
+    unset(nvidia-smi_versions)
+endif()
+# print info
+if(nvidia-smi_FOUND)
+    message(STATUS "CUDA driver: ${NPYGL_CUDA_DRIVER_VERSION}")
+    message(STATUS "CUDA required: ${NPYGL_CUDA_REQUIRED_MAJOR}")
+else()
+    message(STATUS "CUDA driver: None")
+    message(STATUS "CUDA required: None")
+endif()
+
 # special handling for MSVC STL and CUDA compiler version mismatches. this
 # strengthening was introduced in VS 17.10, i.e. _MSC_VER 1940 and above, where
 # CUDA 12.4 and above is explicitly required. see STL's answer on the issue on
 # StackOverflow: # https://stackoverflow.com/a/78576792/14227825
 if(MSVC AND MSVC_VERSION GREATER_EQUAL 1940)
-    message(
-        WARNING
-        "MSVC with _MSC_VER ${MSVC_VERSION} >= 1940 requires CUDA Toolkit 12.4 "
-"or newer"
-    )
     find_package(CUDAToolkit 12.4)
 # for older MSVC, there were some requirements, but we don't use them here
 else()
     find_package(CUDAToolkit)
 endif()
-
-# if CUDA is available, enable CUDA and set compiler standard
 if(CUDAToolkit_FOUND)
     message(STATUS "CUDA version: ${CUDAToolkit_VERSION}")
-    enable_language(CUDA)
-    set(CMAKE_CUDA_STANDARD ${CMAKE_CXX_STANDARD})
-    set(CMAKE_CUDA_STANDARD_REQUIRED ON)
+    # enable CUDA and set compiler standard, but only if the CUDA major version
+    # matches what is supported by the current driver
+    if(
+        NPYGL_CUDA_REQUIRED_MAJOR AND
+        CUDAToolkit_VERSION_MAJOR VERSION_EQUAL NPYGL_CUDA_REQUIRED_MAJOR
+    )
+        enable_language(CUDA)
+        set(CMAKE_CUDA_STANDARD ${CMAKE_CXX_STANDARD})
+        set(CMAKE_CUDA_STANDARD_REQUIRED ON)
+        set(NPYGL_CUDA_ENABLED TRUE)
+    else()
+        message(
+            WARNING
+            "CUDA Toolkit ${CUDAToolkit_VERSION} does not have the required "
+"CUDA major version ${NPYGL_CUDA_REQUIRED_MAJOR}. CUDA will not be enabled."
+        )
+        set(NPYGL_CUDA_ENABLED FALSE)
+    endif()
 else()
     message(STATUS "CUDA version: None")
+endif()
+# indicate if CUDA enabled for project
+if(NPYGL_CUDA_ENABLED)
+    message(STATUS "CUDA enabled: Yes")
+else()
+    message(STATUS "CUDA enabled: No")
 endif()
 
 # find Python 3. not tested with Python 2
@@ -193,6 +251,11 @@ if(NPYGL_PYTORCH_FOUND)
     # PyTorch has CUDA
     else()
         set(NPYGL_PYTORCH_HAS_CUDA ON)
+        # get CUDA major version (used later for compatibilty checks)
+        string(
+            REGEX MATCH "[0-9]+"
+            NPYGL_PYTORCH_CUDA_VERSION_MAJOR "${NPYGL_PYTORCH_CUDA_VERSION}"
+        )
     endif()
     # update CMake prefix path
     # note: be careful when using a new Python venv as the Torch CMake config
@@ -288,6 +351,25 @@ if(NPYGL_PYTORCH_FOUND)
         message(
             WARNING
             "Skipping find_package for CUDA Torch due to no CUDA Toolkit"
+        )
+    # if PyTorch has CUDA but major version doesn't match required major
+    # version we also do not search for Torch C++
+    elseif(
+        NPYGL_PYTORCH_HAS_CUDA AND NOT
+        NPYGL_PYTORCH_CUDA_VERSION_MAJOR VERSION_EQUAL NPYGL_CUDA_REQUIRED_MAJOR
+    )
+        message(
+            WARNING
+            "Skipping find_package for CUDA Torch as PyTorch "
+"${NPYGL_PYTORCH_VERSION} is built with CUDA ${NPYGL_PYTORCH_CUDA_VERSION} "
+"without the required CUDA major version of ${NPYGL_CUDA_REQUIRED_MAJOR}"
+        )
+    # if PyTorch has CUDA but CUDA is not enabled for project this is likely
+    # because CUDA Toolkit isn't compatible with the CUDA driver
+    elseif(NPYGL_PYTORCH_HAS_CUDA AND NOT NPYGL_CUDA_ENABLED)
+        message(
+            WARNING
+            "Skipping find_package for CUDA Torch due to incompatible CUDA Toolkit"
         )
     else()
         find_package(Torch ${NPYGL_PYTORCH_VERSION} CONFIG)
