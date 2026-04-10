@@ -804,8 +804,6 @@ install(
     FILES_MATCHING PATTERN "*.i"
 )
 
-# TODO: add install rule for npygl_swig_include
-
 # prefix-relative directory for CMake files on installation
 set(NPYGL_CMAKE_INSTALL_DIR lib/cmake/${PROJECT_NAME})
 # name of the CMake target exports script
