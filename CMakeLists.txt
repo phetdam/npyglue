@@ -804,6 +804,28 @@ install(
     FILES_MATCHING PATTERN "*.i"
 )
 
+# npyglue_torch_dlls: custom target to copy Torch DLLs to the runtime output
+# directory. for multi-config generators the per-config subdirectory is added
+if(TORCH_FOUND)
+    # Torch DLLs to copy
+    # note: TORCH_INSTALL_PREFIX is provided by the upstream TorchConfig.cmake
+    file(GLOB NPYGL_TORCH_DLLS "${TORCH_INSTALL_PREFIX}/lib/*.dll")
+    # target directory expression
+    set(
+        runtime_outdir_genex
+        "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}$<${NPYGL_MULTI_CONFIG_GENERATOR}:/$<CONFIG>>"
+    )
+    # add target
+    add_custom_target(
+        npyglue_torch_dlls
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different ${NPYGL_TORCH_DLLS}
+                ${runtime_outdir_genex}
+        COMMENT "Copying Torch DLLs to ${runtime_outdir_genex}"
+        VERBATIM
+        COMMAND_EXPAND_LISTS
+    )
+endif()
+
 # prefix-relative directory for CMake files on installation
 set(NPYGL_CMAKE_INSTALL_DIR lib/cmake/${PROJECT_NAME})
 # name of the CMake target exports script
