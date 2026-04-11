@@ -28,7 +28,7 @@ cmake_minimum_required(VERSION 3.20)
 #
 # For all platforms, the following IMPORTED library target is also defined:
 #
-#   SYCL:sycl
+#   SYCL::sycl
 #
 # A required call to FindOpenCL is also done internally in this find module.
 #
