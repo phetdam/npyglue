@@ -15,7 +15,8 @@ cmake_minimum_required(VERSION 3.20)
 # artifacts were correctly found or not. On success, the following helper
 # variables are defined by the find module:
 #
-#   SYCL_COMPILER               Path to the SYCL compiler (icx)
+#   SYCL_C_COMPILER             Path to the SYCL C compiler
+#   SYCL_CXX_COMPILER           Path to the SYCL C++ compiler
 #   SYCL_ROOT_DIR               Root directory of the SYCL installation
 #   SYCL_INCLUDE_DIR            Include directory for SYCL/OpenCL headers
 #   SYCL_LIBRARY                SYCL main [import] library
@@ -31,28 +32,54 @@ cmake_minimum_required(VERSION 3.20)
 #   SYCL::sycl
 #
 # A required call to FindOpenCL is also done internally in this find module.
+# On Linux, icx and icpx are the C and C++ compilers by default, while on
+# Windows, icx-cl is used for both the C and C++ compiler.
 #
 
 include(FindPackageHandleStandardArgs)
 
-# look for the SYCL compiler
+# compiler names
+if(WIN32)
+    set(_sycl_cc_name icx-cl)
+    set(_sycl_cxx_name icx-cl)
+else()
+    set(_sycl_cc_name icx)
+    set(_sycl_cxx_name -icpx)
+endif()
+
+# look for the SYCL C compiler
 find_program(
-    SYCL_COMPILER
-    NAMES icx  # dpcpp is another name but we stick with Intel-style name
+    SYCL_C_COMPILER
+    # note: dpcpp is another name but we stick with Intel-style name
+    NAMES ${_sycl_cc_name}
     # CMPLR_ROOT has highest priority
     HINTS ENV CMPLR_ROOT "${SYCL_ROOT}" ENV SYCL_ROOT
     PATH_SUFFIXES bin
     NO_CACHE
 )
 # if not found, exit early
-if(NOT SYCL_COMPILER)
-    find_package_handle_standard_args(SYCL REQUIRED_VARS SYCL_COMPILER)
+if(NOT SYCL_C_COMPILER)
+    find_package_handle_standard_args(SYCL REQUIRED_VARS SYCL_C_COMPILER)
+    return()
+endif()
+
+# look for the SYCL C++ compiler and exit early if not found
+find_program(
+    SYCL_CXX_COMPILER
+    NAMES ${_sycl_cxx_name}
+    HINTS ENV CMPLR_ROOT "${SYCL_ROOT}" ENV SYCL_ROOT
+    PATH_SUFFIXES bin
+    NO_CACHE
+)
+if(NOT SYCL_CXX_COMPILER)
+    find_package_handle_standard_args(SYCL REQUIRED_VARS SYCL_CXX_COMPILER)
     return()
 endif()
 
 # get the compiler version
+# note: should be the same whether we get it from the C or C++ frontend
 execute_process(
-    COMMAND ${SYCL_COMPILER} --version
+    COMMAND ${SYCL_C_COMPILER} --version
     TIMEOUT 5
     RESULT_VARIABLE _sycl_version_res
     OUTPUT_VARIABLE _sycl_version_out
@@ -65,7 +92,7 @@ if(_sycl_version_res)
     find_package_handle_standard_args(
         SYCL
         REQUIRED_VARS SYCL_VERSION
-        REASON_FAILURE_MESSAGE "error running icx --version")
+        REASON_FAILURE_MESSAGE "error running ${_sycl_cc_name} --version")
     return()
 endif()
 # get regex from first line
@@ -76,7 +103,7 @@ string(
 )
 
 # get the SYCL installation root
-cmake_path(GET SYCL_COMPILER PARENT_PATH SYCL_ROOT_DIR)
+cmake_path(GET SYCL_C_COMPILER PARENT_PATH SYCL_ROOT_DIR)
 cmake_path(GET SYCL_ROOT_DIR PARENT_PATH SYCL_ROOT_DIR)
 
 # look for include directory by looking for main SYCL header file
@@ -158,8 +185,8 @@ target_include_directories(SYCL::sycl INTERFACE "${SYCL_INCLUDE_DIR}")
 target_link_libraries(SYCL::sycl INTERFACE OpenCL::OpenCL)
 
 # required variables to check. on Windows also include DLLs and debug library.
-# SYCL_COMPILER and SYCL_ROOT_DIR are valid already. we put SYCL_LIBRARY first
-# so it shows up the find_package_handle_standard_args success message
+# SYCL_C[XX]_COMPILER and SYCL_ROOT_DIR are valid already. we put SYCL_LIBRARY
+# first so it shows up the find_package_handle_standard_args success message
 set(_sycl_required_vars SYCL_LIBRARY SYCL_INCLUDE_DIR)
 if(WIN32)
     list(
