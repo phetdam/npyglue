@@ -44,7 +44,7 @@ if(WIN32)
     set(_sycl_cxx_name icx-cl)
 else()
     set(_sycl_cc_name icx)
-    set(_sycl_cxx_name -icpx)
+    set(_sycl_cxx_name icpx)
 endif()
 
 # look for the SYCL C compiler
