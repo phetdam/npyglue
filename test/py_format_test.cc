@@ -11,6 +11,7 @@
 #include <cstdint>
 #include <cstdlib>
 #include <iostream>
+#include <set>
 #include <tuple>
 #include <typeinfo>
 #include <utility>
@@ -260,12 +261,22 @@ int main()
     Py_buffer, PyObject*, PyObject*,
     npygl::py_optional_args, Py_complex, Py_buffer, Py_buffer
   >;
+  using types_6 = std::tuple<
+    npygl::py_converted_object<std::set<int>>, npygl::py_typed_object, int,
+    npygl::py_optional_args, npygl::py_typed_object, const char*
+  >;
+  using types_7 = std::tuple<
+    npygl::py_typed_object, PyObject*, npygl::py_converted_object<PyObject*>,
+    npygl::py_optional_args, Py_complex, Py_ssize_t, const char*, const char*
+  >;
   // run tests
   return test_main(
     make_input<types_1>("ih|O"),
     make_input<types_2>("dfO|nsD"),
     make_input<types_3>("ssO|DDin"),
     make_input<types_4>("nS|dDO"),
-    make_input<types_5>("y*OO|Dy*y*")
+    make_input<types_5>("y*OO|Dy*y*"),
+    make_input<types_6>("O&O!i|O!s"),
+    make_input<types_7>("O!OO&|Dnss")
   );
 }
