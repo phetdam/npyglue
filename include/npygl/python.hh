@@ -75,6 +75,238 @@ template <typename... Ts>
 struct py_format_type;
 
 /**
+ * Traits type for returning raw Python argument addresses from a type.
+ *
+ * The base template simply returns a single-element tuple with the address of
+ * the object reference. One must specialize as necessary for custom C++ types
+ * that may contain the standard Python C types, i.e. for representing specific
+ * semantics when the same C types are involved, e.g. `"s"` vs. `"z"`. In
+ * particular, the return value is a tuple to enable representing *multiple*
+ * Python C type arguments with a single C++ semantic wrapper type, e.g. to
+ * represent the `"z#"`, `"es"`, etc. formats.
+ *
+ * @tparam T C++ or Python C type
+ */
+template <typename T, typename = void>
+struct py_addrs_impl {
+  /**
+   * Return a tuple containing the address of the object reference.
+   *
+   * @param v Object reference, e.g. `const char*`, `Py_buffer`, etc.
+   */
+  auto operator()(T& v) const noexcept
+  {
+    return std::tuple{&v};
+  }
+};
+
+/**
+ * Return a tuple of raw Python argument addresses from object references.
+ *
+ * This function template is provided to enable template argument deduction and
+ * uses `std::tuple_cat()` to concatenate all the tuples of object addresses
+ * into a single flat tuple for use by `parse_args()`.
+ *
+ * @tparam Ts types
+ *
+ * @param v C++ or C object reference, e.g. `Py_buffer`, `PyObject*`, etc.
+ */
+template <typename... Ts>
+auto py_addrs(Ts&... v) noexcept
+{
+  return std::tuple_cat(py_addrs_impl<Ts>{}(v)...);
+}
+
+/**
+ * Type alias providing the `std::tuple<...>` returned by `py_addrs()`.
+ *
+ * This type alias can also be used for SFINAE purposes.
+ *
+ * @tparam Ts types
+ */
+template <typename... Ts>
+using py_addrs_type = decltype(py_addrs(std::declval<Ts&>()...));
+
+/**
+ * Numeric constant providing the tuple size of the `py_addrs_type<...>` tuple.
+ *
+ * @tparam Ts types
+ */
+template <typename... Ts>
+constexpr auto py_addrs_size = std::tuple_size_v<py_addrs_type<Ts...>>;
+
+/**
+ * Class representing the `"O!"` Python type-checked object format.
+ *
+ * This takes a Python type object and wraps a borrowed `PyObject*`. Therefore,
+ * it cannot be used to represent a strong `PyObject*` reference.
+ */
+class py_typed_object {
+public:
+  /**
+   * Ctor,
+   *
+   * @param type Address of a Python type object
+   */
+  py_typed_object(PyTypeObject* type) noexcept : type_{type} {}
+
+  /**
+   * Return a reference to the Python object pointer.
+   *
+   * This is provided so we can take the address of the Python object pointer.
+   */
+  auto& ref() noexcept { return obj_; }
+
+  /**
+   * Return the Python object pointer.
+   */
+  auto ref() const noexcept { return obj_; }
+
+  /**
+   * Return the Python type object's address.
+   */
+  auto type() const noexcept { return type_; }
+
+  /**
+   * Implicitly convert to `PyObject*` for C function interop.
+   */
+  operator PyObject*() const noexcept
+  {
+    return obj_;
+  }
+
+private:
+  PyObject* obj_{};
+  PyTypeObject* type_;
+};
+
+/**
+ * `py_addrs_impl` specialization for `py_typed_object`.
+ */
+template <>
+struct py_addrs_impl<py_typed_object> {
+  /**
+   * Return the contained `PyTypeObject*` and address to the `PyObject*`.
+   */
+  auto operator()(py_typed_object& v) const noexcept
+  {
+    return std::tuple{v.type(), &v.ref()};
+  }
+};
+
+/**
+ * Class representing the `"O&"` Python type-converted object format.
+ *
+ * This manages a default-initializeed instance of type `T` for simple value
+ * semantics. The instance can be a C++ type `PyObject*`, `PyArrayObject*`, and
+ * so on, with a converter function satisfying the `"O&"` requirements as
+ * detailed in https://docs.python.org/3/c-api/arg.html#other-objects.
+ *
+ * @tparam T Default-initializable type
+ */
+template <typename T>
+class py_converted_object {
+public:
+  // TODO: unsure if T* must be void* as the NumPy docs use a typed pointer
+  using converter_type = int (*)(PyObject*, T*);
+
+  /**
+   * Ctor.
+   *
+   * @param conv Converter function
+   */
+  py_converted_object(converter_type conv) noexcept : conv_{conv} {}
+
+  /**
+   * Return a reference to the contained object.
+   */
+  auto& obj() & noexcept { return obj_; }
+
+  /**
+   * Return a const reference to the contained object.
+   */
+  auto& obj() const & noexcept { return obj_; }
+
+  /**
+   * Return a reference to the contained object.
+   *
+   * This enables move semantics with the `py_converted_object<T>` like those
+   * provided by `std::optional<T>` to explicitly indicate a moved-from state.
+   */
+  T&& obj() && noexcept { return std::move(obj_); }
+
+  /**
+   * Return a const reference to the contained object.
+   *
+   * @note This overload is rarely useful but provided for completeness.
+   */
+  const T&& obj() const && noexcept { return std::move(obj_); }
+
+  /**
+   * Return a pointer to the type converter.
+   */
+  auto conv() const noexcept { return conv_; }
+
+  /**
+   * Return a reference to the contained object.
+   */
+  auto& operator*() & noexcept { return obj_; }
+
+  /**
+   * Return a const reference to the contained object.
+   */
+  auto& operator*() const & noexcept { return obj_; }
+
+  /**
+   * Return a reference to the contained object.
+   *
+   * This enables move semantics with the `py_converted_object<T>` like those
+   * provided by `std::optional<T>` to explicitly indicate a moved-from state.
+   */
+  T&& operator*() && noexcept { return std::move(obj_); }
+
+  /**
+   * Return a const reference to the contained object.
+   *
+   * @note This overload is rarely useful but provided for completeness.
+   */
+  const T&& operator*() const && noexcept { return std::move(obj_); }
+
+  /**
+   * Return a pointer to the contained object.
+   */
+  auto operator->() noexcept { return &obj_; }
+
+  /**
+   * Return a pointer to the contained object.
+   */
+  auto operator->() const noexcept { return &obj_; }
+
+private:
+  T obj_{};
+  converter_type conv_;
+};
+
+/**
+ * `py_addrs_impl` partial specialization for `py_converted_object`.
+ *
+ * @tparam T Default-initializable type
+ */
+template <typename T>
+struct py_addrs_impl<
+  py_converted_object<T>,
+  std::enable_if_t<std::is_default_constructible_v<T>>  // tests T()
+> {
+  /**
+   * Return the contained converter function and address to the C/C++ object.
+   */
+  auto operator()(py_converted_object<T>& v) const noexcept
+  {
+    return std::tuple{v.conv(), &*v};
+  }
+};
+
+/**
  * Placeholder type to indicate that subsequence format units are optional.
  */
 struct py_optional_args {};
@@ -95,6 +327,8 @@ struct py_optional_args {};
   }
 
 // see https://docs.python.org/3/c-api/arg.html for formatting details
+// TODO: revisit some definitions now that the py_addrs_impl gives a way to
+// specify multi-argument unpacking and nullable semantics for types
 NPYGL_PY_FORMAT_TYPE_SPEC(const char*, "s");
 NPYGL_PY_FORMAT_TYPE_SPEC(unsigned char, "b");
 NPYGL_PY_FORMAT_TYPE_SPEC(short, "h");
@@ -110,6 +344,18 @@ NPYGL_PY_FORMAT_TYPE_SPEC(PyObject*, "O");
 NPYGL_PY_FORMAT_TYPE_SPEC(PyBytesObject*, "S");
 NPYGL_PY_FORMAT_TYPE_SPEC(py_optional_args, "|");
 NPYGL_PY_FORMAT_TYPE_SPEC(Py_buffer, "y*");
+NPYGL_PY_FORMAT_TYPE_SPEC(py_typed_object, "O!");
+
+/**
+ * Partial specialization for a `py_converted_object<T>`.
+ *
+ * @tparam T Default-initializable type
+ */
+template <typename T>
+struct py_format_type<py_converted_object<T>> {
+  static constexpr const char value[] = "O&";
+  static constexpr auto length = sizeof value - 1u;
+};
 
 /**
  * Partial specialization for a single type to terminate template instantation.
@@ -181,8 +427,34 @@ struct py_format_type<std::tuple<Ts...>> : py_format_type<Ts...> {};
 template <typename... Ts>
 inline constexpr const auto& py_format = py_format_type<Ts...>::value;
 
+namespace detail {
+
 /**
- * Parse Python arguments into the given variadic arguments.
+ * Parse Python arguments into the given variable references.
+ *
+ * @note This function is intended for use with `METH_VARARGS` functions only.
+ *
+ * @tparam Ts types
+ * @tparam Is Indices 0 through `py_addrs_size<Ts...>` - 1
+ *
+ * @param args Python arguments
+ * @param vars Variable references to parse arguments into
+ * @returns `true` on success, `false` on error
+ */
+template <typename... Ts, std::size_t... Is>
+bool parse_args(PyObject* args, std::index_sequence<Is...>, Ts&... vars) noexcept
+{
+  static_assert(sizeof...(Is) == py_addrs_size<Ts...>);
+  // get tuple of addresses to pass to PyArg_ParseTuple()
+  auto addrs = py_addrs(vars...);
+  // call with format + addresses
+  return !!PyArg_ParseTuple(args, py_format<Ts...>, std::get<Is>(addrs)...);
+}
+
+}  // namespace detail
+
+/**
+ * Parse Python arguments into the given variable references.
  *
  * @note This function is intended for use with `METH_VARARGS` functions only.
  *
@@ -195,7 +467,11 @@ inline constexpr const auto& py_format = py_format_type<Ts...>::value;
 template <typename... Ts>
 bool parse_args(PyObject* args, Ts&... vars) noexcept
 {
-  return !!PyArg_ParseTuple(args, py_format<Ts...>, &vars...);
+  return detail::parse_args(
+    args,
+    std::make_index_sequence<py_addrs_size<Ts...>>{},
+    vars...
+  );
 }
 
 namespace detail {
@@ -218,8 +494,11 @@ bool parse_args(
   const std::tuple<Ts&...>& vars,
   std::index_sequence<Is...>) noexcept
 {
-  static_assert(sizeof...(Ts) == sizeof...(Is));
-  return !!PyArg_ParseTuple(args, py_format<Ts...>, &std::get<Is>(vars)...);
+  return detail::parse_args(
+    args,
+    std::make_index_sequence<py_addrs_size<Ts...>>{},
+    std::get<Is>(vars)...
+  );
 }
 
 }  // namespace detail
