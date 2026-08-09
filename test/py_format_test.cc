@@ -15,7 +15,7 @@
 #include <typeinfo>
 #include <utility>
 
-#include "npygl/demangle.hh"
+#include "npygl/ctti.hh"
 #include "npygl/python.hh"
 
 namespace {
@@ -69,10 +69,10 @@ private:
     // format type being tested (also tests the tuple partial specialization)
     using format_type = npygl::py_format_type<tuple_type>;
     // length of the tested format string (sans null terminator)
-    constexpr auto len = npygl::py_format_type<tuple_type>::length;
+    constexpr auto len = format_type::length;
     // each test case announces the comparison being done
-    std::cout << "Checking format of " <<
-      npygl::type_name(typeid(format_type)) << "... " << std::flush;
+    std::cout << "Checking format of " << npygl::type_name<format_type>() <<
+      "... " << std::flush;
     // character by character check
     bool mismatch = false;
     (
