@@ -136,6 +136,41 @@ template <typename... Ts>
 constexpr auto py_addrs_size = std::tuple_size_v<py_addrs_type<Ts...>>;
 
 /**
+ * Partial specialization for a `std::tuple<Ts...>`.
+ *
+ * @tparam Ts types
+ */
+template <typename... Ts>
+struct py_addrs_impl<std::tuple<Ts...>> {
+private:
+  /**
+   * Return a tuple of the raw Python argument addresses from the tuple values.
+   *
+   * This is required so we can use `std::get<I>()` on each tuple element.
+   *
+   * @tparam Is Indices 0 through `sizeof...(Ts)` - 1
+   */
+  template <std::size_t... Is>
+  auto impl(std::index_sequence<Is...>, std::tuple<Ts...>& v) const noexcept
+  {
+    static_assert(sizeof...(Is) == sizeof...(Ts));
+    return py_addrs(std::get<Is>(v)...);
+  }
+
+public:
+  /**
+   * Return a tuple of the raw Python argument addresses from the tuple values.
+   *
+   * This function works recursively with `py_addrs()` and therefore allows
+   * handling a case where a tuple contains nested tuples.
+   */
+  auto operator()(std::tuple<Ts...>& v) noexcept
+  {
+    return impl(std::index_sequence_for<Ts...>{}, v);
+  }
+};
+
+/**
  * Class representing the `"O!"` Python type-checked object format.
  *
  * This takes a Python type object and wraps a borrowed `PyObject*`. Therefore,
@@ -528,13 +563,13 @@ namespace detail {
  * @note This function is intended for use with `METH_VARARGS` functions only.
  *
  * @tparam RTs... Required types
- * @tparam RIs... Indices 0 through sizeof...(RTs) - 1 for each type `RTs`
+ * @tparam RIs... Indices 0 through `py_addrs_size<RTs...>` - 1
  * @tparam OTs... Optional types
- * @tparam OIs... Indices 0 through sizeof...(OTs) - 1 for each type `OTs`
+ * @tparam OIs... Indices 0 through `py_addrs_size<OTs...> - 1
  *
  * @param args Python arguments
  * @param reqs Variable references to parse required arguments into
- * @param opts Varuable references to parse optional arguments into
+ * @param opts Variable references to parse optional arguments into
  * @returns `true` on success, `false` on error
  */
 template <typename... RTs, std::size_t... RIs, typename... OTs, std::size_t... OIs>
@@ -545,13 +580,17 @@ bool parse_args(
   const std::tuple<OTs&...>& opts,
   std::index_sequence<OIs...>) noexcept
 {
-  static_assert(sizeof...(RTs) == sizeof...(RIs));
-  static_assert(sizeof...(OTs) == sizeof...(OIs));
+  static_assert(sizeof...(RIs) == py_addrs_size<RIs...>);
+  static_assert(sizeof...(OIs) == py_addrs_size<OIs...>);
+  // get tuples for required + optional object addressses
+  auto req_addrs = py_addrs(reqs);
+  auto opt_addrs = py_addrs(opts);
+  // parse using PyArg_ParseTuple()
   return !!PyArg_ParseTuple(
     args,
     py_format<RTs..., py_optional_args, OTs...>,
-    &std::get<RIs>(reqs)...,
-    &std::get<OIs>(opts)...
+    std::get<RIs>(req_addrs)...,
+    std::get<OIs>(opt_addrs)...
   );
 }
 
@@ -579,9 +618,9 @@ bool parse_args(
   return detail::parse_args(
     args,
     reqs,
-    std::index_sequence_for<RTs...>{},
+    std::make_index_sequence<py_addrs_size<RTs...>>{},
     opts,
-    std::index_sequence_for<OTs...>{}
+    std::make_index_sequence<py_addrs_size<OTs...>>{}
   );
 }
 
