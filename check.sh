@@ -36,8 +36,8 @@ print_usage() {
     echo "  -h,  --help                     Print this usage"
     echo "  -t,  --test-dir TEST_DIR        Test build directory, default" \
         "$BUILD_DIR"
-    echo "  -j[ ]PROCS, --parallel PROCS    Test parallelism, default $(nproc)"
-    echo "  -p, --progress                  Print short progress output"
+    echo "  -j,  --parallel PROCS           Test parallelism, default $(nproc)"
+    echo "  -p,  --progress                 Print short progress output"
     echo "  -Ct, --ctest-args CTEST_ARGS    Additional CTest arguments"
 }
 
