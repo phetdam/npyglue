@@ -34,16 +34,11 @@ print_usage() {
     echo
     echo "Options:"
     echo "  -h,  --help                     Print this usage"
-    echo
-    echo "  -t TEST_DIR, --test-dir TEST_DIR"
-    echo "                                  Test build directory, default" \
+    echo "  -t,  --test-dir TEST_DIR        Test build directory, default" \
         "$BUILD_DIR"
-    echo
     echo "  -j[ ]PROCS, --parallel PROCS    Test parallelism, default $(nproc)"
     echo "  -p, --progress                  Print short progress output"
-    echo
-    echo "  -Ct CTEST_ARGS, --ctest-args CTEST_ARGS"
-    echo "                                  Additional CTest arguments"
+    echo "  -Ct, --ctest-args CTEST_ARGS    Additional CTest arguments"
 }
 
 ##
