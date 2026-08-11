@@ -164,7 +164,46 @@ public:
    * This function works recursively with `py_addrs()` and therefore allows
    * handling a case where a tuple contains nested tuples.
    */
-  auto operator()(std::tuple<Ts...>& v) noexcept
+  auto operator()(std::tuple<Ts...>& v) const noexcept
+  {
+    return impl(std::index_sequence_for<Ts...>{}, v);
+  }
+};
+
+/**
+ * Partial specialization for const-qualified `std::tuple<Ts&...>`.
+ *
+ * This is a special partial specialization that is intended to support the
+ * `parse_args()` overloads that take the result of `std::tie()` as required or
+ * optional arguments. The const-qualified tuple of references does not prevent
+ * modification of said references despite the tuple's const-qualification.
+ *
+ * @tparam Ts types
+ */
+template <typename... Ts>
+struct py_addrs_impl<const std::tuple<Ts&...>> {
+private:
+  /**
+   * Return a tuple of the raw Python argument addresses from the tuple values.
+   *
+   * @tparam Is Indices 0 through `sizeof...(Ts)` - 1
+   */
+  template <std::size_t... Is>
+  auto impl(
+    std::index_sequence<Is...>,
+    const std::tuple<Ts&...>& v) const noexcept
+  {
+    return py_addrs(std::get<Is>(v)...);
+  }
+
+public:
+  /**
+   * Return a tuple of the raw Python argument addresses from the tuple values.
+   *
+   * This function works recursively with `py_addrs()` and therefore allows
+   * handling a case where a tuple contains nested tuples.
+   */
+  auto operator()(const std::tuple<Ts&...>& v) const noexcept
   {
     return impl(std::index_sequence_for<Ts...>{}, v);
   }
@@ -639,11 +678,13 @@ inline constexpr const char* empty_string = "";
  *
  * @note This function is only for `METH_VARARGS | METH_KEYWORDS` functions.
  *
- * @tparam RTs... Required types
- * @tparam RIs... Indices 0 through sizeof...(RTs) - 1 for each type `RTs`
+ * @tparam RTs Required types
+ * @tparam RIs Indices 0 through `py_addrs_size<RTs...>` - 1
  * @tparam N Number of keyword arguments
- * @tparam OTs... Optional types
- * @tparam OIs... Indices 0 through sizeof...(OTs) - 1 for each type `OTs`
+ * @tparam PIs Indices 0 through `sizeof...(RTs)` - 1 for positional names
+ * @tparam KIs Indices 0 through `N` - 1 for keyword names
+ * @tparam OTs Optional types
+ * @tparam OIs Indices 0 through `py_addrs_size<OTs...>` - 1
  *
  * @param args Python required arguments
  * @param reqs Variable references to parse required arguments into
@@ -656,6 +697,8 @@ template <
   typename... RTs,
   std::size_t... RIs,
   std::size_t N,
+  std::size_t... PIs,
+  std::size_t... KIs,
   typename... OTs,
   std::size_t... OIs>
 bool parse_args(
@@ -663,30 +706,37 @@ bool parse_args(
   const std::tuple<RTs&...>& reqs,
   std::index_sequence<RIs...>,
   const char* (&kws)[N],
+  std::index_sequence<PIs...>,
+  std::index_sequence<KIs...>,
   PyObject* kwargs,
   const std::tuple<OTs&...>& opts,
   std::index_sequence<OIs...>) noexcept
 {
-  // counts of required and optional types
-  constexpr auto n_req = sizeof...(RTs);
-  constexpr auto n_opt = sizeof...(OTs);
-  // sanity checks
-  static_assert(n_req == sizeof...(RIs));
-  static_assert(n_opt == sizeof...(OIs));
-  static_assert(n_opt == N);
+  // sanity checks:
+  // 1. required indices must cover all required args passed to parse function
+  // 2. positional arg indices must cover all required arg pack types
+  // 3. keyword arg indices must equal number of keyword arg names
+  // 4. keyword arg indices must cover all optional arg pack types
+  // 5. optional indices must cover all optional args passed to parse function
+  static_assert(sizeof...(RIs) == py_addrs_size<RTs...>);
+  static_assert(sizeof...(PIs) == sizeof...(RTs));
+  static_assert(sizeof...(KIs) == N);
+  static_assert(sizeof...(KIs) == sizeof...(OTs));
+  static_assert(sizeof...(OIs) == py_addrs_size<OTs...>);
   // construct array of names. the positional args we force to be positional
-  // only by using "" and zero everything out. +1 for terminating nullptr
-  const char* names[n_req + n_opt + 1] = {empty_string<RIs>...};
-  // use fold expression to iterate over pack and set kwarg names
-  ((names[n_req + OIs] = kws[OIs]), ...);
+  // only by using "" via the empty_string<Is> expansion
+  const char* names[] = {empty_string<PIs>..., kws[KIs]..., nullptr};
+  // get tuples of addresses for PyArg_ParseTupleAndKeywords()
+  auto req_addrs = py_addrs(reqs);
+  auto opt_addrs = py_addrs(opts);
   // parse args and kwargs
   return !!PyArg_ParseTupleAndKeywords(
     args,
     kwargs,
     py_format<RTs..., py_optional_args, OTs...>,
     (char**) names,
-    &std::get<RIs>(reqs)...,
-    &std::get<OIs>(opts)...
+    std::get<RIs>(req_addrs)...,
+    std::get<OIs>(opt_addrs)...
   );
 }
 
@@ -719,11 +769,17 @@ bool parse_args(
   return detail::parse_args(
     args,
     reqs,
-    std::index_sequence_for<RTs...>{},
+    // indices 0, ... py_addrs_size<RTs...> - 1 for positional arg indexing
+    std::make_index_sequence<py_addrs_size<RTs...>>{},
     kws,
+    // indices 0, ... sizeof...(RTs) - 1 for positional arg name indexing
+    std::index_sequence_for<RTs...>{},
+    // indices 0, ... N - 1 for keyword arg name indexing
+    std::make_index_sequence<N>{},
     kwargs,
     opts,
-    std::index_sequence_for<OTs...>{}
+    // indices 0, ... py_addrs_size<OTs...> - 1 for optional arg indexing
+    std::make_index_sequence<py_addrs_size<OTs...>>{}
   );
 }
 
