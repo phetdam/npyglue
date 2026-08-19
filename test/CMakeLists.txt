@@ -339,9 +339,8 @@ add_test(NAME type_traits_test COMMAND type_traits_test)
 # traits_checker_filter_test: traits_checker test filtering experiments
 add_executable(traits_checker_filter_test traits_checker_filter_test.cc)
 target_link_libraries(traits_checker_filter_test PRIVATE npyglue)
-# note: this works well. see npygl_traits_checker_add_tests.cmake TODO comments
-# npygl_traits_checker_add_tests(traits_checker_filter_test)
-add_test(NAME traits_checker_filter_test COMMAND traits_checker_filter_test)
+# note: test names can be long so using the CTest --progress option helps
+npygl_traits_checker_add_tests(traits_checker_filter_test)
 # tests for -h, --help
 add_test(
     NAME traits_checker_filter_test_h
